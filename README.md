@@ -116,5 +116,15 @@ Every notebook in this catalog connects to one or more of eight unified foundati
 
 ---
 
+## Tooling & Architecture Workbench (`tools/`)
+
+### AI Architect Workbench (`tools/ai_architect_workbench/`)
+An interactive visual and programmatic workbench for designing custom AI architectures:
+- **Mix & Match:** Compose arbitrary combinations of Input/Output modalities (Text, Image, Video, Audio, Graph, Tabular, 3D, Robot Actions), backbones (MLA, Mamba-2 SSD, ConvNeXt, KAN), normalization, precision formats (FP8, BitNet b1.58, MXFP), and training/alignment setups (Muon, WSD, GRPO, PRM MCTS).
+- **Hardware-Aware Diagnostic & Recommender Engine:** Automatically cross-references the 12 Decision Matrices in `INDEX_BY_GOAL.md` to flag invalid/pathological configurations and recommend Pareto-optimal FLOP/VRAM improvements across target hardware (MCU/Edge, Mobile NPU, Consumer GPU, Data Center Cluster).
+- **Code Synthesis:** Exports ready-to-run, verified PyTorch 2 code with built-in `torch.compile` and quantization support.
+
+---
+
 ## License & Citation
 Licensed under the Apache 2.0 License. Designed for education, research, and production AI engineering.
