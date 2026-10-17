@@ -62,6 +62,8 @@ select = [
 ignore = [
     "ANN401", # dynamically typed expressions (typing.Any)
     "E501",   # line length violations handled by ruff format
+    "F722",   # syntax error in forward annotation (jaxtyping shape strings)
+    "UP037",  # remove quotes from type annotation (breaks jaxtyping shapes)
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -73,12 +75,17 @@ ignore = [
 python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = false
+explicit_package_bases = true
 disallow_untyped_defs = false
 check_untyped_defs = true
 
 [[tool.mypy.overrides]]
-module = ["torch.*", "scipy.*", "safetensors.*", "einops.*", "tabulate.*", "jax.*", "equinox.*", "optax.*", "onnx.*", "onnxruntime.*"]
+module = ["torch.*", "scipy.*", "safetensors.*", "einops.*", "tabulate.*", "jax", "jax.*", "equinox.*", "optax.*", "onnx.*", "onnxruntime.*"]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["jax.*"]
+disable_error_code = ["attr-defined"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
