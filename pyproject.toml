@@ -8,6 +8,7 @@ version = "0.1.0"
 description = "Deterministic, zero-overhead core utilities and micro-generators for AI-Examples"
 readme = "README.md"
 requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
 authors = [
     { name = "AI-Examples Contributors" }
 ]
@@ -21,6 +22,65 @@ dependencies = [
     "jupytext>=1.16.0"
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "ruff>=0.3.0",
+    "mypy>=1.9.0",
+    "jaxtyping>=0.2.28",
+    "nbformat>=5.9.0",
+    "nbstripout>=0.7.1",
+    "pre-commit>=3.6.0",
+    "onnx>=1.15.0",
+    "onnxruntime>=1.17.0"
+]
+jax = [
+    "jax>=0.4.25",
+    "equinox>=0.11.0",
+    "optax>=0.2.0"
+]
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["core*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "ANN", # flake8-annotations (type hints)
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
+ignore = [
+    "ANN401", # dynamically typed expressions (typing.Any)
+    "E501",   # line length violations handled by ruff format
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["ANN", "B"]
+"scripts/*" = ["ANN201", "B007", "F401"]
+"notebooks/*" = ["ANN", "E741"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = false
+disallow_untyped_defs = false
+check_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = ["torch.*", "scipy.*", "safetensors.*", "einops.*", "tabulate.*", "jax.*", "equinox.*", "optax.*", "onnx.*", "onnxruntime.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-v --durations=10"

@@ -1,8 +1,16 @@
-"""Core package for AI-Examples: deterministic micro-generators, metrics, and benchmarks."""
+"""Core package for AI-Examples: deterministic micro-generators, metrics, benchmarks, parity, and export."""
 
+from __future__ import annotations
+
+from core import benchmark, data, export, metrics, parity
 from core.env import EnvInfo, setup_env
-from core import data
-from core import metrics
-from core import benchmark
 
-__all__ = ["EnvInfo", "setup_env", "data", "metrics", "benchmark"]
+__all__ = [
+    "EnvInfo",
+    "setup_env",
+    "data",
+    "metrics",
+    "benchmark",
+    "parity",
+    "export",
+]

@@ -5,19 +5,20 @@ repos:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
+      - id: check-json
       - id: check-added-large-files
-        args: ['--maxkb=500']
+        args: ['--maxkb=1000']
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.4
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
 
   - repo: https://github.com/kynan/nbstripout
     rev: 0.7.1
     hooks:
       - id: nbstripout
+        files: '^notebooks/.*\.ipynb$'
         description: "Strip execution counts and output cells from Jupyter notebooks"
-
-  - repo: https://github.com/mwouts/jupytext
-    rev: v1.16.2
-    hooks:
-      - id: jupytext
-        name: jupytext sync (.ipynb <-> .py:percent)
-        args: [--sync]
-        files: '^(0[0-9]|1[0-7])_.*\.ipynb$'

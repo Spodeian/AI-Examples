@@ -31,15 +31,21 @@ env/
 */.ipynb_checkpoints/*
 *-checkpoint.ipynb
 
-# PyTest / Coverage
+# PyTest / Coverage / Type Checking
 .pytest_cache/
 .coverage
 htmlcov/
+.mypy_cache/
+.ruff_cache/
 
 # PyTorch / Inductor / Triton cache
 .torch/
 torch_compile_debug/
 triton_cache/
+
+# Rust / Cargo
+target/
+Cargo.lock
 
 # IDE
 .vscode/
@@ -52,9 +58,14 @@ Thumbs.db
 Desktop.ini
 .DS_Store
 
-# Temporary scratch data and models
+# Temporary scratch data and large weights (keep micro safetensors)
 *.pt
+*.pth
+*.ckpt
 *.bin
 *.tmp
 temp/
 scratch/
+
+# Preserved golden checkpoints
+!weights/**/*.safetensors

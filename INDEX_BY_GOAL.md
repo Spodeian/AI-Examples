@@ -87,18 +87,33 @@ This guide routes you directly to the correct notebook and architectural pattern
 ### Matrix 10: Model Surgery, Safety & Interpretability Interventions
 | Intervention Objective | Intervention Stage | Mechanistic Mechanism | Recommended Notebook |
 | :--- | :--- | :--- | :--- |
-| Eradicate refusal / jailbreak behavior | Post-training inference | Residual stream direction subtraction | `11_ai_safety_privacy_and_verification/04_abliteration_and_refusal_surgery.ipynb` |
-| Factual knowledge update (e.g. Paris $\to$ Rome) | Zero-retraining model edit | Rank-1 MLP second-layer projection (ROME) | `10_xai_and_ai_analysis_methods/06_ai_brain_surgery_and_direct_knowledge_editing_rome_memit.ipynb` |
-| Machine unlearning / privacy compliance | Fine-tuning stage | Fisher information weight scrubbing | `11_ai_safety_privacy_and_verification/06_machine_unlearning_and_privacy_scrubbing.ipynb` |
-| Safety counter-defense against abliteration | Training stage | Safety Circuit Breakers & representation entanglement | `11_ai_safety_privacy_and_verification/05_safety_circuit_breakers_and_representation_entanglement.ipynb` |
+| Eradicate refusal / jailbreak behavior | Post-training inference | Residual stream direction subtraction | `11_ai_safety_privacy_and_verification/04_abliteration_refusal_surgery_circuit_breakers_and_sleeper_agents.ipynb` |
+| Factual knowledge update (e.g. Paris $\to$ Rome) | Zero-retraining model edit | Rank-1 MLP second-layer projection (ROME / MEMIT) | `10_xai_and_ai_analysis_methods/06_ai_brain_surgery_knowledge_editing_rome_memit_and_stitching.ipynb` |
+| Machine unlearning / hazardous knowledge erasure | Fine-tuning stage | Negative Preference Optimization (`NPO`) / RMU | `11_ai_safety_privacy_and_verification/03_machine_unlearning_sisa_influence_scrub_npo_and_rmu.ipynb` |
+| Safety counter-defense against abliteration & sleeper agents | Training stage | Safety Circuit Breakers & representation entanglement | `11_ai_safety_privacy_and_verification/04_abliteration_refusal_surgery_circuit_breakers_and_sleeper_agents.ipynb` |
+| Clean-label poisoning & trojan backdoor defense | Pre-training & Post-training | Neural Cleanse $L_1$ trigger inversion, STRIP entropy & Spectral Signatures | `11_ai_safety_privacy_and_verification/06_backdoor_trojan_and_poisoning_defense_neural_cleanse_and_spectral.ipynb` |
+| Provable provenance & synthetic watermarking across modalities | Generation time | Green/Red-list logit bias, Gumbel, Tree-Ring FFT & AudioSeal | `11_ai_safety_privacy_and_verification/08_ai_watermarking_ai_detection_and_model_obfuscation.ipynb` |
+| Zero-shot AI-generated text/image/audio detection | Test time | Likelihood curvature (`Fast-DetectGPT`), `Binoculars` & Spectral Artifacts | `11_ai_safety_privacy_and_verification/08_ai_watermarking_ai_detection_and_model_obfuscation.ipynb` |
+| Model weight protection & anti-distillation | Model distribution | Passport Layers, Honeypot Weights & Proof-of-Weights | `11_ai_safety_privacy_and_verification/08_ai_watermarking_ai_detection_and_model_obfuscation.ipynb` |
+| Provable deterministic safety verification | Post-training certificate | Interval Bound Propagation (`IBP`) & CROWN linear relaxation | `11_ai_safety_privacy_and_verification/02_formal_neural_verification_ibp_and_crown_bound_propagation.ipynb` |
+| Forward-invariant safety guarantees in robotics/control | Control loop | Differentiable Control Barrier Functions (`CBF-QP`) | `11_ai_safety_privacy_and_verification/05_safe_rl_constrained_mdp_ppo_lagrangian_cvar_and_cbf.ipynb` |
+| Cryptographic verifiable inference without revealing weights | Inference verification | Finite-field arithmetic circuits & Freivalds' $O(n^2)$ check (`ZKML`) | `11_ai_safety_privacy_and_verification/10_cryptographic_verifiable_ai_zkml_freivalds_and_homomorphic_ckks.ipynb` |
+| Zero-trust private inference on encrypted data | Encrypted inference | Ring-LWE polynomial evaluation (`CKKS` Homomorphic Encryption) | `11_ai_safety_privacy_and_verification/10_cryptographic_verifiable_ai_zkml_freivalds_and_homomorphic_ckks.ipynb` |
 
 ### Matrix 11: Mechanistic Interpretability & Circuit Discovery
 | Interpretability Question | Analysis Level | Diagnostic Tool | Recommended Notebook |
 | :--- | :--- | :--- | :--- |
-| Is a concept linearly represented in activations? | Layer representation | Linear probing | `10_xai_and_ai_analysis_methods/07_probing_and_representation_geometry.ipynb` |
-| When does the model commit to an output token? | Token-by-token layer progression | Logit lens projection | `10_xai_and_ai_analysis_methods/08_layer_dynamics_logit_lens_and_tuned_lens.ipynb` |
-| How to disentangle polysemantic superposition? | Feature dictionary | Sparse Autoencoder (SAE) | `10_xai_and_ai_analysis_methods/05_sparse_autoencoders_sae.ipynb` |
-| Which attention heads execute in-context copying? | Circuit mechanism | Induction head eigenvalue analysis | `05_architectures/04_transformers_and_heads/05_specialized_transformer_heads_induction_mtp.ipynb` |
+| How much does each input feature contribute to the prediction? | Local feature level | LIME, Exact Shapley & KernelSHAP | `10_xai_and_ai_analysis_methods/01_xai_local_surrogates_lime_shap_and_perturbation_masks.ipynb` |
+| Do explanations reflect actual model decision rules vs cosmetic heuristics? | Explanation evaluation | Faithfulness Correlation, Monotonicity & Remove-and-Retrain (`ROAR`) | `10_xai_and_ai_analysis_methods/01_xai_local_surrogates_lime_shap_and_perturbation_masks.ipynb` |
+| Which input tokens/pixels propagate relevance without gradient shattering? | Axiomatic gradient flow | Integrated Gradients (`IG`), LRP ($\epsilon/\gamma/\alpha\beta$) & Grad-CAM++ | `10_xai_and_ai_analysis_methods/02_xai_gradient_propagation_ig_lrp_deeplift_gradcam_and_attention.ipynb` |
+| Are saliency maps sensitive to model weights vs. class-agnostic edge detectors? | Model sanity checks | Adebayo Cascading Model Parameter & Data Randomization Tests | `10_xai_and_ai_analysis_methods/02_xai_gradient_propagation_ig_lrp_deeplift_gradcam_and_attention.ipynb` |
+| Is a high-level human concept used in latent representations? | Concept level | Testing with Concept Activation Vectors (`TCAV`) & Concept Bottlenecks | `10_xai_and_ai_analysis_methods/03_xai_concepts_tcav_cbm_counterfactuals_dice_and_global_ale.ipynb` |
+| Which training samples caused this specific test error or hallucination? | Training data attribution | Influence Functions via LiSSA, TracIn & TRAK | `10_xai_and_ai_analysis_methods/04_xai_data_attribution_influence_functions_tracin_and_trak.ipynb` |
+| How to disentangle polysemantic superposition across layers? | Feature dictionary | Sparse Autoencoders (`L1`, `Top-K`, `JumpReLU`), Transcoders & Cross-Coders | `10_xai_and_ai_analysis_methods/05_mechanistic_interpretability_probing_lens_patching_and_sae.ipynb` |
+| When does the model commit to an output token across depth? | Token-by-token layer progression | Direct Logit Attribution (`DLA`), Logit Lens & Tuned Lens | `10_xai_and_ai_analysis_methods/05_mechanistic_interpretability_probing_lens_patching_and_sae.ipynb` |
+| Which attention heads and circuits mediate factual recall? | Circuit mechanism | Fast Attribution Patching ($\Delta \mathcal{L} \approx \Delta a^T \nabla_a \mathcal{L}$) & Induction Heads | `10_xai_and_ai_analysis_methods/05_mechanistic_interpretability_probing_lens_patching_and_sae.ipynb` |
+| How to diagnose layer training health with zero test data? | Weight spectrum | Heavy-Tailed RMT (`WeightWatcher` power-law $\alpha$) & Neural Collapse ETF | `10_xai_and_ai_analysis_methods/08_ai_analysis_neural_collapse_superposition_and_weightwatcher_rmt.ipynb` |
+| How to track internal circuit emergence across training phase transitions? | Algebraic topology & geometry | Singular Learning Theory Local Learning Coefficient (`LLC`) & TDA Betti curves | `10_xai_and_ai_analysis_methods/12_topological_data_analysis_persistent_homology_and_singular_learning_llc.ipynb` |
 
 ### Matrix 12: Production Serving & System Topologies
 | Deployment Target | Primary Constraint | Optimization Pattern | Recommended Notebook |

@@ -1,6 +1,9 @@
-"""Standardized quantitative verification metrics and invariant checkers."""
+"""Standardized quantitative verification metrics, numerical invariants, and parity evaluators."""
 
-import math
+from __future__ import annotations
+
+from typing import cast
+
 import torch
 
 
@@ -84,7 +87,7 @@ def linear_cka(X: torch.Tensor, Y: torch.Tensor, eps: float = 1e-12) -> float:
 
 
 def effective_rank(matrix: torch.Tensor, eps: float = 1e-12) -> float:
-    """Computes Roy & Vetterli effective rank = exp(Shannon entropy of singular values)."""
+    """Computes Roy & Vetterli effective rank = exp(Shannon entropy of normalized singular values)."""
     if matrix.ndim != 2:
         raise ValueError("Matrix must be 2D")
     s = torch.linalg.svdvals(matrix.to(dtype=torch.float64))
@@ -108,7 +111,6 @@ def simplex_etf_error(
 
     Ideal mutual angles: cos(theta_{i, j}) = -1 / (K - 1) for i != j.
     """
-    # Compute normalized class means
     d = features.shape[-1]
     means = torch.zeros(n_classes, d, dtype=torch.float64)
     for c in range(n_classes):
@@ -132,3 +134,33 @@ def simplex_etf_error(
         err = torch.mean(torch.abs(cosines[off_diag_mask] - ideal_cosine))
         return float(err.item())
     return 0.0
+
+
+def relative_l2_error(y_true: torch.Tensor, y_pred: torch.Tensor, eps: float = 1e-12) -> float:
+    """Computes relative L2 Frobenius error: ||y_true - y_pred||_2 / (||y_true||_2 + eps)."""
+    diff = y_true.to(dtype=torch.float64) - y_pred.to(dtype=torch.float64)
+    norm_diff = torch.norm(diff, p=2)
+    norm_true = torch.norm(y_true.to(dtype=torch.float64), p=2) + eps
+    return float((norm_diff / norm_true).item())
+
+
+def cosine_similarity_matrix(a: torch.Tensor, b: torch.Tensor, eps: float = 1e-12) -> torch.Tensor:
+    """Computes pairwise cosine similarity matrix between row vectors of a [M, D] and b [N, D]."""
+    a_norm = a / (torch.norm(a, p=2, dim=-1, keepdim=True) + eps)
+    b_norm = b / (torch.norm(b, p=2, dim=-1, keepdim=True) + eps)
+    return cast(torch.Tensor, a_norm @ b_norm.t())
+
+
+def wasserstein_1d(u_values: torch.Tensor, v_values: torch.Tensor) -> float:
+    """Computes 1D Wasserstein-1 (Earth Mover's) distance between empirical distributions."""
+    u_sorted, _ = torch.sort(u_values.detach().flatten().to(dtype=torch.float64))
+    v_sorted, _ = torch.sort(v_values.detach().flatten().to(dtype=torch.float64))
+
+    # Evaluate CDF difference along joint sorted values
+    all_vals, _ = torch.sort(torch.cat([u_sorted, v_sorted]))
+    u_cdf = torch.searchsorted(u_sorted, all_vals, right=True).double() / len(u_sorted)
+    v_cdf = torch.searchsorted(v_sorted, all_vals, right=True).double() / len(v_sorted)
+
+    deltas = all_vals[1:] - all_vals[:-1]
+    cdf_diffs = torch.abs(u_cdf[:-1] - v_cdf[:-1])
+    return float(torch.sum(deltas * cdf_diffs).item())

@@ -1,8 +1,9 @@
 """Deterministic environment setup and device capability detection for AI-Examples."""
 
-from dataclasses import dataclass
 import os
 import random
+from dataclasses import dataclass
+
 import numpy as np
 import torch
 
