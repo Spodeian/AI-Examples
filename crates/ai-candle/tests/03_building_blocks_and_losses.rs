@@ -11,3 +11,6 @@ mod test_03_weight_initialization_and_mup_scaling;
 
 #[path = "03_building_blocks_and_losses/test_04_positional_and_structural_encodings.rs"]
 mod test_04_positional_and_structural_encodings;
+
+#[path = "03_building_blocks_and_losses/test_05_pooling_and_downsampling_operators.rs"]
+mod test_05_pooling_and_downsampling_operators;

@@ -100,5 +100,8 @@ pub mod c03_building_blocks_and_losses {
 
     #[path = "04_positional_and_structural_encodings.rs"]
     pub mod t04_positional_and_structural_encodings;
+
+    #[path = "05_pooling_and_downsampling_operators.rs"]
+    pub mod t05_pooling_and_downsampling_operators;
 }
 

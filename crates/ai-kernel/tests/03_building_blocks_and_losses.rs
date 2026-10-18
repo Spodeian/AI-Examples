@@ -303,3 +303,70 @@ fn test_04_positional_and_structural_encodings_cpu_and_auto() -> Result<()> {
 
     Ok(())
 }
+
+use ai_kernel::c03_building_blocks_and_losses::t05_pooling_and_downsampling_operators as t05;
+
+#[test]
+fn test_05_pooling_and_downsampling_operators_cpu_and_auto() -> Result<()> {
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "03_building_blocks_and_losses/05_pooling_and_downsampling_operators.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    let test_in = tensors.get("test_input").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+    let test_out = tensors.get("test_output").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+    let weight = tensors.get("weight").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+    let bias = tensors.get("bias").unwrap().to_vec1::<f32>()?;
+
+    let x_gem = tensors.get("x_gem").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let p_gem = tensors.get("p_gem").unwrap().to_vec1::<f32>()?[0];
+    let y_gem_gold = tensors.get("y_gem").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let x_blur = tensors.get("x_blur").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let blur_kernel = tensors.get("blur_kernel").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let y_blur_gold = tensors.get("y_blur").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let x_pixel = tensors.get("x_pixel").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let y_pixel_gold = tensors.get("y_pixel").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let x_pma = tensors.get("x_pma").unwrap().to_vec3::<f32>()?.into_iter().flatten().flatten().collect::<Vec<f32>>();
+    let s_seed = tensors.get("s_seed").unwrap().to_vec3::<f32>()?.into_iter().flatten().flatten().collect::<Vec<f32>>();
+    let y_pma_gold = tensors.get("y_pma").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+
+    // 1. Linear Anchor on CPU
+    let anchor_calc = t05::linear_anchor_forward_cpu(&test_in, &weight, &bias, 4, 8, 4);
+    for (i, (&calc, &gold)) in anchor_calc.iter().zip(test_out.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Linear anchor error at {i}: {calc} vs {gold}");
+    }
+
+    // 2. GeM on CPU and Auto
+    let gem_calc = t05::gem_pool_cpu(&x_gem, 2, 2, 4, 4, p_gem, 1e-6);
+    for (i, (&calc, &gold)) in gem_calc.iter().zip(y_gem_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "GeM CPU error at {i}: {calc} vs {gold}");
+    }
+    let gem_auto = pollster::block_on(t05::gem_pool_auto(None, &x_gem, 2, 2, 4, 4, p_gem, 1e-6));
+    for (i, (&calc, &gold)) in gem_auto.iter().zip(y_gem_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "GeM Auto error at {i}: {calc} vs {gold}");
+    }
+
+    // 3. BlurPool on CPU
+    let blur_calc = t05::blur_pool_cpu(&x_blur, &blur_kernel, 2, 2, 6, 6, 2);
+    for (i, (&calc, &gold)) in blur_calc.iter().zip(y_blur_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "BlurPool error at {i}: {calc} vs {gold}");
+    }
+
+    // 4. PixelUnshuffle on CPU
+    let pixel_calc = t05::pixel_unshuffle_cpu(&x_pixel, 2, 2, 4, 4, 2);
+    for (i, (&calc, &gold)) in pixel_calc.iter().zip(y_pixel_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "PixelUnshuffle error at {i}: {calc} vs {gold}");
+    }
+
+    // 5. PMA Attention Pooling on CPU
+    let pma_calc = t05::pma_cpu(&x_pma, &s_seed, 2, 4, 8);
+    for (i, (&calc, &gold)) in pma_calc.iter().zip(y_pma_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "PMA error at {i}: {calc} vs {gold}");
+    }
+
+    Ok(())
+}
