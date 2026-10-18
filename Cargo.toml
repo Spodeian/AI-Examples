@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "crates/ai-architect-schema",
+    "crates/ai-candle",
 ]
 resolver = "2"
 

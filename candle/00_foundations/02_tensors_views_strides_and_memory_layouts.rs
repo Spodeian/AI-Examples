@@ -3,9 +3,20 @@
 //! Demonstrates physical tensor memory layouts, linear stride arithmetic,
 //! contiguous vs transposed non-contiguous tensors, and sliding window extractions.
 
-use candle_core::{Device, Result, Tensor};
+use candle_core::{Result, Tensor};
 
 /// Utility for analyzing memory layout and stride arithmetic.
+///
+/// # Example
+/// ```rust
+/// use ai_candle::c00_foundations::t02_tensors_views_strides_and_memory_layouts::MemoryLayout;
+///
+/// let shape = vec![2, 3, 4];
+/// let strides = MemoryLayout::standard_strides(&shape);
+/// assert_eq!(strides, vec![12, 4, 1]);
+/// let idx = MemoryLayout::linear_index(&[1, 2, 3], &strides);
+/// assert_eq!(idx, 1 * 12 + 2 * 4 + 3 * 1);
+/// ```
 pub struct MemoryLayout;
 
 impl MemoryLayout {
@@ -46,6 +57,7 @@ impl MemoryLayout {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use candle_core::Device;
 
     #[test]
     fn test_stride_arithmetic() {

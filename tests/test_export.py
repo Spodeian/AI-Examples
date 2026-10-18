@@ -16,7 +16,8 @@ class SimpleMLP(nn.Module):
         self.fc2 = nn.Linear(hidden, out_features)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.fc2(self.act(self.fc1(x)))
+        out: torch.Tensor = self.fc2(self.act(self.fc1(x)))
+        return out
 
 
 def test_torch_export_clean_graph() -> None:

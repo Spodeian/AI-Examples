@@ -3,9 +3,22 @@
 //! Demonstrates reverse-mode Vector-Jacobian Product (VJP) mechanics,
 //! analytical gradient calculations, and complex Wirtinger derivatives.
 
-use candle_core::{Device, Result, Tensor};
+use candle_core::{Result, Tensor};
 
 /// Analytical Vector-Jacobian Product (VJP) evaluator for linear projections.
+///
+/// # Example
+/// ```rust
+/// use candle_core::{Device, Tensor};
+/// use ai_candle::c00_foundations::t03_autograd_mechanics_complex_wirtinger_and_custom_functions::LinearVjp;
+///
+/// let device = Device::Cpu;
+/// let x = Tensor::new(&[[1.0f32, 2.0f32]], &device).unwrap();
+/// let w = Tensor::new(&[[0.5f32], [1.5f32]], &device).unwrap();
+/// let b = Tensor::new(&[0.1f32], &device).unwrap();
+/// let y = LinearVjp::forward(&x, &w, &b).unwrap();
+/// assert_eq!(y.to_vec2::<f32>().unwrap(), vec![vec![3.6f32]]);
+/// ```
 pub struct LinearVjp;
 
 impl LinearVjp {
@@ -40,6 +53,7 @@ impl LinearVjp {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use candle_core::Device;
 
     #[test]
     fn test_analytical_linear_vjp() -> Result<()> {
@@ -48,7 +62,7 @@ mod tests {
         let w = Tensor::new(&[[0.5f32, -0.5], [1.0, 0.0]], &device)?;
         let b = Tensor::new(&[0.1f32, -0.1], &device)?;
 
-        let y = LinearVjp::forward(&x, &w, &b)?;
+        let _y = LinearVjp::forward(&x, &w, &b)?;
         let g = Tensor::new(&[[1.0f32, 1.0], [1.0, 1.0]], &device)?;
 
         let (dx, dw, db) = LinearVjp::backward(&g, &x, &w)?;

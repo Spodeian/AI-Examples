@@ -6,9 +6,23 @@
 //!     x = (y - b) @ W^{-1}
 //! and foundational invertible coordinate normalization transforms.
 
-use candle_core::{DType, Device, Result, Tensor};
+use candle_core::{Result, Tensor};
 
 /// Linear affine projection layer with forward and inverse passes.
+///
+/// # Example
+/// ```rust
+/// use candle_core::{Device, Tensor};
+/// use ai_candle::c00_foundations::t01_linear_neuron_and_invertible_transforms::LinearNeuron;
+///
+/// let device = Device::Cpu;
+/// let weight = Tensor::new(&[[2.0f32]], &device).unwrap();
+/// let bias = Tensor::new(&[0.5f32], &device).unwrap();
+/// let neuron = LinearNeuron::new(weight, bias);
+/// let x = Tensor::new(&[[1.0f32]], &device).unwrap();
+/// let y = neuron.forward(&x).unwrap();
+/// assert_eq!(y.to_vec2::<f32>().unwrap(), vec![vec![2.5f32]]);
+/// ```
 pub struct LinearNeuron {
     pub weight: Tensor, // [in_dim, out_dim]
     pub bias: Tensor,   // [out_dim]
@@ -84,6 +98,7 @@ impl CoordinateTransforms {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use candle_core::Device;
 
     #[test]
     fn test_affine_forward_and_inverse_roundtrip() -> Result<()> {
@@ -97,7 +112,7 @@ mod tests {
         let y = neuron.forward(&x)?;
         let x_rec = neuron.inverse_1d(&y)?;
 
-        let diff = (x.sub(&x_rec))?.abs()?.max(0)?.to_scalar::<f32>()?;
+        let diff = (x.sub(&x_rec))?.abs()?.flatten_all()?.max(0)?.to_scalar::<f32>()?;
         assert!(diff < 1e-5, "Reconstruction error {} exceeds 1e-5", diff);
         Ok(())
     }
@@ -109,7 +124,7 @@ mod tests {
         let (normed, mean, std) = CoordinateTransforms::z_score(&x, 1e-7)?;
         let x_rec = CoordinateTransforms::undo_z_score(&normed, &mean, &std)?;
 
-        let diff = (x.sub(&x_rec))?.abs()?.max(0)?.to_scalar::<f32>()?;
+        let diff = (x.sub(&x_rec))?.abs()?.flatten_all()?.max(0)?.to_scalar::<f32>()?;
         assert!(diff < 1e-5, "Z-Score reconstruction error {} exceeds 1e-5", diff);
         Ok(())
     }

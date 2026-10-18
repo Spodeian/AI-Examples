@@ -1,5 +1,9 @@
 # Index by Goal: Decision Matrices & Diagnostic Troubleshooting Guide
 
+[![Catalog Progress](https://img.shields.io/badge/Progress-3%2F263%20Topics-blue.svg)](README.md)
+[![Parity Invariant](https://img.shields.io/badge/Parity-4--Way%20Transitive%20%3C1e--5-success.svg)](tests/test_cross_track_parity.py)
+[![Rust Engine](https://img.shields.io/badge/Candle%20Rust-Passing-success.svg)](crates/ai-candle)
+
 This guide routes you directly to the correct notebook and architectural pattern based on **what you are trying to achieve** or **what specific failure mode you are experiencing**.
 
 ---
@@ -66,7 +70,7 @@ This guide routes you directly to the correct notebook and architectural pattern
 | Medical / Legal classification | 1 forward pass | Finite-sample distribution-free coverage ($1 - \alpha$) | `01_paradigms_and_dichotomies/11_statistical_inference_bayesian_frequentist_likelihoodist_mdl_and_pac_bayes.ipynb` |
 | Bayesian posterior exploration | Moderate ($5\text{--}10$ stochastic passes) | Epistemic parameter uncertainty | `02_classical_and_probabilistic_ml/12_mcmc_hmc_sgld_and_stein_variational_gradient_descent_svgd.ipynb` |
 | Single-pass epistemic priors | Minimal ($1\times$ forward pass) | Dirichlet / Normal-Inverse-Gamma | `03_building_blocks_and_losses/11_losses_proper_scoring_evidential_and_differentiable_ranking.ipynb` |
-| Post-hoc confidence calibration | Negligible (single scalar optimization) | Minimum Expected Calibration Error | `00_foundations/01_linear_neuron_and_invertible_transforms.ipynb` |
+| Post-hoc confidence calibration | Negligible (single scalar optimization) | Minimum Expected Calibration Error | `notebooks/00_foundations/01_linear_neuron_and_invertible_transforms.ipynb` |
 
 ### Matrix 8: Graph & Geometric Deep Learning (5Gs)
 | Domain Geometry | Symmetry Group | Invariant vs Equivariant | Recommended Notebook |
@@ -130,7 +134,7 @@ This guide routes you directly to the correct notebook and architectural pattern
 ### Training Stability & Gradient Diagnostics
 1. **Loss produces `NaN` or `Inf` immediately:**
    - *Cause:* Unnormalized inputs, learning rate too high, or unclipped numerical operations (`log(0)`, `exp(x)` overflow).
-   - *Remedy:* Inspect `00_foundations/01_linear_neuron_and_invertible_transforms.ipynb` for bounded transforms and `00_foundations/10_reproducibility_determinism_and_numerical_stability.ipynb`.
+   - *Remedy:* Inspect `notebooks/00_foundations/01_linear_neuron_and_invertible_transforms.ipynb` for bounded transforms and `00_foundations/10_reproducibility_determinism_and_numerical_stability.ipynb`.
 2. **Vanishing gradients in deep recurrent or deep residual networks:**
    - *Cause:* Repeated matrix multiplications with spectral radius $\rho(W) < 1.0$.
    - *Remedy:* See `05_architectures/03_recurrent_ssm_and_memory/01_modern_xlstm_mlstm.ipynb` and `03_building_blocks_and_losses/02_normalization_layers_complete.ipynb`.

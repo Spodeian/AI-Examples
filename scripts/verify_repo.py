@@ -140,6 +140,70 @@ def validate_notebook_structure(path: Path) -> list[str]:
     return errors
 
 
+def validate_notebook_semantics(path: Path) -> list[str]:
+    """Validates semantic depth and contract adherence for all 8 notebook cells."""
+    errors = []
+    try:
+        with open(path, encoding="utf-8") as f:
+            nb = json.load(f)
+    except Exception as e:
+        return [f"Invalid JSON: {e}"]
+
+    cells = nb.get("cells", [])
+    if len(cells) != 8:
+        return [f"Semantic audit requires exactly 8 cells, found {len(cells)}"]
+
+    # Cell 1: Citations, Purpose, Decision Boundary
+    c1_text = "".join(cells[0].get("source", []))
+    if not any(k in c1_text for k in ["Citation", "Lineage", "Author", "19", "20"]):
+        errors.append("Cell 1: Missing historical lineage or seminal citations")
+    if not any(
+        k in c1_text for k in ["Decision Boundary", "When NOT to use", "When to Use", "WARNING"]
+    ):
+        errors.append("Cell 1: Missing formal decision boundary ('When NOT to use')")
+
+    # Cell 2: LaTeX math & asymptotic complexity
+    c2_text = "".join(cells[1].get("source", []))
+    if "$$" not in c2_text:
+        errors.append("Cell 2: Missing KaTeX display math formulation ($$...$$)")
+    if not any(k in c2_text for k in ["\\mathcal{O}", "O(", "Complexity"]):
+        errors.append("Cell 2: Missing asymptotic time/memory complexity analysis O(...)")
+
+    # Cell 3: Deterministic setup & micro-data generator
+    c3_text = "".join(cells[2].get("source", []))
+    if not any(k in c3_text for k in ["seed", "setup_env"]):
+        errors.append("Cell 3: Missing deterministic RNG seeding (seed 42)")
+
+    # Cell 5: Quantitative mathematical assertions
+    c5_text = "".join(cells[4].get("source", []))
+    if "assert" not in c5_text:
+        errors.append("Cell 5: Missing quantitative mathematical assertions (assert)")
+
+    # Cell 6: Performance micro-benchmark
+    c6_text = "".join(cells[5].get("source", []))
+    if not any(k in c6_text for k in ["benchmark", "perf_counter", "latency", "time", "p50"]):
+        errors.append("Cell 6: Missing performance micro-benchmark profiling")
+
+    # Cell 7: Failure contrast & active failure assertion
+    c7_text = "".join(cells[6].get("source", []))
+    if not any(
+        k in c7_text
+        for k in ["Misuse", "Failure", "FAILURE", "Unnormalized", "Anti-Pattern", "Contrasting"]
+    ):
+        errors.append("Cell 7: Missing misuse/failure mode documentation")
+    if "assert" not in c7_text:
+        errors.append("Cell 7: Missing active programmatic failure assertion")
+
+    # Cell 8: Takeaways & navigation
+    c8_text = "".join(cells[7].get("source", []))
+    if not any(k in c8_text for k in ["Takeaways", "Key Takeaways"]):
+        errors.append("Cell 8: Missing key takeaways summary")
+    if not any(k in c8_text for k in ["Master Index", "README.md", "Navigation", "Curriculum"]):
+        errors.append("Cell 8: Missing curriculum navigation footer")
+
+    return errors
+
+
 def validate_markdown_structure(path: Path) -> list[str]:
     """Validates adherence to the 8-section Markdown contract."""
     errors = []
@@ -246,6 +310,16 @@ def main() -> None:
     parser.add_argument(
         "--check-links", action="store_true", help="Validate internal relative links"
     )
+    parser.add_argument(
+        "--check-semantics",
+        action="store_true",
+        help="Validate semantic depth and educational contract for all notebook cells",
+    )
+    parser.add_argument(
+        "--check-candle",
+        action="store_true",
+        help="Run native Rust Candle test suite via cargo test -p ai-candle",
+    )
     parser.add_argument("--path", type=str, default=".", help="Root directory or specific file")
     args = parser.parse_args()
 
@@ -278,7 +352,34 @@ def main() -> None:
         else:
             print("[PASS] All relative documentation links resolve.")
 
-    # 3. Notebook validation
+    # 3. Candle test check
+    if args.check_candle:
+        print("Running native Rust Candle test suite (ai-candle)...")
+        import os
+        import shutil
+        import subprocess
+
+        cargo_bin = shutil.which("cargo")
+        if cargo_bin is None:
+            print("[FAIL] cargo binary not found on PATH")
+            failed = True
+        else:
+            env = os.environ.copy()
+            env["RUSTC_WRAPPER"] = ""
+            res = subprocess.run(
+                [cargo_bin, "test", "-p", "ai-candle"],
+                capture_output=True,
+                text=True,
+                env=env,
+                check=False,
+            )
+            if res.returncode != 0:
+                print(f"[FAIL] Candle test suite failed:\n{res.stderr}\n{res.stdout}")
+                failed = True
+            else:
+                print("[PASS] Native Candle test suite and doc-tests passed.")
+
+    # 4. Notebook validation
     if root.is_file() and root.suffix == ".ipynb":
         notebooks = [root]
     elif root.is_dir():
@@ -298,8 +399,12 @@ def main() -> None:
             rel_path = nb_path.relative_to(root) if root.is_dir() else nb_path
             errors = validate_notebook_structure(nb_path)
 
+            if args.check_semantics:
+                sem_errors = validate_notebook_semantics(nb_path)
+                errors.extend(sem_errors)
+
             if errors:
-                print(f"[FAIL] {rel_path} - Structure errors:")
+                print(f"[FAIL] {rel_path} - Contract errors:")
                 for err in errors:
                     print(f"       - {err}")
                 failed = True
@@ -313,7 +418,7 @@ def main() -> None:
                     continue
                 print(f"[PASS] {rel_path} (Execution: {duration:.2f}s, budget: {args.timeout}s)")
             else:
-                print(f"[PASS] {rel_path} (Structure OK)")
+                print(f"[PASS] {rel_path} (Contract OK)")
 
     if failed:
         sys.exit(1)

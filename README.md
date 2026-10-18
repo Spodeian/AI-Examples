@@ -1,6 +1,17 @@
-# AI-Examples: The Exhaustive, Production-Grade PyTorch 2 Catalog
+# AI-Examples: The Exhaustive, Multi-Track AI & Deep Learning Catalog
 
-A mathematically rigorous, completely deterministic, zero-external-download catalog of **243 Jupyter Notebooks** across **18 categories**, covering the entire landscape of modern artificial intelligence, deep learning, optimization, numerical integration, quantization, safety, brain surgery, interpretability, and systems engineering.
+[![Catalog Progress](https://img.shields.io/badge/Progress-3%2F263%20Topics-blue.svg)](README.md)
+[![Parity Invariant](https://img.shields.io/badge/Parity-4--Way%20Transitive%20%3C1e--5-success.svg)](tests/test_cross_track_parity.py)
+[![Rust Engine](https://img.shields.io/badge/Candle%20Rust-Passing-success.svg)](crates/ai-candle)
+
+A mathematically rigorous, completely deterministic, zero-external-download catalog of **263 Topics** across **18 categories**, mirrored identically across 7 cohesive tracks:
+1. `markdown/` (Textbook-Grade GFM + KaTeX + Mermaid Architectural Blueprints)
+2. `notebooks/` (Strict 8-Cell Educational Concept Explorers with Inline SVG & Failure Contrasts)
+3. `pytorch2/` (Production-Grade PyTorch 2.x Modules with `torch.compile` & `jaxtyping`)
+4. `jax/` (Stateless Functional Equinox / JAX Implementations with XLA JIT)
+5. `candle/` & `crates/ai-candle/` (Native Rust Candle Implementations with Integration Tests & Doc-Tests)
+6. `kernels/` (Tiled Hardware Kernels with Pure-CPU Fallbacks)
+7. `weights/` (Deterministic Reference Checkpoints enforcing Transitive $<10^{-5}$ Parity)
 
 ---
 
@@ -14,16 +25,16 @@ A mathematically rigorous, completely deterministic, zero-external-download cata
    - **Cell 3 (Code):** Deterministic setup (`core.env.setup_env(42)`) and micro-dataset generation.
    - **Cell 4 (Code):** Production PyTorch 2 implementation (first-principles tensor math + modern PyTorch equivalents e.g., `torch.compile`, `torch.func`).
    - **Cell 5 (Code):** Quantitative verification (`torch.testing.assert_close`, `gradcheck`, numerical conservation, SQNR dB, Simplex ETF collapse).
-   - **Cell 6 (Code):** Standardized benchmark table (median latency, peak RAM/VRAM, FLOPs, arithmetic intensity).
-   - **Cell 7 (Code):** Anti-pattern & runnable failure contrast (exposing a critical failure mode and its fix).
-   - **Cell 8 (Markdown):** Key takeaways checklist and bidirectional navigation footer.
+   - **Cell 6 (Code):** Standardized benchmark table (median latency, peak RAM/VRAM, FLOPs, arithmetic intensity) and inline SVG visualization.
+   - **Cell 7 (Code):** Anti-pattern & runnable failure contrast with `[!WARNING]` and programmatic failure assertion.
+   - **Cell 8 (Markdown):** Key takeaways checklist, Cross-Domain Generalisation Matrix, and bidirectional navigation footer.
 4. **Multi-Axis Indexing:**
    - [INDEX_BY_GOAL.md](INDEX_BY_GOAL.md): 12 Task-Oriented Decision Matrices + 40-Symptom Diagnostic & Troubleshooting Guide.
    - [GLOSSARY_AND_NOTATION.md](GLOSSARY_AND_NOTATION.md): Unified mathematical symbols, 27 numeric bit layouts, and asymptotic complexity reference.
-5. **Decoupled Cross-Framework Parity (Stretch Goals):**
-   - Pure JAX/Flax/Equinox implementations in `stretch/jax/`.
-   - Pure Candle (Rust) implementations in `stretch/candle/`.
-   - Cross-framework numerical parity verified to within $10^{-5}$ via `safetensors`.
+5. **Transitive 4-Way Cross-Framework Parity:**
+   - Direct reference parity against `weights/<cat>/<topic>.safetensors`:
+     $$\|Y_{\text{torch}} - Y_{\text{golden}}\|_\infty < 10^{-5}, \quad \|Y_{\text{jax}} - Y_{\text{golden}}\|_\infty < 10^{-5}, \quad \|Y_{\text{candle}} - Y_{\text{golden}}\|_\infty < 10^{-5}$$
+   - Verified via `pytest tests/test_cross_track_parity.py` and `cargo test -p ai-candle`.
 
 ---
 
@@ -42,10 +53,20 @@ Every notebook in this catalog connects to one or more of eight unified foundati
 
 ---
 
-## Master Taxonomic Index (243 Notebooks across 18 Categories)
+## Master Taxonomic Index (263 Topics across 18 Categories)
 
-### [00. Foundations & Classical Machine Learning](notebooks/00_foundations/) (10 Notebooks)
-- Core PyTorch 2, Views/Strides/Memory Layouts, Wirtinger Complex Autograd, Functional `torch.func`, Hooks, Meta Device, Feature Engineering, Pipelines, Specialized Tensors, and Numerical Stability.
+### [00. Foundations & Classical Machine Learning](notebooks/00_foundations/) (11 Topics)
+- [x] **01. Linear Neuron and Invertible Transforms** (`.ipynb` [Notebook](notebooks/00_foundations/01_linear_neuron_and_invertible_transforms.ipynb) | [Markdown](markdown/00_foundations/01_linear_neuron_and_invertible_transforms.md) | [PyTorch 2](pytorch2/00_foundations/01_linear_neuron_and_invertible_transforms.py) | [JAX](jax/00_foundations/01_linear_neuron_and_invertible_transforms.py) | [Candle](candle/00_foundations/01_linear_neuron_and_invertible_transforms.rs) | [Kernel](kernels/00_foundations/01_linear_neuron_and_invertible_transforms_cpu.py) | [Weights](weights/00_foundations/01_linear_neuron_and_invertible_transforms.safetensors))
+- [x] **02. Tensors, Views, Strides & Memory Layouts** (`.ipynb` [Notebook](notebooks/00_foundations/02_tensors_views_strides_and_memory_layouts.ipynb) | [Markdown](markdown/00_foundations/02_tensors_views_strides_and_memory_layouts.md) | [PyTorch 2](pytorch2/00_foundations/02_tensors_views_strides_and_memory_layouts.py) | [JAX](jax/00_foundations/02_tensors_views_strides_and_memory_layouts.py) | [Candle](candle/00_foundations/02_tensors_views_strides_and_memory_layouts.rs) | [Kernel](kernels/00_foundations/02_tensors_views_strides_and_memory_layouts_cpu.py) | [Weights](weights/00_foundations/02_tensors_views_strides_and_memory_layouts.safetensors))
+- [x] **03. Autograd Mechanics, Complex Wirtinger & Custom Functions** (`.ipynb` [Notebook](notebooks/00_foundations/03_autograd_mechanics_complex_wirtinger_and_custom_functions.ipynb) | [Markdown](markdown/00_foundations/03_autograd_mechanics_complex_wirtinger_and_custom_functions.md) | [PyTorch 2](pytorch2/00_foundations/03_autograd_mechanics_complex_wirtinger_and_custom_functions.py) | [JAX](jax/00_foundations/03_autograd_mechanics_complex_wirtinger_and_custom_functions.py) | [Candle](candle/00_foundations/03_autograd_mechanics_complex_wirtinger_and_custom_functions.rs) | [Kernel](kernels/00_foundations/03_autograd_mechanics_complex_wirtinger_and_custom_functions_cpu.py) | [Weights](weights/00_foundations/03_autograd_mechanics_complex_wirtinger_and_custom_functions.safetensors))
+- [ ] **04. Forward AD & Functional Transforms (`torch.func`)**
+- [ ] **05. PyTorch Engine Internals, Autograd Hooks & Graph Manipulation**
+- [ ] **06. Meta Devices, Fake Tensors & Deferred Initialization**
+- [ ] **07. Feature Engineering, Scalers & Tabular Preprocessing**
+- [ ] **08. Reproducible Preprocessing Pipelines & Determinism**
+- [ ] **09. Nested, Ragged & Specialized Sparse Tensors**
+- [ ] **10. Floating-Point Arithmetic, Conditioning & Numerical Stability**
+- [ ] **11. Randomized Numerical Linear Algebra (RandNLA), Spectral Autograd & Hutch++**
 
 ### [01. Learning Paradigms & Taxonomic Dichotomies](notebooks/01_paradigms_and_dichotomies/) (12 Notebooks)
 - Generative vs Discriminative, Tree vs Kernel vs Neural, Discrete vs Continuous Latents, Deterministic vs Stochastic, Parametric vs Nonparametric, AI by Purpose (SPO+), Input/Output Spaces (BLT/6D Rotations), Latent Computation (Coconut/JEPA), Non-Euclidean Geometries (Poincaré/SPD), L0–L5 Decision Hierarchy, 5 Statistical Schools (Bayesian/Frequentist/MDL/PAC-Bayes/E-Values), and Online Regret vs Batch IID.
