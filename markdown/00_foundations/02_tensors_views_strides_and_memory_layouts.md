@@ -199,4 +199,4 @@ torch.testing.assert_close(out_einsum, out_gemm, atol=1e-5, rtol=1e-5)
 - **CPU Fused Kernel:** [02_tensors_views_strides_and_memory_layouts_cpu.py](../../kernels/00_foundations/02_tensors_views_strides_and_memory_layouts_cpu.py)
 - **Golden Reference Checkpoint:** [02_tensors_views_strides_and_memory_layouts.safetensors](../../weights/00_foundations/02_tensors_views_strides_and_memory_layouts.safetensors)
 - **Previous Topic:** [01. Linear Neuron & Invertible Transforms](01_linear_neuron_and_invertible_transforms.md)
-- **Next Topic:** 03. Autograd Mechanics, Complex Wirtinger & Custom Functions *(Upcoming in Category 00)*
+- **Next Topic:** [03. Autograd Mechanics, Complex Wirtinger & Custom Functions](03_autograd_mechanics_complex_wirtinger_and_custom_functions.md)
