@@ -89,6 +89,9 @@ pub mod c03_building_blocks_and_losses {
 
     #[path = "02_normalization_layers_complete.rs"]
     pub mod t02_normalization_layers_complete;
+
+    #[path = "03_weight_initialization_and_mup_scaling.rs"]
+    pub mod t03_weight_initialization_and_mup_scaling;
 }
 
 

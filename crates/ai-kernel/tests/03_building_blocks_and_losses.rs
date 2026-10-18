@@ -179,3 +179,66 @@ fn test_02_normalization_layers_complete_cpu_and_auto() -> Result<()> {
 
     Ok(())
 }
+
+use ai_kernel::c03_building_blocks_and_losses::t03_weight_initialization_and_mup_scaling as t03;
+
+#[test]
+fn test_03_weight_initialization_and_mup_scaling_cpu_and_auto() -> Result<()> {
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "03_building_blocks_and_losses/03_weight_initialization_and_mup_scaling.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    let test_in = tensors.get("test_input").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+    let test_out = tensors.get("test_output").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+    let weight = tensors.get("weight").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+    let bias = tensors.get("bias").unwrap().to_vec1::<f32>()?;
+    let res_branch = tensors.get("residual_branch").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+    let ls_gamma = tensors.get("layerscale_gamma").unwrap().to_vec1::<f32>()?;
+    let rz_alpha = tensors.get("rezero_alpha").unwrap().to_vec1::<f32>()?[0];
+    let res_scale = tensors.get("residual_scale").unwrap().to_vec1::<f32>()?[0];
+    let x_hid = tensors.get("x_hidden").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+    let w_mup_ro = tensors.get("w_mup_readout").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+    let width_scale = tensors.get("width_scale").unwrap().to_vec1::<f32>()?[0];
+
+    // 1. Linear Anchor on CPU
+    let anchor_calc = t03::linear_anchor_forward_cpu(&test_in, &weight, &bias, 4, 8, 4);
+    for (i, (&calc, &gold)) in anchor_calc.iter().zip(test_out.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Linear anchor error at {i}: {calc} vs {gold}");
+    }
+
+    // 2. LayerScale on CPU and Auto
+    let ls_gold = tensors.get("y_layerscale").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+    let ls_calc = t03::layerscale_cpu(&test_in, &res_branch, &ls_gamma, 4, 8);
+    for (i, (&calc, &gold)) in ls_calc.iter().zip(ls_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "LayerScale CPU error at {i}: {calc} vs {gold}");
+    }
+    let ls_auto = pollster::block_on(t03::layerscale_auto(None, &test_in, &res_branch, &ls_gamma, 4, 8));
+    for (i, (&calc, &gold)) in ls_auto.iter().zip(ls_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "LayerScale Auto error at {i}: {calc} vs {gold}");
+    }
+
+    // 3. ReZero on CPU
+    let rz_gold = tensors.get("y_rezero").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+    let rz_calc = t03::rezero_cpu(&test_in, &res_branch, rz_alpha, 4, 8);
+    for (i, (&calc, &gold)) in rz_calc.iter().zip(rz_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "ReZero error at {i}: {calc} vs {gold}");
+    }
+
+    // 4. Residual 1/sqrt(2L) Scale on CPU
+    let scaled_gold = tensors.get("y_residual_scaled").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+    let scaled_calc = t03::residual_scale_cpu(&test_in, &res_branch, res_scale, 4, 8);
+    for (i, (&calc, &gold)) in scaled_calc.iter().zip(scaled_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Residual scale error at {i}: {calc} vs {gold}");
+    }
+
+    // 5. muP Readout on CPU
+    let ro_gold = tensors.get("y_mup_readout").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+    let ro_calc = t03::mup_readout_cpu(&x_hid, &w_mup_ro, width_scale, 4, 8, 4);
+    for (i, (&calc, &gold)) in ro_calc.iter().zip(ro_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "muP Readout error at {i}: {calc} vs {gold}");
+    }
+
+    Ok(())
+}
