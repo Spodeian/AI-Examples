@@ -115,4 +115,4 @@ $$\|R x - R s\|_2^2 = (x - s)^\top R^\top R (x - s) = \|x - s\|_2^2 \implies K(R
 - **Hardware CPU Kernel:** [02_tree_vs_kernel_vs_neural_inductive_biases_cpu.py](../../kernels/01_paradigms_and_dichotomies/02_tree_vs_kernel_vs_neural_inductive_biases_cpu.py)
 - **Golden Reference Checkpoint:** [02_tree_vs_kernel_vs_neural_inductive_biases.safetensors](../../weights/01_paradigms_and_dichotomies/02_tree_vs_kernel_vs_neural_inductive_biases.safetensors)
 - **Previous Topic:** [01. Generative vs. Discriminative Classifiers](01_generative_vs_discriminative_classifiers.md)
-- **Next Topic:** 03. Discrete vs Continuous Latents & Gradient Estimators (Upcoming in Category 01)
+- **Next Topic:** [03. Discrete vs. Continuous Latents & Gradient Estimators](03_discrete_vs_continuous_latents_and_gradient_estimators.md)

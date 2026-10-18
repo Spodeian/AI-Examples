@@ -47,6 +47,9 @@ pub mod c01_paradigms_and_dichotomies {
 
     #[path = "02_tree_vs_kernel_vs_neural_inductive_biases.rs"]
     pub mod t02_tree_vs_kernel_vs_neural_inductive_biases;
+
+    #[path = "03_discrete_vs_continuous_latents_and_gradient_estimators.rs"]
+    pub mod t03_discrete_vs_continuous_latents_and_gradient_estimators;
 }
 
 
