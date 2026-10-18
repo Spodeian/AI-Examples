@@ -29,3 +29,6 @@ mod test_09_non_euclidean_geometries;
 
 #[path = "01_paradigms_and_dichotomies/test_10_decision_hierarchy.rs"]
 mod test_10_decision_hierarchy;
+
+#[path = "01_paradigms_and_dichotomies/test_11_statistical_inference.rs"]
+mod test_11_statistical_inference;

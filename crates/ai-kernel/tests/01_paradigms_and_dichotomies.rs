@@ -10,6 +10,7 @@ use ai_kernel::{
         t08_computation_spaces_latent_reasoning_and_jepa as t08,
         t09_non_euclidean_geometries_hyperbolic_poincare_spherical_and_spd as t09,
         t10_levels_of_decision_making_bayes_risk_bandits_mdp_pomdp_and_games as t10,
+        t11_statistical_inference_bayesian_frequentist_likelihoodist_mdl_and_pac_bayes as t11,
     },
     KernelDevice,
 };
@@ -686,6 +687,99 @@ fn test_10_decision_hierarchy_cpu_and_auto() -> candle_core::Result<()> {
     for (i, (&calc, &gold)) in pay_calc.iter().zip(pay_gold.iter()).enumerate() {
         assert!((calc - gold).abs() < 1e-5, "Auction pay error at {i}: {calc} vs {gold}");
     }
+
+    Ok(())
+}
+
+#[test]
+fn test_11_statistical_inference_cpu_and_auto() -> candle_core::Result<()> {
+    let device = Device::Cpu;
+    let path = common::get_weights_path("01_paradigms_and_dichotomies/11_statistical_inference_bayesian_frequentist_likelihoodist_mdl_and_pac_bayes.safetensors");
+    let tensors = load(path, &device)?;
+
+    // 1. Frequentist Fisher & Cramér-Rao on CPU
+    let x_data_flat: Vec<f32> = tensors.get("x_data").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect();
+    let theta_mle_gold = tensors.get("theta_mle").unwrap().to_vec1::<f32>()?;
+    let fisher_gold = tensors.get("fisher_diag").unwrap().to_vec1::<f32>()?;
+    let crlb_gold = tensors.get("cramer_rao_lower_bound").unwrap().to_vec1::<f32>()?;
+    let lrt_gold = tensors.get("lrt_stat").unwrap().to_scalar::<f32>()?;
+
+    let theta_0 = vec![0.0f32; 4];
+    let (mle_calc, fisher_calc, crlb_calc, lrt_calc) = t11::frequentist_fisher_cpu(&x_data_flat, 16, 4, 0.5, &theta_0);
+
+    for (i, (&calc, &gold)) in mle_calc.iter().zip(theta_mle_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "MLE error at {i}: {calc} vs {gold}");
+    }
+    for (i, (&calc, &gold)) in fisher_calc.iter().zip(fisher_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Fisher error at {i}: {calc} vs {gold}");
+    }
+    for (i, (&calc, &gold)) in crlb_calc.iter().zip(crlb_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "CRLB error at {i}: {calc} vs {gold}");
+    }
+    assert!((lrt_calc - lrt_gold).abs() < 1e-4, "LRT error: {lrt_calc} vs {lrt_gold}");
+
+    // 2. Bayesian Conjugate & Laplace Occam Factor on CPU
+    let mu_0 = tensors.get("mu_0").unwrap().to_vec1::<f32>()?;
+    let mu_post_gold = tensors.get("mu_post").unwrap().to_vec1::<f32>()?;
+    let sig_post_gold = tensors.get("sigma_post_vec").unwrap().to_vec1::<f32>()?;
+    let laplace_gold = tensors.get("laplace_log_marginal").unwrap().to_scalar::<f32>()?;
+    let occam_gold = tensors.get("occam_penalty").unwrap().to_scalar::<f32>()?;
+
+    let (mu_calc, sig_calc, lap_calc, occ_calc) = t11::bayesian_conjugate_laplace_cpu(&x_data_flat, &mu_0, 16, 4, 1.0, 0.5);
+    for (i, (&calc, &gold)) in mu_calc.iter().zip(mu_post_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Mu post error at {i}: {calc} vs {gold}");
+    }
+    for (i, (&calc, &gold)) in sig_calc.iter().zip(sig_post_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Sig post error at {i}: {calc} vs {gold}");
+    }
+    assert!((lap_calc - laplace_gold).abs() < 1e-4, "Laplace error: {lap_calc} vs {laplace_gold}");
+    assert!((occ_calc - occam_gold).abs() < 1e-4, "Occam error: {occ_calc} vs {occam_gold}");
+
+    // 3. James-Stein Shrinkage on CPU and Auto
+    let y_obs = tensors.get("y_obs").unwrap().to_vec1::<f32>()?;
+    let th_js_gold = tensors.get("theta_js").unwrap().to_vec1::<f32>()?;
+    let th_js_pos_gold = tensors.get("theta_js_pos").unwrap().to_vec1::<f32>()?;
+    let c_shrink_gold = tensors.get("c_shrink").unwrap().to_scalar::<f32>()?;
+
+    let (th_js_cpu, th_js_pos_cpu, c_sh_cpu) = t11::james_stein_cpu(&y_obs, 1.0);
+    for (i, (&calc, &gold)) in th_js_cpu.iter().zip(th_js_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "JS CPU error at {i}: {calc} vs {gold}");
+    }
+    for (i, (&calc, &gold)) in th_js_pos_cpu.iter().zip(th_js_pos_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "JS pos CPU error at {i}: {calc} vs {gold}");
+    }
+    assert!((c_sh_cpu - c_shrink_gold).abs() < 1e-5, "C shrink error: {c_sh_cpu} vs {c_shrink_gold}");
+
+    let (th_js_auto, th_js_pos_auto, c_sh_auto) = t11::james_stein_auto(None, None, &y_obs, 1.0);
+    for (i, (&calc, &gold)) in th_js_auto.iter().zip(th_js_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "JS Auto error at {i}: {calc} vs {gold}");
+    }
+    for (i, (&calc, &gold)) in th_js_pos_auto.iter().zip(th_js_pos_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "JS pos Auto error at {i}: {calc} vs {gold}");
+    }
+    assert!((c_sh_auto - c_shrink_gold).abs() < 1e-5, "C shrink auto error");
+
+    // 4. PAC-Bayes on CPU
+    let mu_q = tensors.get("mu_q").unwrap().to_vec1::<f32>()?;
+    let sig_q = tensors.get("sigma_q").unwrap().to_vec1::<f32>()?;
+    let emp_risk = tensors.get("emp_risk").unwrap().to_scalar::<f32>()?;
+    let kl_gold = tensors.get("kl_div").unwrap().to_scalar::<f32>()?;
+    let pac_gold = tensors.get("pac_bound").unwrap().to_scalar::<f32>()?;
+
+    let (kl_calc, pac_calc) = t11::pac_bayes_cpu(&mu_q, &sig_q, emp_risk, 16, 1.0, 0.05);
+    assert!((kl_calc - kl_gold).abs() < 1e-5, "KL error: {kl_calc} vs {kl_gold}");
+    assert!((pac_calc - pac_gold).abs() < 1e-5, "PAC error: {pac_calc} vs {pac_gold}");
+
+    // 5. Anytime-Valid Martingale on CPU
+    let e_vals = tensors.get("e_values").unwrap().to_vec1::<f32>()?;
+    let mart_gold = tensors.get("martingale").unwrap().to_vec1::<f32>()?;
+    let thresh_gold = tensors.get("ville_threshold").unwrap().to_scalar::<f32>()?;
+
+    let (mart_calc, thresh_calc) = t11::anytime_valid_martingale_cpu(&e_vals, 0.05);
+    for (i, (&calc, &gold)) in mart_calc.iter().zip(mart_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Martingale error at {i}: {calc} vs {gold}");
+    }
+    assert!((thresh_calc - thresh_gold).abs() < 1e-5, "Threshold error: {thresh_calc} vs {thresh_gold}");
 
     Ok(())
 }

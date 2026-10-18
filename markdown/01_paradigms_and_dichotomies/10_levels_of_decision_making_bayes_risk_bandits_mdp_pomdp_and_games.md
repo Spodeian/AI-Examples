@@ -125,9 +125,9 @@ flowchart TD
 
 ## 8. Navigation & Synchronized Track Artifacts
 
-- [Interactive Concept Explorer Notebook](../notebooks/01_paradigms_and_dichotomies/10_levels_of_decision_making_bayes_risk_bandits_mdp_pomdp_and_games.ipynb)
-- [Production PyTorch 2.x Module](../pytorch2/01_paradigms_and_dichotomies/10_levels_of_decision_making_bayes_risk_bandits_mdp_pomdp_and_games.py)
-- [Functional JAX Module](../jax/01_paradigms_and_dichotomies/10_levels_of_decision_making_bayes_risk_bandits_mdp_pomdp_and_games.py)
-- [Native Rust Candle Module](../candle/01_paradigms_and_dichotomies/10_levels_of_decision_making_bayes_risk_bandits_mdp_pomdp_and_games.rs)
-- [Hardware Native Kernel](../kernels/01_paradigms_and_dichotomies/10_levels_of_decision_making_bayes_risk_bandits_mdp_pomdp_and_games.rs)
+- [Interactive Concept Explorer Notebook](../../notebooks/01_paradigms_and_dichotomies/10_levels_of_decision_making_bayes_risk_bandits_mdp_pomdp_and_games.ipynb)
+- [Production PyTorch 2.x Module](../../pytorch2/01_paradigms_and_dichotomies/10_levels_of_decision_making_bayes_risk_bandits_mdp_pomdp_and_games.py)
+- [Functional JAX Module](../../jax/01_paradigms_and_dichotomies/10_levels_of_decision_making_bayes_risk_bandits_mdp_pomdp_and_games.py)
+- [Native Rust Candle Module](../../candle/01_paradigms_and_dichotomies/10_levels_of_decision_making_bayes_risk_bandits_mdp_pomdp_and_games.rs)
+- [Hardware Native Kernel](../../kernels/01_paradigms_and_dichotomies/10_levels_of_decision_making_bayes_risk_bandits_mdp_pomdp_and_games.rs)
 - [Golden SafeTensors Weights](../../weights/01_paradigms_and_dichotomies/10_levels_of_decision_making_bayes_risk_bandits_mdp_pomdp_and_games.safetensors)

@@ -71,6 +71,9 @@ pub mod c01_paradigms_and_dichotomies {
 
     #[path = "10_levels_of_decision_making_bayes_risk_bandits_mdp_pomdp_and_games.rs"]
     pub mod t10_levels_of_decision_making_bayes_risk_bandits_mdp_pomdp_and_games;
+
+    #[path = "11_statistical_inference_bayesian_frequentist_likelihoodist_mdl_and_pac_bayes.rs"]
+    pub mod t11_statistical_inference_bayesian_frequentist_likelihoodist_mdl_and_pac_bayes;
 }
 
 
