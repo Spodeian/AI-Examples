@@ -116,4 +116,4 @@ flowchart TD
 - **Hardware CPU Kernel:** [10_floating_point_arithmetic_conditioning_and_numerical_stability_cpu.py](../../kernels/00_foundations/10_floating_point_arithmetic_conditioning_and_numerical_stability_cpu.py)
 - **Golden Reference Checkpoint:** [10_floating_point_arithmetic_conditioning_and_numerical_stability.safetensors](../../weights/00_foundations/10_floating_point_arithmetic_conditioning_and_numerical_stability.safetensors)
 - **Previous Topic:** [09. Nested, Ragged & Specialized Sparse Tensors](09_nested_ragged_and_specialized_sparse_tensors.md)
-- **Next Topic:** 11. Randomized Numerical Linear Algebra (RandNLA), Spectral Autograd & Hutch++ (Upcoming in Category 00)
+- **Next Topic:** [11. Randomized Numerical Linear Algebra, Spectral Autograd & Hutch++](11_randomized_numerical_linear_algebra_spectral_autograd_and_hutchpp.md)

@@ -30,3 +30,7 @@ mod test_09_sparse_tensors;
 #[path = "00_foundations/test_10_numerical_stability.rs"]
 mod test_10_numerical_stability;
 
+#[path = "00_foundations/test_11_spectral.rs"]
+mod test_11_spectral;
+
+

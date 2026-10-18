@@ -35,5 +35,9 @@ pub mod c00_foundations {
 
     #[path = "10_floating_point_arithmetic_conditioning_and_numerical_stability.rs"]
     pub mod t10_floating_point_arithmetic_conditioning_and_numerical_stability;
+
+    #[path = "11_randomized_numerical_linear_algebra_spectral_autograd_and_hutchpp.rs"]
+    pub mod t11_randomized_numerical_linear_algebra_spectral_autograd_and_hutchpp;
 }
+
 
