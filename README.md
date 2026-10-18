@@ -1,6 +1,6 @@
 # AI-Examples: The Exhaustive, Multi-Track AI & Deep Learning Catalog
 
-[![Catalog Progress](https://img.shields.io/badge/Progress-11%2F263%20Topics-blue.svg)](README.md)
+[![Catalog Progress](https://img.shields.io/badge/Progress-12%2F263%20Topics-blue.svg)](README.md)
 [![Parity Invariant](https://img.shields.io/badge/Parity-4--Way%20Transitive%20%3C1e--5-success.svg)](tests/test_cross_track_parity.py)
 [![Rust Engine](https://img.shields.io/badge/Candle%20Rust-Passing-success.svg)](crates/ai-candle)
 
@@ -71,7 +71,8 @@ Every notebook in this catalog connects to one or more of eight unified foundati
 
 
 ### [01. Learning Paradigms & Taxonomic Dichotomies](notebooks/01_paradigms_and_dichotomies/) (12 Notebooks)
-- Generative vs Discriminative, Tree vs Kernel vs Neural, Discrete vs Continuous Latents, Deterministic vs Stochastic, Parametric vs Nonparametric, AI by Purpose (SPO+), Input/Output Spaces (BLT/6D Rotations), Latent Computation (Coconut/JEPA), Non-Euclidean Geometries (Poincaré/SPD), L0–L5 Decision Hierarchy, 5 Statistical Schools (Bayesian/Frequentist/MDL/PAC-Bayes/E-Values), and Online Regret vs Batch IID.
+- [x] **01. Generative vs Discriminative Classifiers** (`.ipynb` [Notebook](notebooks/01_paradigms_and_dichotomies/01_generative_vs_discriminative_classifiers.ipynb) | [Markdown](markdown/01_paradigms_and_dichotomies/01_generative_vs_discriminative_classifiers.md) | [PyTorch 2](pytorch2/01_paradigms_and_dichotomies/01_generative_vs_discriminative_classifiers.py) | [JAX](jax/01_paradigms_and_dichotomies/01_generative_vs_discriminative_classifiers.py) | [Candle](candle/01_paradigms_and_dichotomies/01_generative_vs_discriminative_classifiers.rs) | [Kernel](kernels/01_paradigms_and_dichotomies/01_generative_vs_discriminative_classifiers_cpu.py) | [Weights](weights/01_paradigms_and_dichotomies/01_generative_vs_discriminative_classifiers.safetensors))
+- Tree vs Kernel vs Neural, Discrete vs Continuous Latents, Deterministic vs Stochastic, Parametric vs Nonparametric, AI by Purpose (SPO+), Input/Output Spaces (BLT/6D Rotations), Latent Computation (Coconut/JEPA), Non-Euclidean Geometries (Poincaré/SPD), L0–L5 Decision Hierarchy, 5 Statistical Schools (Bayesian/Frequentist/MDL/PAC-Bayes/E-Values), and Online Regret vs Batch IID.
 
 ### [02. Classical & Probabilistic Machine Learning](notebooks/02_classical_and_probabilistic_ml/) (12 Notebooks)
 - Generalized Linear Models & FISTA Lasso, Support Vector Machines & Kernels, KNN & Locally Weighted Regression, Clustering & GMM EM, PCA/LDA/t-SNE/UMAP, Gaussian Processes & SVGP, Differentiable Trees (NODE/NAM), Matrix Factorization & FM, HMM & Kalman/Particle Filters, Survival Analysis & Bandits, Factor Graphs & Variational Inference, and MCMC/HMC/SGLD/SVGD/QMC.

@@ -117,5 +117,6 @@ The implementation spans all systems tiers without external LAPACK variance:
 - **Hardware CPU Kernel:** [11_randomized_numerical_linear_algebra_spectral_autograd_and_hutchpp_cpu.py](../../kernels/00_foundations/11_randomized_numerical_linear_algebra_spectral_autograd_and_hutchpp_cpu.py)
 - **Golden Reference Checkpoint:** [11_randomized_numerical_linear_algebra_spectral_autograd_and_hutchpp.safetensors](../../weights/00_foundations/11_randomized_numerical_linear_algebra_spectral_autograd_and_hutchpp.safetensors)
 - **Previous Topic:** [10. Floating-Point Arithmetic, Conditioning & Numerical Stability](10_floating_point_arithmetic_conditioning_and_numerical_stability.md)
-- **Next Category:** Category 01: Core Architecture Foundations (01_mlp_residual_bottlenecks_and_activations) (Upcoming in Stage 1)
+- **Next Topic:** [Category 01: 01. Generative vs. Discriminative Classifiers](../01_paradigms_and_dichotomies/01_generative_vs_discriminative_classifiers.md)
+
 

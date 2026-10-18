@@ -40,4 +40,11 @@ pub mod c00_foundations {
     pub mod t11_randomized_numerical_linear_algebra_spectral_autograd_and_hutchpp;
 }
 
+#[path = "../../../candle/01_paradigms_and_dichotomies"]
+pub mod c01_paradigms_and_dichotomies {
+    #[path = "01_generative_vs_discriminative_classifiers.rs"]
+    pub mod t01_generative_vs_discriminative_classifiers;
+}
+
+
 
