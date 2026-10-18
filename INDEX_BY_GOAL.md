@@ -1,6 +1,6 @@
 # Index by Goal: Decision Matrices & Diagnostic Troubleshooting Guide
 
-[![Catalog Progress](https://img.shields.io/badge/Progress-16%2F263%20Topics-blue.svg)](README.md)
+[![Catalog Progress](https://img.shields.io/badge/Progress-17%2F263%20Topics-blue.svg)](README.md)
 [![Parity Invariant](https://img.shields.io/badge/Parity-4--Way%20Transitive%20%3C1e--5-success.svg)](tests/test_cross_track_parity.py)
 [![Rust Engine](https://img.shields.io/badge/Candle%20Rust-Passing-success.svg)](crates/ai-candle)
 
@@ -17,6 +17,7 @@ This guide routes you directly to the correct notebook and architectural pattern
 | Massive unlabelled data $x$ (with negatives) | Contrastive Representation Learning | Contrastive false-negative repulsion | `08_learning_paradigms_rl_and_alignment/01_self_semi_meta_continual_federated/01_contrastive_self_supervised_simclr_byol.ipynb` |
 | Massive unlabelled data $x$ (no negatives) | Non-Contrastive Decorrelation & Masking | Representation collapse to constant ($z \to c$) | `08_learning_paradigms_rl_and_alignment/01_self_semi_meta_continual_federated/02_non_contrastive_and_masked_ssl_byol_dino_vicreg_mae_jepa.ipynb` |
 | Complex verifiable reasoning tasks | Test-Time Compute Scaling & Search | Goodhart's Law reward hacking as $N \to \infty$ | `08_learning_paradigms_rl_and_alignment/03_llm_alignment_and_reasoning/04_grpo_dapo_and_verifiable_reward_reasoning.ipynb` |
+| Downstream combinatorial optimization / Linear Program | Decision-Focused Learning (SPO+) | Objective Mismatch / Catastrophic decision regret from MSE | `01_paradigms_and_dichotomies/06_ai_by_purpose_prediction_prescription_control_combinatorial_symbolic.ipynb` |
 | Interactive scalar reward $r_t$ | Long-horizon dynamic control | High variance / Reward hacking | `08_learning_paradigms_rl_and_alignment/02_reinforcement_learning_and_world_models/01_policy_gradients_and_ppo.ipynb` |
 | Few shots per task ($k \le 5$) | Rapid task adaptation | Catastrophic forgetting / Negative transfer | `08_learning_paradigms_rl_and_alignment/01_self_semi_meta_continual_federated/03_meta_learning_maml.ipynb` |
 | Streaming non-stationary data | Continual lifelong learning | Plasticity loss / Catastrophic interference | `01_paradigms_and_dichotomies/12_inductive_vs_transductive_and_online_regret_vs_batch_iid.ipynb` |

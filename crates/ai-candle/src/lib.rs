@@ -56,6 +56,9 @@ pub mod c01_paradigms_and_dichotomies {
 
     #[path = "05_parametric_vs_nonparametric_and_neural_processes.rs"]
     pub mod t05_parametric_vs_nonparametric_and_neural_processes;
+
+    #[path = "06_ai_by_purpose_prediction_prescription_control_combinatorial_symbolic.rs"]
+    pub mod t06_ai_by_purpose_prediction_prescription_control_combinatorial_symbolic;
 }
 
 

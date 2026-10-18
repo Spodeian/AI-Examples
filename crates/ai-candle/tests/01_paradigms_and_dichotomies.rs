@@ -14,3 +14,7 @@ mod test_04_deterministic_vs_stochastic;
 
 #[path = "01_paradigms_and_dichotomies/test_05_parametric_vs_nonparametric.rs"]
 mod test_05_parametric_vs_nonparametric;
+
+#[path = "01_paradigms_and_dichotomies/test_06_ai_by_purpose.rs"]
+mod test_06_ai_by_purpose;
+
