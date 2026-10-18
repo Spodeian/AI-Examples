@@ -9,6 +9,7 @@ use ai_kernel::{
         t07_input_and_output_spaces_tokens_bytes_patches_coords_pointers_and_manifolds as t07,
         t08_computation_spaces_latent_reasoning_and_jepa as t08,
         t09_non_euclidean_geometries_hyperbolic_poincare_spherical_and_spd as t09,
+        t10_levels_of_decision_making_bayes_risk_bandits_mdp_pomdp_and_games as t10,
     },
     KernelDevice,
 };
@@ -606,5 +607,88 @@ fn test_09_non_euclidean_geometries_cpu_and_auto() -> candle_core::Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn test_10_decision_hierarchy_cpu_and_auto() -> candle_core::Result<()> {
+    let device = Device::Cpu;
+    let path = common::get_weights_path("01_paradigms_and_dichotomies/10_levels_of_decision_making_bayes_risk_bandits_mdp_pomdp_and_games.safetensors");
+    let tensors = load(path, &device)?;
+
+    // 1. Level 0 Bayes Risk on CPU
+    let probs_flat: Vec<f32> = tensors.get("layers.l0_probs").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect();
+    let cost_flat: Vec<f32> = tensors.get("layers.l0_cost_matrix").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect();
+    let risk_gold: Vec<f32> = tensors.get("layers.l0_expected_risk").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect();
+    let acts_gold = tensors.get("layers.l0_best_actions").unwrap().to_vec1::<f32>()?;
+    let rej_gold = tensors.get("layers.l0_reject_mask").unwrap().to_vec1::<f32>()?;
+
+    let (risk_calc, acts_calc, rej_calc) = t10::bayes_decision_rule_cpu(&probs_flat, &cost_flat, 4, 3, 3, 0.5);
+    for (i, (&calc, &gold)) in risk_calc.iter().zip(risk_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Risk error at {i}: {calc} vs {gold}");
+    }
+    for (i, (&calc, &gold)) in acts_calc.iter().zip(acts_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Acts error at {i}: {calc} vs {gold}");
+    }
+    for (i, (&calc, &gold)) in rej_calc.iter().zip(rej_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Rej error at {i}: {calc} vs {gold}");
+    }
+
+    // 2. Level 1 Bandits OPE on CPU
+    let tp = tensors.get("layers.l1_target_policy_probs").unwrap().to_vec1::<f32>()?;
+    let lp = tensors.get("layers.l1_logged_propensities").unwrap().to_vec1::<f32>()?;
+    let rew = tensors.get("layers.l1_rewards").unwrap().to_vec1::<f32>()?;
+    let q = tensors.get("layers.l1_baseline_q").unwrap().to_vec1::<f32>()?;
+    let w_gold = tensors.get("layers.l1_ips_weights").unwrap().to_vec1::<f32>()?;
+    let dr_gold = tensors.get("layers.l1_doubly_robust_estimates").unwrap().to_vec1::<f32>()?;
+
+    let (w_calc, dr_calc) = t10::bandits_ope_cpu(&tp, &lp, &rew, &q, 4);
+    for (i, (&calc, &gold)) in w_calc.iter().zip(w_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Weight error at {i}: {calc} vs {gold}");
+    }
+    for (i, (&calc, &gold)) in dr_calc.iter().zip(dr_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "DR error at {i}: {calc} vs {gold}");
+    }
+
+    // 3. Level 2 MDP Bellman on CPU
+    let v_init = tensors.get("layers.l2_v_init").unwrap().to_vec1::<f32>()?;
+    let trans_flat: Vec<f32> = tensors.get("layers.l2_transitions").unwrap().to_vec3::<f32>()?.into_iter().flatten().flatten().collect();
+    let rew_flat: Vec<f32> = tensors.get("layers.l2_rewards").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect();
+    let q_gold: Vec<f32> = tensors.get("layers.l2_q_values").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect();
+    let v_gold = tensors.get("layers.l2_v_backup").unwrap().to_vec1::<f32>()?;
+
+    let (q_calc, v_calc) = t10::mdp_bellman_cpu(&v_init, &trans_flat, &rew_flat, 4, 2, 0.9);
+    for (i, (&calc, &gold)) in q_calc.iter().zip(q_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Q error at {i}: {calc} vs {gold}");
+    }
+    for (i, (&calc, &gold)) in v_calc.iter().zip(v_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "V error at {i}: {calc} vs {gold}");
+    }
+
+    // 4. Level 3 POMDP Belief on CPU
+    let prior = tensors.get("layers.l3_prior_belief").unwrap().to_vec1::<f32>()?;
+    let trans_p_flat: Vec<f32> = tensors.get("layers.l3_transition").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect();
+    let obs = tensors.get("layers.l3_observation_likelihood").unwrap().to_vec1::<f32>()?;
+    let post_gold = tensors.get("layers.l3_posterior_belief").unwrap().to_vec1::<f32>()?;
+
+    let post_calc = t10::pomdp_belief_cpu(&prior, &trans_p_flat, &obs, 3);
+    for (i, (&calc, &gold)) in post_calc.iter().zip(post_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "POMDP post error at {i}: {calc} vs {gold}");
+    }
+
+    // 5. Level 5 Auction on CPU
+    let bids_flat: Vec<f32> = tensors.get("layers.l5_bids").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect();
+    let alloc_gold: Vec<f32> = tensors.get("layers.l5_allocations").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect();
+    let pay_gold: Vec<f32> = tensors.get("layers.l5_payments").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect();
+
+    let (alloc_calc, pay_calc) = t10::differentiable_auction_cpu(&bids_flat, 4, 0.5);
+    for (i, (&calc, &gold)) in alloc_calc.iter().zip(alloc_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Auction alloc error at {i}: {calc} vs {gold}");
+    }
+    for (i, (&calc, &gold)) in pay_calc.iter().zip(pay_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Auction pay error at {i}: {calc} vs {gold}");
+    }
+
+    Ok(())
+}
+
 
 

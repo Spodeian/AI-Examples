@@ -73,5 +73,8 @@ pub mod c01_paradigms_and_dichotomies {
 
     #[path = "09_non_euclidean_geometries_hyperbolic_poincare_spherical_and_spd.rs"]
     pub mod t09_non_euclidean_geometries_hyperbolic_poincare_spherical_and_spd;
+
+    #[path = "10_levels_of_decision_making_bayes_risk_bandits_mdp_pomdp_and_games.rs"]
+    pub mod t10_levels_of_decision_making_bayes_risk_bandits_mdp_pomdp_and_games;
 }
 

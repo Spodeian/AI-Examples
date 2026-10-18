@@ -21,4 +21,11 @@ mod test_06_ai_by_purpose;
 #[path = "01_paradigms_and_dichotomies/test_07_input_and_output.rs"]
 mod test_07_input_and_output;
 
+#[path = "01_paradigms_and_dichotomies/test_08_computation_spaces.rs"]
+mod test_08_computation_spaces;
 
+#[path = "01_paradigms_and_dichotomies/test_09_non_euclidean_geometries.rs"]
+mod test_09_non_euclidean_geometries;
+
+#[path = "01_paradigms_and_dichotomies/test_10_decision_hierarchy.rs"]
+mod test_10_decision_hierarchy;
