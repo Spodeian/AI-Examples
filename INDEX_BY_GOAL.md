@@ -1,6 +1,6 @@
 # Index by Goal: Decision Matrices & Diagnostic Troubleshooting Guide
 
-[![Catalog Progress](https://img.shields.io/badge/Progress-8%2F263%20Topics-blue.svg)](README.md)
+[![Catalog Progress](https://img.shields.io/badge/Progress-9%2F263%20Topics-blue.svg)](README.md)
 [![Parity Invariant](https://img.shields.io/badge/Parity-4--Way%20Transitive%20%3C1e--5-success.svg)](tests/test_cross_track_parity.py)
 [![Rust Engine](https://img.shields.io/badge/Candle%20Rust-Passing-success.svg)](crates/ai-candle)
 

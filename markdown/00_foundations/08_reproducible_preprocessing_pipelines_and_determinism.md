@@ -116,5 +116,5 @@ flowchart TD
 - **Hardware CPU Kernel:** [08_reproducible_preprocessing_pipelines_and_determinism_cpu.py](../../kernels/00_foundations/08_reproducible_preprocessing_pipelines_and_determinism_cpu.py)
 - **Golden Reference Checkpoint:** [08_reproducible_preprocessing_pipelines_and_determinism.safetensors](../../weights/00_foundations/08_reproducible_preprocessing_pipelines_and_determinism.safetensors)
 - **Previous Topic:** [07. Feature Engineering, Scalers & Tabular Preprocessing](07_feature_engineering_scalers_and_tabular_preprocessing.md)
-- **Next Topic:** 09. Nested, Ragged & Specialized Sparse Tensors (Upcoming in Category 00)
+- **Next Topic:** [09. Nested, Ragged & Specialized Sparse Tensors](09_nested_ragged_and_specialized_sparse_tensors.md)
 

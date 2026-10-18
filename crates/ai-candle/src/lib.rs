@@ -29,5 +29,8 @@ pub mod c00_foundations {
 
     #[path = "08_reproducible_preprocessing_pipelines_and_determinism.rs"]
     pub mod t08_reproducible_preprocessing_pipelines_and_determinism;
+
+    #[path = "09_nested_ragged_and_specialized_sparse_tensors.rs"]
+    pub mod t09_nested_ragged_and_specialized_sparse_tensors;
 }
 

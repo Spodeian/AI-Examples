@@ -24,3 +24,6 @@ mod test_07_tabular_scalers;
 #[path = "00_foundations/test_08_determinism.rs"]
 mod test_08_determinism;
 
+#[path = "00_foundations/test_09_sparse_tensors.rs"]
+mod test_09_sparse_tensors;
+
