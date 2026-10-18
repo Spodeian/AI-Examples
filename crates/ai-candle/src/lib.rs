@@ -26,5 +26,8 @@ pub mod c00_foundations {
 
     #[path = "07_feature_engineering_scalers_and_tabular_preprocessing.rs"]
     pub mod t07_feature_engineering_scalers_and_tabular_preprocessing;
+
+    #[path = "08_reproducible_preprocessing_pipelines_and_determinism.rs"]
+    pub mod t08_reproducible_preprocessing_pipelines_and_determinism;
 }
 

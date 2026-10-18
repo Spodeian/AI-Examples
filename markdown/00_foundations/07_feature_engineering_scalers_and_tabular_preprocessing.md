@@ -99,4 +99,4 @@ flowchart TD
 - **Hardware CPU Kernel:** [07_feature_engineering_scalers_and_tabular_preprocessing_cpu.py](../../kernels/00_foundations/07_feature_engineering_scalers_and_tabular_preprocessing_cpu.py)
 - **Golden Reference Checkpoint:** [07_feature_engineering_scalers_and_tabular_preprocessing.safetensors](../../weights/00_foundations/07_feature_engineering_scalers_and_tabular_preprocessing.safetensors)
 - **Previous Topic:** [06. Module Internals, Parametrizations & Meta Devices](06_nn_module_internals_parametrizations_and_meta_device.md)
-- **Next Topic:** 08. Reproducible Preprocessing Pipelines & Determinism (Upcoming in Category 00)
+- **Next Topic:** [08. Reproducible Preprocessing Pipelines & Determinism](08_reproducible_preprocessing_pipelines_and_determinism.md)

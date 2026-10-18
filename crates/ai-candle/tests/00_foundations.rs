@@ -21,3 +21,6 @@ mod test_06_meta_device;
 #[path = "00_foundations/test_07_tabular_scalers.rs"]
 mod test_07_tabular_scalers;
 
+#[path = "00_foundations/test_08_determinism.rs"]
+mod test_08_determinism;
+
