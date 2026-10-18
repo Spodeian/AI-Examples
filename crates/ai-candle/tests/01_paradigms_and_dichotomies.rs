@@ -32,3 +32,6 @@ mod test_10_decision_hierarchy;
 
 #[path = "01_paradigms_and_dichotomies/test_11_statistical_inference.rs"]
 mod test_11_statistical_inference;
+
+#[path = "01_paradigms_and_dichotomies/test_12_inductive_vs_transductive.rs"]
+mod test_12_inductive_vs_transductive;

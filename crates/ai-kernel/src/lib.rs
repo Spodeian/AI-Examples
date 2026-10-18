@@ -79,5 +79,8 @@ pub mod c01_paradigms_and_dichotomies {
 
     #[path = "11_statistical_inference_bayesian_frequentist_likelihoodist_mdl_and_pac_bayes.rs"]
     pub mod t11_statistical_inference_bayesian_frequentist_likelihoodist_mdl_and_pac_bayes;
+
+    #[path = "12_inductive_vs_transductive_and_online_regret_vs_batch_iid.rs"]
+    pub mod t12_inductive_vs_transductive_and_online_regret_vs_batch_iid;
 }
 

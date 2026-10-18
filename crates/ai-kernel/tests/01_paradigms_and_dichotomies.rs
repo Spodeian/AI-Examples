@@ -11,6 +11,7 @@ use ai_kernel::{
         t09_non_euclidean_geometries_hyperbolic_poincare_spherical_and_spd as t09,
         t10_levels_of_decision_making_bayes_risk_bandits_mdp_pomdp_and_games as t10,
         t11_statistical_inference_bayesian_frequentist_likelihoodist_mdl_and_pac_bayes as t11,
+        t12_inductive_vs_transductive_and_online_regret_vs_batch_iid as t12,
     },
     KernelDevice,
 };
@@ -780,6 +781,87 @@ fn test_11_statistical_inference_cpu_and_auto() -> candle_core::Result<()> {
         assert!((calc - gold).abs() < 1e-5, "Martingale error at {i}: {calc} vs {gold}");
     }
     assert!((thresh_calc - thresh_gold).abs() < 1e-5, "Threshold error: {thresh_calc} vs {thresh_gold}");
+
+    Ok(())
+}
+
+#[test]
+fn test_12_inductive_vs_transductive_cpu_and_auto() -> candle_core::Result<()> {
+    let device = Device::Cpu;
+    let path = common::get_weights_path("01_paradigms_and_dichotomies/12_inductive_vs_transductive_and_online_regret_vs_batch_iid.safetensors");
+    let tensors = load(path, &device)?;
+
+    // 1. Transductive Label Spreading on CPU
+    let laplacian_s_flat: Vec<f32> = tensors.get("laplacian_s").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect();
+    let y_init_flat: Vec<f32> = tensors.get("y_init").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect();
+    let f_star_gold: Vec<f32> = tensors.get("f_star").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect();
+    let f_probs_gold: Vec<f32> = tensors.get("f_probs").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect();
+    let t_preds_gold = tensors.get("transductive_preds").unwrap().to_vec1::<f32>()?;
+
+    let (f_star_calc, f_probs_calc, t_preds_calc) = t12::transductive_label_spreading_cpu(&laplacian_s_flat, &y_init_flat, 8, 2, 0.8);
+    for (i, (&calc, &gold)) in f_star_calc.iter().zip(f_star_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "F* error at {i}: {calc} vs {gold}");
+    }
+    for (i, (&calc, &gold)) in f_probs_calc.iter().zip(f_probs_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "F probs error at {i}: {calc} vs {gold}");
+    }
+    for (i, (&calc, &gold)) in t_preds_calc.iter().zip(t_preds_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Transductive preds error at {i}: {calc} vs {gold}");
+    }
+
+    // 2. Inductive Predictor on CPU
+    let node_coords = tensors.get("node_coords").unwrap().to_vec2::<f32>()?;
+    let x_unlabeled_flat: Vec<f32> = node_coords[4..].iter().flatten().copied().collect();
+    let w_ind = tensors.get("w_ind").unwrap().to_vec1::<f32>()?;
+    let ind_scores_gold = tensors.get("inductive_scores").unwrap().to_vec1::<f32>()?;
+    let ind_preds_gold = tensors.get("inductive_preds").unwrap().to_vec1::<f32>()?;
+
+    let (scores_calc, preds_calc) = t12::inductive_predictor_cpu(&x_unlabeled_flat, &w_ind, 4, 2);
+    for (i, (&calc, &gold)) in scores_calc.iter().zip(ind_scores_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Inductive scores error at {i}: {calc} vs {gold}");
+    }
+    for (i, (&calc, &gold)) in preds_calc.iter().zip(ind_preds_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Inductive preds error at {i}: {calc} vs {gold}");
+    }
+
+    // 3. FTRL-Proximal on CPU and Auto
+    let grad_stream_flat: Vec<f32> = tensors.get("grad_stream").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect();
+    let final_w_gold = tensors.get("final_w_ftrl").unwrap().to_vec1::<f32>()?;
+    let z_gold = tensors.get("z_accum").unwrap().to_vec1::<f32>()?;
+    let n_gold = tensors.get("n_accum").unwrap().to_vec1::<f32>()?;
+
+    let (w_calc, z_calc, n_calc) = t12::ftrl_proximal_cpu(&grad_stream_flat, 4, 4, 0.1, 1.0, 0.5, 0.1);
+    for (i, (&calc, &gold)) in w_calc.iter().zip(final_w_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "FTRL w error at {i}: {calc} vs {gold}");
+    }
+    for (i, (&calc, &gold)) in z_calc.iter().zip(z_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "FTRL z error at {i}: {calc} vs {gold}");
+    }
+    for (i, (&calc, &gold)) in n_calc.iter().zip(n_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "FTRL n error at {i}: {calc} vs {gold}");
+    }
+
+    let w_auto = t12::ftrl_threshold_auto(None, None, &z_gold, &n_gold, 4, 0.1, 1.0, 0.5, 0.1);
+    for (i, (&calc, &gold)) in w_auto.iter().zip(final_w_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "FTRL w auto error at {i}: {calc} vs {gold}");
+    }
+
+    // 4. Page-Hinkley CUSUM Detector on CPU
+    let stream_errors = tensors.get("stream_errors").unwrap().to_vec1::<f32>()?;
+    let cusum_s_gold = tensors.get("cusum_s").unwrap().to_vec1::<f32>()?;
+    let ph_stat_gold = tensors.get("ph_stat").unwrap().to_vec1::<f32>()?;
+    let drift_flags_gold = tensors.get("drift_flags").unwrap().to_vec1::<f32>()?;
+
+    let (s_calc, ph_calc, d_calc) = t12::page_hinkley_cusum_cpu(&stream_errors, 0.05, 0.5, 0.10);
+    for (i, (&calc, &gold)) in s_calc.iter().zip(cusum_s_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "CUSUM s error at {i}: {calc} vs {gold}");
+    }
+    for (i, (&calc, &gold)) in ph_calc.iter().zip(ph_stat_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "PH stat error at {i}: {calc} vs {gold}");
+    }
+    for (i, (&calc, &gold)) in d_calc.iter().zip(drift_flags_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Drift flags error at {i}: {calc} vs {gold}");
+    }
 
     Ok(())
 }
