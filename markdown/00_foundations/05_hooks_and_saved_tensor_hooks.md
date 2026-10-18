@@ -153,4 +153,4 @@ $$\max\left(\|\nabla_W^{\text{PyTorch}} - \nabla_W^*\|_\infty, \|\nabla_W^{\text
 - **Hardware CPU Kernel:** [05_hooks_and_saved_tensor_hooks_cpu.py](../../kernels/00_foundations/05_hooks_and_saved_tensor_hooks_cpu.py)
 - **Golden Reference Checkpoint:** [05_hooks_and_saved_tensor_hooks.safetensors](../../weights/00_foundations/05_hooks_and_saved_tensor_hooks.safetensors)
 - **Previous Topic:** [04. Forward AD & Functional Transforms](04_forward_ad_and_functional_transforms_torch_func.md)
-- **Next Topic:** 06. Meta Devices, Fake Tensors & Deferred Initialization (Upcoming in Category 00)
+- **Next Topic:** [06. Module Internals, Parametrizations & Meta Devices](06_nn_module_internals_parametrizations_and_meta_device.md)

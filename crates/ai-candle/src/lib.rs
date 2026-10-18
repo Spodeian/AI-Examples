@@ -20,5 +20,8 @@ pub mod c00_foundations {
 
     #[path = "05_hooks_and_saved_tensor_hooks.rs"]
     pub mod t05_hooks_and_saved_tensor_hooks;
+
+    #[path = "06_nn_module_internals_parametrizations_and_meta_device.rs"]
+    pub mod t06_nn_module_internals_parametrizations_and_meta_device;
 }
 
