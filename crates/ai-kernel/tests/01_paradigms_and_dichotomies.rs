@@ -7,6 +7,7 @@ use ai_kernel::{
         t05_parametric_vs_nonparametric_and_neural_processes as t05,
         t06_ai_by_purpose_prediction_prescription_control_combinatorial_symbolic as t06,
         t07_input_and_output_spaces_tokens_bytes_patches_coords_pointers_and_manifolds as t07,
+        t08_computation_spaces_latent_reasoning_and_jepa as t08,
     },
     KernelDevice,
 };
@@ -434,3 +435,88 @@ fn test_07_input_output_spaces_cpu_and_auto() -> candle_core::Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn test_08_computation_spaces_cpu_and_auto() -> candle_core::Result<()> {
+    let device = Device::Cpu;
+    let path = common::get_weights_path("01_paradigms_and_dichotomies/08_computation_spaces_latent_reasoning_and_jepa.safetensors");
+    let tensors = load(path, &device)?;
+
+    let x = tensors.get("test_input").expect("test_input").to_vec2::<f32>()?;
+    let y_gold = tensors.get("test_output").expect("test_output").to_vec2::<f32>()?;
+    let w = tensors.get("layers.weight").expect("weight").to_vec2::<f32>()?;
+    let b = tensors.get("layers.bias").expect("bias").to_vec1::<f32>()?;
+
+    let batch = x.len();
+    let in_dim = w.len();
+    let out_dim = w[0].len();
+
+    let x_flat: Vec<f32> = x.into_iter().flatten().collect();
+    let w_flat: Vec<f32> = w.into_iter().flatten().collect();
+    let y_gold_flat: Vec<f32> = y_gold.into_iter().flatten().collect();
+
+    // 1. Canonical Linear Forward
+    let y_cpu = t08::linear_forward(&KernelDevice::Cpu, &x_flat, &w_flat, &b, batch, in_dim, out_dim);
+    for (i, (&calc, &gold)) in y_cpu.iter().zip(y_gold_flat.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "CPU error at {i}: {calc} vs {gold}");
+    }
+
+    let y_auto = t08::linear_forward(&KernelDevice::auto(), &x_flat, &w_flat, &b, batch, in_dim, out_dim);
+    for (i, (&calc, &gold)) in y_auto.iter().zip(y_gold_flat.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Auto error at {i}: {calc} vs {gold}");
+    }
+
+    // 2. Continuous Latent Reasoning
+    let w_proj: Vec<f32> = tensors.get("layers.w_proj").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect();
+    let b_proj = tensors.get("layers.b_proj").unwrap().to_vec1::<f32>()?;
+    let w_z: Vec<f32> = tensors.get("layers.w_z").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect();
+    let w_anc: Vec<f32> = tensors.get("layers.w_anc").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect();
+    let b_z = tensors.get("layers.b_z").unwrap().to_vec1::<f32>()?;
+    let traj_gold: Vec<f32> = tensors.get("layers.latent_trajectories").unwrap().to_vec3::<f32>()?.into_iter().flatten().flatten().collect();
+    let final_gold: Vec<f32> = tensors.get("layers.final_thought").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect();
+
+    let dim = b_z.len();
+    let steps = 3;
+    let (traj_calc, final_calc) = t08::continuous_latent_reasoning_cpu(
+        &x_flat, &w_proj, &b_proj, &w_z, &w_anc, &b_z, batch, in_dim, dim, steps,
+    );
+
+    for (i, (&calc, &gold)) in traj_calc.iter().zip(traj_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Traj error at {i}: {calc} vs {gold}");
+    }
+    for (i, (&calc, &gold)) in final_calc.iter().zip(final_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Final thought error at {i}: {calc} vs {gold}");
+    }
+
+    // 3. PonderNet Halting Hazards
+    let w_h = tensors.get("layers.w_h").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+    let b_h = tensors.get("layers.b_h").unwrap().to_vec1::<f32>()?;
+    let halting_gold: Vec<f32> = tensors.get("layers.halting_probs").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect();
+
+    let halting_calc = t08::ponder_halting_cpu(&traj_calc, &w_h, &b_h, batch, steps, dim);
+    for (i, (&calc, &gold)) in halting_calc.iter().zip(halting_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Halting error at {i}: {calc} vs {gold}");
+    }
+
+    // 4. JEPA Latent-Space Predictor & Loss
+    let w_p1: Vec<f32> = tensors.get("layers.w_p1").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect();
+    let b_p1 = tensors.get("layers.b_p1").unwrap().to_vec1::<f32>()?;
+    let w_p2: Vec<f32> = tensors.get("layers.w_p2").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect();
+    let b_p2 = tensors.get("layers.b_p2").unwrap().to_vec1::<f32>()?;
+    let jepa_pred_gold: Vec<f32> = tensors.get("layers.jepa_pred").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect();
+    let target_sy: Vec<f32> = tensors.get("layers.target_sy").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect();
+    let jepa_loss_gold = tensors.get("layers.jepa_error").unwrap().to_vec1::<f32>()?;
+
+    let jepa_pred_calc = t08::jepa_predict_cpu(&final_calc, &w_p1, &b_p1, &w_p2, &b_p2, batch, dim);
+    for (i, (&calc, &gold)) in jepa_pred_calc.iter().zip(jepa_pred_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "JEPA pred error at {i}: {calc} vs {gold}");
+    }
+
+    let jepa_loss_calc = t08::jepa_loss_cpu(&jepa_pred_calc, &target_sy, batch, dim);
+    for (i, (&calc, &gold)) in jepa_loss_calc.iter().zip(jepa_loss_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "JEPA loss error at {i}: {calc} vs {gold}");
+    }
+
+    Ok(())
+}
+

@@ -67,5 +67,8 @@ pub mod c01_paradigms_and_dichotomies {
 
     #[path = "07_input_and_output_spaces_tokens_bytes_patches_coords_pointers_and_manifolds.rs"]
     pub mod t07_input_and_output_spaces_tokens_bytes_patches_coords_pointers_and_manifolds;
+
+    #[path = "08_computation_spaces_latent_reasoning_and_jepa.rs"]
+    pub mod t08_computation_spaces_latent_reasoning_and_jepa;
 }
 
