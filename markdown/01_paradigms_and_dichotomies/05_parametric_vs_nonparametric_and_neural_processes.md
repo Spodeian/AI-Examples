@@ -120,4 +120,4 @@ All four framework implementations produce numerically identical outputs against
 - **Hardware CPU Kernel:** [05_parametric_vs_nonparametric_and_neural_processes_cpu.py](../../kernels/01_paradigms_and_dichotomies/05_parametric_vs_nonparametric_and_neural_processes_cpu.py)
 - **Golden Reference Checkpoint:** [05_parametric_vs_nonparametric_and_neural_processes.safetensors](../../weights/01_paradigms_and_dichotomies/05_parametric_vs_nonparametric_and_neural_processes.safetensors)
 - **Previous Topic:** [04. Deterministic vs. Stochastic & Mixture Density Networks](04_deterministic_vs_stochastic_and_mixture_density_networks.md)
-- **Next Topic:** 06. Supervised vs. Reinforcement Learning vs. Self-Supervised Learning (Upcoming in Category 01)
+- **Next Topic:** [06. AI by Purpose: Prediction vs Prescription vs Control vs Combinatorial vs Symbolic](06_ai_by_purpose_prediction_prescription_control_combinatorial_symbolic.md)

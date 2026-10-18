@@ -235,7 +235,7 @@ print("[CORRECT] Parametric Model compiled with torch.compile(fullgraph=True) an
 
 ---
 **Curriculum Navigation:**
-&larr; [Previous: 04. Deterministic vs. Stochastic & MDN](04_deterministic_vs_stochastic_and_mixture_density_networks.ipynb) | [Master Index: README.md](../../README.md) | Next: 06. Supervised vs RL vs Self-Supervised Learning (Upcoming in Category 01) &rarr;"""
+&larr; [Previous: 04. Deterministic vs. Stochastic & MDN](04_deterministic_vs_stochastic_and_mixture_density_networks.ipynb) | [Master Index: README.md](../../README.md) | Next: 06. AI by Purpose: Prediction vs Prescription vs Control vs Combinatorial vs Symbolic (Upcoming in Category 01) &rarr;"""
 
     def make_cell(cell_idx: int, cell_type: str, source: str) -> dict:
         lines = [line + "\n" for line in source.split("\n")]
