@@ -122,4 +122,4 @@ All four framework implementations produce numerically identical outputs against
 - **Hardware CPU Kernel:** [04_deterministic_vs_stochastic_and_mixture_density_networks_cpu.py](../../kernels/01_paradigms_and_dichotomies/04_deterministic_vs_stochastic_and_mixture_density_networks_cpu.py)
 - **Golden Reference Checkpoint:** [04_deterministic_vs_stochastic_and_mixture_density_networks.safetensors](../../weights/01_paradigms_and_dichotomies/04_deterministic_vs_stochastic_and_mixture_density_networks.safetensors)
 - **Previous Topic:** [03. Discrete vs. Continuous Latents & Gradient Estimators](03_discrete_vs_continuous_latents_and_gradient_estimators.md)
-- **Next Topic:** 05. Parametric vs. Nonparametric & Gaussian Process Priors (Upcoming in Category 01)
+- **Next Topic:** [05. Parametric vs. Nonparametric & Neural Processes](05_parametric_vs_nonparametric_and_neural_processes.md)

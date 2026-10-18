@@ -11,3 +11,6 @@ mod test_03_discrete_vs_continuous;
 
 #[path = "01_paradigms_and_dichotomies/test_04_deterministic_vs_stochastic.rs"]
 mod test_04_deterministic_vs_stochastic;
+
+#[path = "01_paradigms_and_dichotomies/test_05_parametric_vs_nonparametric.rs"]
+mod test_05_parametric_vs_nonparametric;

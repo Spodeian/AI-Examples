@@ -53,6 +53,9 @@ pub mod c01_paradigms_and_dichotomies {
 
     #[path = "04_deterministic_vs_stochastic_and_mixture_density_networks.rs"]
     pub mod t04_deterministic_vs_stochastic_and_mixture_density_networks;
+
+    #[path = "05_parametric_vs_nonparametric_and_neural_processes.rs"]
+    pub mod t05_parametric_vs_nonparametric_and_neural_processes;
 }
 
 
