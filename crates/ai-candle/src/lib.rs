@@ -17,5 +17,8 @@ pub mod c00_foundations {
 
     #[path = "04_forward_ad_and_functional_transforms_torch_func.rs"]
     pub mod t04_forward_ad_and_functional_transforms_torch_func;
+
+    #[path = "05_hooks_and_saved_tensor_hooks.rs"]
+    pub mod t05_hooks_and_saved_tensor_hooks;
 }
 

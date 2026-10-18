@@ -78,7 +78,7 @@ def compute_per_sample_grads(
 
         loss_fn = default_loss_fn
 
-    params: dict[str, Tensor] = {k: v for k, v in model.named_parameters()}
+    params = dict(model.named_parameters())
 
     def compute_single_loss(p: dict[str, Tensor], x_single: Tensor, y_single: Tensor) -> Tensor:
         pred_single = func.functional_call(model, p, (x_single.unsqueeze(0),)).squeeze(0)

@@ -12,3 +12,6 @@ mod test_03_autograd;
 #[path = "00_foundations/test_04_forward_ad.rs"]
 mod test_04_forward_ad;
 
+#[path = "00_foundations/test_05_hooks.rs"]
+mod test_05_hooks;
+

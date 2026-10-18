@@ -145,4 +145,4 @@ assert torch.norm(hvp - h_full @ v, p=float("inf")) < 1e-5
 - **Hardware CPU Kernel:** [04_forward_ad_and_functional_transforms_torch_func_cpu.py](../../kernels/00_foundations/04_forward_ad_and_functional_transforms_torch_func_cpu.py)
 - **Golden Reference Checkpoint:** [04_forward_ad_and_functional_transforms_torch_func.safetensors](../../weights/00_foundations/04_forward_ad_and_functional_transforms_torch_func.safetensors)
 - **Previous Topic:** [03. Autograd Mechanics & Complex Wirtinger](03_autograd_mechanics_complex_wirtinger_and_custom_functions.md)
-- **Next Topic:** 05. Hooks & Saved Tensor Hooks (Upcoming in Category 00)
+- **Next Topic:** [05. Hooks & Saved Tensor Hooks](05_hooks_and_saved_tensor_hooks.md)
