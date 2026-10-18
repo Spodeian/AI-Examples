@@ -82,5 +82,11 @@ pub mod c01_paradigms_and_dichotomies {
     pub mod t13_information_geometry_solomonoff_mdl_and_maxent_free_energy;
 }
 
+#[path = "../../../candle/03_building_blocks_and_losses"]
+pub mod c03_building_blocks_and_losses {
+    #[path = "01_activation_functions_zoo.rs"]
+    pub mod t01_activation_functions_zoo;
+}
+
 
 
