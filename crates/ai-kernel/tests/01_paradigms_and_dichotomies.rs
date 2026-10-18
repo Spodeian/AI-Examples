@@ -8,6 +8,7 @@ use ai_kernel::{
         t06_ai_by_purpose_prediction_prescription_control_combinatorial_symbolic as t06,
         t07_input_and_output_spaces_tokens_bytes_patches_coords_pointers_and_manifolds as t07,
         t08_computation_spaces_latent_reasoning_and_jepa as t08,
+        t09_non_euclidean_geometries_hyperbolic_poincare_spherical_and_spd as t09,
     },
     KernelDevice,
 };
@@ -519,4 +520,91 @@ fn test_08_computation_spaces_cpu_and_auto() -> candle_core::Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn test_09_non_euclidean_geometries_cpu_and_auto() -> candle_core::Result<()> {
+    let device = Device::Cpu;
+    let path = common::get_weights_path("01_paradigms_and_dichotomies/09_non_euclidean_geometries_hyperbolic_poincare_spherical_and_spd.safetensors");
+    let tensors = load(path, &device)?;
+
+    let x = tensors.get("test_input").expect("test_input").to_vec2::<f32>()?;
+    let y_gold = tensors.get("test_output").expect("test_output").to_vec2::<f32>()?;
+    let w = tensors.get("layers.weight").expect("weight").to_vec2::<f32>()?;
+    let b = tensors.get("layers.bias").expect("bias").to_vec1::<f32>()?;
+
+    let batch = x.len();
+    let in_dim = w.len();
+    let out_dim = w[0].len();
+
+    let x_flat: Vec<f32> = x.into_iter().flatten().collect();
+    let w_flat: Vec<f32> = w.into_iter().flatten().collect();
+    let y_gold_flat: Vec<f32> = y_gold.into_iter().flatten().collect();
+
+    // 1. Canonical Linear Forward
+    let y_cpu = t09::linear_forward(&KernelDevice::Cpu, &x_flat, &w_flat, &b, batch, in_dim, out_dim);
+    for (i, (&calc, &gold)) in y_cpu.iter().zip(y_gold_flat.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "CPU error at {i}: {calc} vs {gold}");
+    }
+
+    let y_auto = t09::linear_forward(&KernelDevice::auto(), &x_flat, &w_flat, &b, batch, in_dim, out_dim);
+    for (i, (&calc, &gold)) in y_auto.iter().zip(y_gold_flat.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Auto error at {i}: {calc} vs {gold}");
+    }
+
+    // 2. Hyperbolic Poincaré Ball
+    let c_val = tensors.get("layers.c").unwrap().to_vec1::<f32>()?[0];
+    let v_flat: Vec<f32> = tensors.get("layers.euclidean_v").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect();
+    let exp_gold: Vec<f32> = tensors.get("layers.exp_map_0").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect();
+    let exp_calc = t09::poincare_exp_zero_cpu(&v_flat, batch, 2, c_val);
+    for (i, (&calc, &gold)) in exp_calc.iter().zip(exp_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Exp map error at {i}: {calc} vs {gold}");
+    }
+
+    let x_hyp_flat: Vec<f32> = tensors.get("layers.poincare_x").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect();
+    let log_gold: Vec<f32> = tensors.get("layers.log_map_0").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect();
+    let log_calc = t09::poincare_log_zero_cpu(&x_hyp_flat, batch, 2, c_val);
+    for (i, (&calc, &gold)) in log_calc.iter().zip(log_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Log map error at {i}: {calc} vs {gold}");
+    }
+
+    let y_hyp_flat: Vec<f32> = tensors.get("layers.poincare_y").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect();
+    let mobius_gold: Vec<f32> = tensors.get("layers.mobius_add").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect();
+    let mobius_calc = t09::poincare_mobius_add_cpu(&x_hyp_flat, &y_hyp_flat, batch, 2, c_val);
+    for (i, (&calc, &gold)) in mobius_calc.iter().zip(mobius_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Mobius add error at {i}: {calc} vs {gold}");
+    }
+
+    let dist_gold = tensors.get("layers.poincare_dist").unwrap().to_vec1::<f32>()?;
+    let dist_calc = t09::poincare_distance_cpu(&x_hyp_flat, &y_hyp_flat, batch, 2, c_val);
+    for (i, (&calc, &gold)) in dist_calc.iter().zip(dist_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Poincare dist error at {i}: {calc} vs {gold}");
+    }
+
+    // 3. Spherical Geometry
+    let p_flat: Vec<f32> = tensors.get("layers.sphere_p").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect();
+    let q_flat: Vec<f32> = tensors.get("layers.sphere_q").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect();
+    let s_dist_gold = tensors.get("layers.sphere_dist").unwrap().to_vec1::<f32>()?;
+    let s_dist_calc = t09::spherical_distance_cpu(&p_flat, &q_flat, batch, 3);
+    for (i, (&calc, &gold)) in s_dist_calc.iter().zip(s_dist_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Sphere dist error at {i}: {calc} vs {gold}");
+    }
+
+    let align_gold = tensors.get("layers.alignment_loss").unwrap().to_vec1::<f32>()?;
+    let align_calc = t09::spherical_alignment_cpu(&p_flat, &q_flat, batch, 3);
+    for (i, (&calc, &gold)) in align_calc.iter().zip(align_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Sphere align error at {i}: {calc} vs {gold}");
+    }
+
+    // 4. SPD Log-Euclidean distance
+    let spd_p_flat: Vec<f32> = tensors.get("layers.spd_P").unwrap().to_vec3::<f32>()?.into_iter().flatten().flatten().collect();
+    let spd_q_flat: Vec<f32> = tensors.get("layers.spd_Q").unwrap().to_vec3::<f32>()?.into_iter().flatten().flatten().collect();
+    let spd_dist_gold = tensors.get("layers.log_euclidean_dist").unwrap().to_vec1::<f32>()?;
+    let spd_dist_calc = t09::spd_log_euclidean_distance_2x2_cpu(&spd_p_flat, &spd_q_flat, batch);
+    for (i, (&calc, &gold)) in spd_dist_calc.iter().zip(spd_dist_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "SPD dist error at {i}: {calc} vs {gold}");
+    }
+
+    Ok(())
+}
+
 

@@ -65,6 +65,9 @@ pub mod c01_paradigms_and_dichotomies {
 
     #[path = "08_computation_spaces_latent_reasoning_and_jepa.rs"]
     pub mod t08_computation_spaces_latent_reasoning_and_jepa;
+
+    #[path = "09_non_euclidean_geometries_hyperbolic_poincare_spherical_and_spd.rs"]
+    pub mod t09_non_euclidean_geometries_hyperbolic_poincare_spherical_and_spd;
 }
 
 
