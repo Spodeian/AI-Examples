@@ -115,4 +115,4 @@ flowchart TD
 - **Hardware CPU Kernel:** [06_nn_module_internals_parametrizations_and_meta_device_cpu.py](../../kernels/00_foundations/06_nn_module_internals_parametrizations_and_meta_device_cpu.py)
 - **Golden Reference Checkpoint:** [06_nn_module_internals_parametrizations_and_meta_device.safetensors](../../weights/00_foundations/06_nn_module_internals_parametrizations_and_meta_device.safetensors)
 - **Previous Topic:** [05. Hooks & Saved Tensor Offloading](05_hooks_and_saved_tensor_hooks.md)
-- **Next Topic:** 07. Custom Autograd Function Best Practices & Higher-Order Gradients (Upcoming in Category 00)
+- **Next Topic:** [07. Tabular Scalers & Preprocessing Pipelines](07_feature_engineering_scalers_and_tabular_preprocessing.md)

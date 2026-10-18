@@ -18,3 +18,6 @@ mod test_05_hooks;
 #[path = "00_foundations/test_06_meta_device.rs"]
 mod test_06_meta_device;
 
+#[path = "00_foundations/test_07_tabular_scalers.rs"]
+mod test_07_tabular_scalers;
+

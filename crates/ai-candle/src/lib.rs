@@ -23,5 +23,8 @@ pub mod c00_foundations {
 
     #[path = "06_nn_module_internals_parametrizations_and_meta_device.rs"]
     pub mod t06_nn_module_internals_parametrizations_and_meta_device;
+
+    #[path = "07_feature_engineering_scalers_and_tabular_preprocessing.rs"]
+    pub mod t07_feature_engineering_scalers_and_tabular_preprocessing;
 }
 
