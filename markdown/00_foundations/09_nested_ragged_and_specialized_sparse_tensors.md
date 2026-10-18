@@ -115,4 +115,4 @@ flowchart TD
 - **Hardware CPU Kernel:** [09_nested_ragged_and_specialized_sparse_tensors_cpu.py](../../kernels/00_foundations/09_nested_ragged_and_specialized_sparse_tensors_cpu.py)
 - **Golden Reference Checkpoint:** [09_nested_ragged_and_specialized_sparse_tensors.safetensors](../../weights/00_foundations/09_nested_ragged_and_specialized_sparse_tensors.safetensors)
 - **Previous Topic:** [08. Reproducible Preprocessing Pipelines & Determinism](08_reproducible_preprocessing_pipelines_and_determinism.md)
-- **Next Topic:** 10. Floating-Point Arithmetic, Conditioning & Numerical Stability (Upcoming in Category 00)
+- **Next Topic:** [10. Floating-Point Arithmetic, Conditioning & Numerical Stability](10_floating_point_arithmetic_conditioning_and_numerical_stability.md)

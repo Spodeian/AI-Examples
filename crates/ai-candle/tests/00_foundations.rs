@@ -27,3 +27,6 @@ mod test_08_determinism;
 #[path = "00_foundations/test_09_sparse_tensors.rs"]
 mod test_09_sparse_tensors;
 
+#[path = "00_foundations/test_10_numerical_stability.rs"]
+mod test_10_numerical_stability;
+

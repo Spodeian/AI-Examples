@@ -32,5 +32,8 @@ pub mod c00_foundations {
 
     #[path = "09_nested_ragged_and_specialized_sparse_tensors.rs"]
     pub mod t09_nested_ragged_and_specialized_sparse_tensors;
+
+    #[path = "10_floating_point_arithmetic_conditioning_and_numerical_stability.rs"]
+    pub mod t10_floating_point_arithmetic_conditioning_and_numerical_stability;
 }
 
