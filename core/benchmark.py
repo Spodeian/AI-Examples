@@ -8,6 +8,7 @@ import time
 import tracemalloc
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 import torch
@@ -182,3 +183,54 @@ def format_benchmark_table(results: list[BenchmarkResult]) -> str:
         for row in rows
     ]
     return "\n".join([header_line, sep_line] + data_lines)
+
+
+def save_benchmark_baseline(
+    results: list[BenchmarkResult], path: str | Path
+) -> None:
+    """Saves benchmark results as a JSON baseline file for regression testing."""
+    import json
+    from pathlib import Path
+
+    out_path = Path(path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    data = {
+        r.name: {
+            "median_time_ms": r.median_time_ms,
+            "p90_time_ms": r.p90_time_ms,
+            "throughput": r.throughput_samples_per_sec,
+            "flops": r.flops,
+        }
+        for r in results
+    }
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
+
+
+def check_benchmark_regression(
+    results: list[BenchmarkResult], baseline_path: str | Path, tolerance_pct: float = 50.0
+) -> list[str]:
+    """Compares current benchmark results against a saved baseline file, flagging regressions."""
+    import json
+    from pathlib import Path
+
+    b_path = Path(baseline_path)
+    if not b_path.is_file():
+        return []
+
+    with open(b_path, encoding="utf-8") as f:
+        baseline = json.load(f)
+
+    regressions = []
+    for r in results:
+        if r.name in baseline:
+            base_median = baseline[r.name]["median_time_ms"]
+            if base_median > 0:
+                slowdown_pct = ((r.median_time_ms - base_median) / base_median) * 100.0
+                if slowdown_pct > tolerance_pct:
+                    regressions.append(
+                        f"Regression in '{r.name}': {r.median_time_ms:.3f}ms vs baseline {base_median:.3f}ms "
+                        f"(+{slowdown_pct:.1f}% exceeds tolerance {tolerance_pct}%)"
+                    )
+    return regressions
+

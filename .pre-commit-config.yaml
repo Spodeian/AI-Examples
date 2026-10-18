@@ -22,3 +22,18 @@ repos:
       - id: nbstripout
         files: '^notebooks/.*\.ipynb$'
         description: "Strip execution counts and output cells from Jupyter notebooks"
+
+  - repo: local
+    hooks:
+      - id: cargo-check
+        name: cargo check workspace
+        entry: cargo check --workspace
+        language: system
+        files: '\.rs$|Cargo\.(toml|lock)$'
+        pass_filenames: false
+      - id: pytest-fast
+        name: pytest fast invariants
+        entry: .venv/Scripts/pytest
+        language: system
+        files: '\.py$'
+        pass_filenames: false

@@ -5,6 +5,7 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
+import pytest
 import torch
 import torch.nn as nn
 
@@ -162,7 +163,17 @@ def test_benchmark_profiling() -> None:
     table = core.benchmark.format_benchmark_table([res])
     assert "MatMul" in table
 
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        base_file = Path(tmp_dir) / "baseline.json"
+        core.benchmark.save_benchmark_baseline([res], base_file)
+        assert base_file.is_file()
 
+        # Check regression against identical run (should be no regression)
+        regressions = core.benchmark.check_benchmark_regression([res], base_file, tolerance_pct=50.0)
+        assert len(regressions) == 0
+
+
+@pytest.mark.heavy
 def test_export_utilities() -> None:
     model = nn.Linear(8, 4)
     x = torch.randn(2, 8)

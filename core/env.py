@@ -34,6 +34,8 @@ def setup_env(seed: int = 42, prefer_device: str | None = None) -> EnvInfo:
         EnvInfo containing the resolved device and supported data types.
     """
     os.environ["PYTHONHASHSEED"] = str(seed)
+    if "TORCHINDUCTOR_CACHE_DIR" not in os.environ:
+        os.environ["TORCHINDUCTOR_CACHE_DIR"] = os.path.abspath(".cache/torchinductor")
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)

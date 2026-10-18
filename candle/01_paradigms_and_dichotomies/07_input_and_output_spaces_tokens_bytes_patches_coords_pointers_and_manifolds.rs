@@ -157,7 +157,7 @@ impl PatchEmbedding {
 
     /// Projects flattened patches into model dimension: [B, num_patches, patch_dim] -> [B, num_patches, d_model].
     pub fn forward(&self, patches: &Tensor) -> Result<Tensor> {
-        let (batch_size, num_patches, patch_dim) = patches.dims3()?;
+        let (batch_size, _num_patches, patch_dim) = patches.dims3()?;
         let d_model = self.w_patch.dim(1)?;
 
         let w_patch_3d = self.w_patch.broadcast_as((batch_size, patch_dim, d_model))?;

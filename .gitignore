@@ -39,6 +39,7 @@ htmlcov/
 .ruff_cache/
 
 # PyTorch / Inductor / Triton cache
+.cache/
 .torch/
 torch_compile_debug/
 triton_cache/

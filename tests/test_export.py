@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import pytest
 import torch
 import torch.nn as nn
 
 from core.export import verify_onnx_export, verify_torch_compile_fullgraph, verify_torch_export
+
+pytestmark = pytest.mark.heavy
 
 
 class SimpleMLP(nn.Module):

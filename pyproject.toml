@@ -92,3 +92,7 @@ disable_error_code = ["attr-defined"]
 testpaths = ["tests"]
 pythonpath = ["."]
 addopts = "-v --durations=10"
+markers = [
+    "heavy: marks tests as heavy/slow (skipped by default unless --run-heavy is specified)",
+]
+

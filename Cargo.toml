@@ -2,6 +2,7 @@
 members = [
     "crates/ai-architect-schema",
     "crates/ai-candle",
+    "crates/ai-kernel",
 ]
 resolver = "2"
 
@@ -18,7 +19,15 @@ candle-core = "0.8.2"
 candle-nn = "0.8.2"
 
 [profile.dev]
-opt-level = 1
+opt-level = 0
+debug = 1
+split-debuginfo = "unpacked"
+
+[profile.dev.build-override]
+opt-level = 3
+
+[profile.dev.package."*"]
+opt-level = 2
 
 [profile.release]
 opt-level = 3

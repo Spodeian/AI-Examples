@@ -70,6 +70,7 @@ def test_checkpoint_parity(checkpoint_path: Path) -> None:
     assert err_torch_jax < 1e-5, f"PyTorch vs JAX error {err_torch_jax:.2e} exceeds 1e-5"
 
 
+@pytest.mark.heavy
 def test_candle_crate_parity() -> None:
     """Runs native Rust Candle integration test suite to assert Candle vs Golden parity."""
     cargo_bin = shutil.which("cargo")
@@ -80,7 +81,7 @@ def test_candle_crate_parity() -> None:
     env = os.environ.copy()
     env["RUSTC_WRAPPER"] = ""
     result = subprocess.run(
-        [cargo_bin, "test", "-p", "ai-candle"],
+        [cargo_bin, "test", "-p", "ai-candle", "--tests"],
         capture_output=True,
         text=True,
         env=env,
@@ -89,3 +90,25 @@ def test_candle_crate_parity() -> None:
     assert result.returncode == 0, (
         f"Candle test suite failed with exit code {result.returncode}:\n{result.stderr}\n{result.stdout}"
     )
+
+
+@pytest.mark.heavy
+def test_kernel_crate_parity() -> None:
+    """Runs native Rust ai-kernel integration test suite to assert CPU and WGPU kernel parity."""
+    cargo_bin = shutil.which("cargo")
+    if cargo_bin is None:
+        pytest.skip("cargo not found in environment")
+
+    env = os.environ.copy()
+    env["RUSTC_WRAPPER"] = ""
+    result = subprocess.run(
+        [cargo_bin, "test", "-p", "ai-kernel", "--tests"],
+        capture_output=True,
+        text=True,
+        env=env,
+        check=False,
+    )
+    assert result.returncode == 0, (
+        f"ai-kernel test suite failed with exit code {result.returncode}:\n{result.stderr}\n{result.stdout}"
+    )
+

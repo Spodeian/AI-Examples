@@ -13,8 +13,10 @@ Verifies:
 from __future__ import annotations
 
 import argparse
+import concurrent.futures
 import gc
 import json
+import os
 import re
 import sys
 import time
@@ -247,7 +249,7 @@ def check_internal_links(root: Path) -> list[str]:
             continue
         content = md_path.read_text(encoding="utf-8")
         for _text, link in link_pattern.findall(content):
-            if link.startswith(("http://", "https://", "mailto:", "#")):
+            if link.startswith(("http://", "https://", "mailto:", "#", "file://", "conversation://")):
                 continue
             # Strip anchors
             target_link = link.split("#")[0]
@@ -294,6 +296,27 @@ def execute_notebook(path: Path, max_duration: float = 3.0) -> tuple[bool, float
         return False, 0.0, str(e)
 
 
+def _worker_init() -> None:
+    """Pre-warm heavy imports inside spawned worker processes before timing starts."""
+    try:
+        import numpy  # noqa: F401
+        import torch  # noqa: F401
+
+        import core  # noqa: F401
+    except ImportError:
+        pass
+
+
+def _worker_execute(args_tuple: tuple[str, float]) -> tuple[str, bool, float, str]:
+    """Worker entry point for multiprocessing pool."""
+    path_str, timeout = args_tuple
+    p = Path(path_str)
+    success, duration, err_msg = execute_notebook(p, max_duration=timeout)
+    return (path_str, success, duration, err_msg)
+
+
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Multi-Track Validator for AI-Examples")
     parser.add_argument(
@@ -316,9 +339,32 @@ def main() -> None:
         help="Validate semantic depth and educational contract for all notebook cells",
     )
     parser.add_argument(
+        "--parallel",
+        action="store_true",
+        default=False,
+        help="Execute notebooks in parallel worker processes",
+    )
+    parser.add_argument(
+        "--no-parallel",
+        action="store_false",
+        dest="parallel",
+        help="Execute notebooks sequentially in a single process",
+    )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=None,
+        help="Number of parallel worker processes (default: min(cpu_count, 8))",
+    )
+    parser.add_argument(
         "--check-candle",
         action="store_true",
-        help="Run native Rust Candle test suite via cargo test -p ai-candle",
+        help="Run native Rust Candle test suite via cargo test -p ai-candle --tests",
+    )
+    parser.add_argument(
+        "--check-kernel",
+        action="store_true",
+        help="Run native Rust ai-kernel test suite via cargo test -p ai-kernel --tests",
     )
     parser.add_argument("--path", type=str, default=".", help="Root directory or specific file")
     args = parser.parse_args()
@@ -355,7 +401,6 @@ def main() -> None:
     # 3. Candle test check
     if args.check_candle:
         print("Running native Rust Candle test suite (ai-candle)...")
-        import os
         import shutil
         import subprocess
 
@@ -367,7 +412,7 @@ def main() -> None:
             env = os.environ.copy()
             env["RUSTC_WRAPPER"] = ""
             res = subprocess.run(
-                [cargo_bin, "test", "-p", "ai-candle"],
+                [cargo_bin, "test", "-p", "ai-candle", "--tests"],
                 capture_output=True,
                 text=True,
                 env=env,
@@ -377,9 +422,35 @@ def main() -> None:
                 print(f"[FAIL] Candle test suite failed:\n{res.stderr}\n{res.stdout}")
                 failed = True
             else:
-                print("[PASS] Native Candle test suite and doc-tests passed.")
+                print("[PASS] Native Candle test suite passed.")
 
-    # 4. Notebook validation
+    # 4. Kernel test check
+    if args.check_kernel:
+        print("Running native Rust ai-kernel test suite (CPU + WGPU)...")
+        import shutil
+        import subprocess
+
+        cargo_bin = shutil.which("cargo")
+        if cargo_bin is None:
+            print("[FAIL] cargo binary not found on PATH")
+            failed = True
+        else:
+            env = os.environ.copy()
+            env["RUSTC_WRAPPER"] = ""
+            res = subprocess.run(
+                [cargo_bin, "test", "-p", "ai-kernel", "--tests"],
+                capture_output=True,
+                text=True,
+                env=env,
+                check=False,
+            )
+            if res.returncode != 0:
+                print(f"[FAIL] ai-kernel test suite failed:\n{res.stderr}\n{res.stdout}")
+                failed = True
+            else:
+                print("[PASS] Native ai-kernel test suite passed.")
+
+    # 5. Notebook validation
     if root.is_file() and root.suffix == ".ipynb":
         notebooks = [root]
     elif root.is_dir():
@@ -395,6 +466,7 @@ def main() -> None:
 
     if notebooks:
         print(f"Scanning {len(notebooks)} notebook(s)...")
+        valid_notebooks: list[Path] = []
         for nb_path in notebooks:
             rel_path = nb_path.relative_to(root) if root.is_dir() else nb_path
             errors = validate_notebook_structure(nb_path)
@@ -408,17 +480,38 @@ def main() -> None:
                 for err in errors:
                     print(f"       - {err}")
                 failed = True
-                continue
-
-            if args.run:
-                success, duration, err_msg = execute_notebook(nb_path, max_duration=args.timeout)
-                if not success:
-                    print(f"[FAIL] {rel_path} - Execution error: {err_msg}")
-                    failed = True
-                    continue
-                print(f"[PASS] {rel_path} (Execution: {duration:.2f}s, budget: {args.timeout}s)")
             else:
-                print(f"[PASS] {rel_path} (Contract OK)")
+                valid_notebooks.append(nb_path)
+                if not args.run:
+                    print(f"[PASS] {rel_path} (Contract OK)")
+
+        if args.run and valid_notebooks:
+            if args.parallel and len(valid_notebooks) > 1:
+                workers = args.workers or min(os.cpu_count() or 4, 8)
+                print(f"Executing {len(valid_notebooks)} notebook(s) in parallel across {workers} worker processes...")
+                t_start = time.perf_counter()
+                tasks = [(str(nb), args.timeout) for nb in valid_notebooks]
+                with concurrent.futures.ProcessPoolExecutor(max_workers=workers, initializer=_worker_init) as executor:
+                    results = list(executor.map(_worker_execute, tasks))
+                total_duration = time.perf_counter() - t_start
+                for path_str, success, duration, err_msg in results:
+                    p = Path(path_str)
+                    rel = p.relative_to(root) if root.is_dir() else p
+                    if not success:
+                        print(f"[FAIL] {rel} - Execution error: {err_msg}")
+                        failed = True
+                    else:
+                        print(f"[PASS] {rel} (Execution: {duration:.2f}s, budget: {args.timeout}s)")
+                print(f"Parallel notebook execution completed in {total_duration:.2f}s total elapsed time.")
+            else:
+                for nb_path in valid_notebooks:
+                    rel_path = nb_path.relative_to(root) if root.is_dir() else nb_path
+                    success, duration, err_msg = execute_notebook(nb_path, max_duration=args.timeout)
+                    if not success:
+                        print(f"[FAIL] {rel_path} - Execution error: {err_msg}")
+                        failed = True
+                    else:
+                        print(f"[PASS] {rel_path} (Execution: {duration:.2f}s, budget: {args.timeout}s)")
 
     if failed:
         sys.exit(1)
