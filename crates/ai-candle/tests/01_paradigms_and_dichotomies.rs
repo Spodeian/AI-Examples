@@ -18,3 +18,7 @@ mod test_05_parametric_vs_nonparametric;
 #[path = "01_paradigms_and_dichotomies/test_06_ai_by_purpose.rs"]
 mod test_06_ai_by_purpose;
 
+#[path = "01_paradigms_and_dichotomies/test_07_input_and_output.rs"]
+mod test_07_input_and_output;
+
+

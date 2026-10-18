@@ -59,6 +59,9 @@ pub mod c01_paradigms_and_dichotomies {
 
     #[path = "06_ai_by_purpose_prediction_prescription_control_combinatorial_symbolic.rs"]
     pub mod t06_ai_by_purpose_prediction_prescription_control_combinatorial_symbolic;
+
+    #[path = "07_input_and_output_spaces_tokens_bytes_patches_coords_pointers_and_manifolds.rs"]
+    pub mod t07_input_and_output_spaces_tokens_bytes_patches_coords_pointers_and_manifolds;
 }
 
 
