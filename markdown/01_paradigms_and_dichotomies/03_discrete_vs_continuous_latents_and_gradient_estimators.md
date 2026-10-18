@@ -123,4 +123,4 @@ $$\mathbf{g}_{\text{REINFORCE}} = (f(b) - c) (\mathbf{b} - \mathbf{p})$$
 - **Hardware CPU Kernel:** [03_discrete_vs_continuous_latents_and_gradient_estimators_cpu.py](../../kernels/01_paradigms_and_dichotomies/03_discrete_vs_continuous_latents_and_gradient_estimators_cpu.py)
 - **Golden Reference Checkpoint:** [03_discrete_vs_continuous_latents_and_gradient_estimators.safetensors](../../weights/01_paradigms_and_dichotomies/03_discrete_vs_continuous_latents_and_gradient_estimators.safetensors)
 - **Previous Topic:** [02. Tree vs. Kernel vs. Neural Inductive Biases](02_tree_vs_kernel_vs_neural_inductive_biases.md)
-- **Next Topic:** 04. Deterministic vs. Stochastic & Mixture Density Networks (Upcoming in Category 01)
+- **Next Topic:** [04. Deterministic vs. Stochastic & Mixture Density Networks](04_deterministic_vs_stochastic_and_mixture_density_networks.md)

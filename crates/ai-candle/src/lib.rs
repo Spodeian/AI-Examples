@@ -50,6 +50,9 @@ pub mod c01_paradigms_and_dichotomies {
 
     #[path = "03_discrete_vs_continuous_latents_and_gradient_estimators.rs"]
     pub mod t03_discrete_vs_continuous_latents_and_gradient_estimators;
+
+    #[path = "04_deterministic_vs_stochastic_and_mixture_density_networks.rs"]
+    pub mod t04_deterministic_vs_stochastic_and_mixture_density_networks;
 }
 
 
