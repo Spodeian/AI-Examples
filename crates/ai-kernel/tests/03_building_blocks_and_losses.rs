@@ -242,3 +242,64 @@ fn test_03_weight_initialization_and_mup_scaling_cpu_and_auto() -> Result<()> {
 
     Ok(())
 }
+
+use ai_kernel::c03_building_blocks_and_losses::t04_positional_and_structural_encodings as t04;
+
+#[test]
+fn test_04_positional_and_structural_encodings_cpu_and_auto() -> Result<()> {
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "03_building_blocks_and_losses/04_positional_and_structural_encodings.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    let test_in = tensors.get("test_input").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+    let test_out = tensors.get("test_output").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+    let weight = tensors.get("weight").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+    let bias = tensors.get("bias").unwrap().to_vec1::<f32>()?;
+    let pe = tensors.get("sinusoidal_pe").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+    let cos = tensors.get("cos_rope").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+    let sin = tensors.get("sin_rope").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+    let slopes = tensors.get("alibi_slopes").unwrap().to_vec1::<f32>()?;
+    let adj = tensors.get("graph_adj").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+
+    // 1. Linear Anchor on CPU
+    let anchor_calc = t04::linear_anchor_forward_cpu(&test_in, &weight, &bias, 4, 8, 4);
+    for (i, (&calc, &gold)) in anchor_calc.iter().zip(test_out.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Linear anchor error at {i}: {calc} vs {gold}");
+    }
+
+    // 2. Sinusoidal PE on CPU
+    let sin_gold = tensors.get("y_sinusoidal").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+    let sin_calc = t04::sinusoidal_pe_cpu(&test_in, &pe, 4, 8);
+    for (i, (&calc, &gold)) in sin_calc.iter().zip(sin_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Sinusoidal PE error at {i}: {calc} vs {gold}");
+    }
+
+    // 3. RoPE on CPU and Auto
+    let rp_gold = tensors.get("y_rope").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+    let rp_calc = t04::rope_cpu(&test_in, &cos, &sin, 4, 8);
+    for (i, (&calc, &gold)) in rp_calc.iter().zip(rp_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "RoPE CPU error at {i}: {calc} vs {gold}");
+    }
+    let rp_auto = pollster::block_on(t04::rope_auto(None, &test_in, &cos, &sin, 4, 8));
+    for (i, (&calc, &gold)) in rp_auto.iter().zip(rp_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "RoPE Auto error at {i}: {calc} vs {gold}");
+    }
+
+    // 4. ALiBi on CPU
+    let alibi_gold = tensors.get("alibi_bias").unwrap().to_vec3::<f32>()?.into_iter().flatten().flatten().collect::<Vec<f32>>();
+    let alibi_calc = t04::alibi_cpu(4, &slopes, 2);
+    for (i, (&calc, &gold)) in alibi_calc.iter().zip(alibi_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "ALiBi error at {i}: {calc} vs {gold}");
+    }
+
+    // 5. RWPE on CPU
+    let rw_gold = tensors.get("y_rwpe").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+    let rw_calc = t04::rwpe_cpu(&adj, 4, 4);
+    for (i, (&calc, &gold)) in rw_calc.iter().zip(rw_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "RWPE error at {i}: {calc} vs {gold}");
+    }
+
+    Ok(())
+}

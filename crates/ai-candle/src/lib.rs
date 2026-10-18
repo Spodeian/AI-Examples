@@ -92,6 +92,9 @@ pub mod c03_building_blocks_and_losses {
 
     #[path = "03_weight_initialization_and_mup_scaling.rs"]
     pub mod t03_weight_initialization_and_mup_scaling;
+
+    #[path = "04_positional_and_structural_encodings.rs"]
+    pub mod t04_positional_and_structural_encodings;
 }
 
 
