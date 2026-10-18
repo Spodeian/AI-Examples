@@ -15,6 +15,7 @@ pub fn get_weights_path(rel: &str) -> PathBuf {
 }
 
 /// Asserts that the max-norm difference ||a - b||_inf is below the specified tolerance.
+#[allow(dead_code)]
 pub fn assert_max_diff(a: &Tensor, b: &Tensor, tol: f32) -> Result<()> {
     let diff = a.sub(b)?.abs()?.flatten_all()?.max(0)?.to_scalar::<f32>()?;
     assert!(

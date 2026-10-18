@@ -8,3 +8,7 @@ mod test_02_tensors_views;
 
 #[path = "00_foundations/test_03_autograd.rs"]
 mod test_03_autograd;
+
+#[path = "00_foundations/test_04_forward_ad.rs"]
+mod test_04_forward_ad;
+

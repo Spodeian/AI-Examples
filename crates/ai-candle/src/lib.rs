@@ -14,4 +14,8 @@ pub mod c00_foundations {
 
     #[path = "03_autograd_mechanics_complex_wirtinger_and_custom_functions.rs"]
     pub mod t03_autograd_mechanics_complex_wirtinger_and_custom_functions;
+
+    #[path = "04_forward_ad_and_functional_transforms_torch_func.rs"]
+    pub mod t04_forward_ad_and_functional_transforms_torch_func;
 }
+

@@ -70,7 +70,7 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["ANN", "B"]
 "scripts/*" = ["ANN201", "B007", "F401"]
-"notebooks/*" = ["ANN", "B", "E741"]
+"notebooks/*" = ["ANN", "B", "E741", "E731"]
 
 [tool.mypy]
 python_version = "3.10"

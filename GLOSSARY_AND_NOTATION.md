@@ -1,6 +1,6 @@
 # Glossary and Mathematical Notation Reference
 
-This document establishes the standard mathematical notation, precision formats, bit-level numeric layouts, and asymptotic complexity bounds used uniformly across all 243 notebooks.
+This document establishes the standard mathematical notation, precision formats, bit-level numeric layouts, and asymptotic complexity bounds used uniformly across all 263 topics.
 
 ---
 
