@@ -95,3 +95,87 @@ fn test_01_activation_functions_zoo_cpu_and_auto() -> Result<()> {
 
     Ok(())
 }
+
+use ai_kernel::c03_building_blocks_and_losses::t02_normalization_layers_complete as t02;
+
+#[test]
+fn test_02_normalization_layers_complete_cpu_and_auto() -> Result<()> {
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "03_building_blocks_and_losses/02_normalization_layers_complete.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    let test_in = tensors.get("test_input").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+    let test_out = tensors.get("test_output").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+    let weight = tensors.get("weight").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+    let bias = tensors.get("bias").unwrap().to_vec1::<f32>()?;
+    let gamma = tensors.get("gamma").unwrap().to_vec1::<f32>()?;
+    let beta = tensors.get("beta").unwrap().to_vec1::<f32>()?;
+    let dyt_alpha = tensors.get("dyt_alpha").unwrap().to_vec1::<f32>()?;
+    let dyt_gamma = tensors.get("dyt_gamma").unwrap().to_vec1::<f32>()?;
+    let dyt_beta = tensors.get("dyt_beta").unwrap().to_vec1::<f32>()?;
+    let cond = tensors.get("cond_vector").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+    let w_adaln = tensors.get("w_adaln").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+    let b_adaln = tensors.get("b_adaln").unwrap().to_vec1::<f32>()?;
+    let w_mat = tensors.get("w_matrix").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+    let eps = tensors.get("eps").unwrap().to_vec1::<f32>()?[0];
+
+    // 1. Linear Anchor on CPU
+    let anchor_calc = t02::linear_anchor_forward_cpu(&test_in, &weight, &bias, 4, 8, 4);
+    for (i, (&calc, &gold)) in anchor_calc.iter().zip(test_out.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Linear anchor error at {i}: {calc} vs {gold}");
+    }
+
+    // 2. LayerNorm on CPU
+    let ln_gold = tensors.get("y_layernorm").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+    let ln_calc = t02::layernorm_cpu(&test_in, &gamma, &beta, 4, 8, eps);
+    for (i, (&calc, &gold)) in ln_calc.iter().zip(ln_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "LayerNorm error at {i}: {calc} vs {gold}");
+    }
+
+    // 3. RMSNorm on CPU and Auto
+    let rms_gold = tensors.get("y_rmsnorm").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+    let rms_calc = t02::rmsnorm_cpu(&test_in, &gamma, 4, 8, eps);
+    for (i, (&calc, &gold)) in rms_calc.iter().zip(rms_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "RMSNorm CPU error at {i}: {calc} vs {gold}");
+    }
+    let rms_auto = pollster::block_on(t02::rmsnorm_auto(None, &test_in, &gamma, 4, 8, eps));
+    for (i, (&calc, &gold)) in rms_auto.iter().zip(rms_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "RMSNorm Auto error at {i}: {calc} vs {gold}");
+    }
+
+    // 4. DyT on CPU and Auto
+    let dyt_gold = tensors.get("y_dyt").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+    let dyt_calc = t02::dyt_cpu(&test_in, &dyt_alpha, &dyt_gamma, &dyt_beta, 4, 8);
+    for (i, (&calc, &gold)) in dyt_calc.iter().zip(dyt_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "DyT CPU error at {i}: {calc} vs {gold}");
+    }
+    let dyt_auto = pollster::block_on(t02::dyt_auto(None, &test_in, &dyt_alpha, &dyt_gamma, &dyt_beta, 4, 8));
+    for (i, (&calc, &gold)) in dyt_auto.iter().zip(dyt_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "DyT Auto error at {i}: {calc} vs {gold}");
+    }
+
+    // 5. adaLN-Zero on CPU
+    let adaln_gold = tensors.get("y_adaln_zero").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+    let adaln_calc = t02::adaln_zero_cpu(&test_in, &cond, &w_adaln, &b_adaln, 4, 8, 4, eps);
+    for (i, (&calc, &gold)) in adaln_calc.iter().zip(adaln_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "adaLN error at {i}: {calc} vs {gold}");
+    }
+
+    // 6. QK-Norm on CPU
+    let qk_gold = tensors.get("y_qknorm").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+    let qk_calc = t02::qknorm_cpu(&test_in, 4, 8, eps);
+    for (i, (&calc, &gold)) in qk_calc.iter().zip(qk_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "QK-Norm error at {i}: {calc} vs {gold}");
+    }
+
+    // 7. Scaled Weight Standardization on CPU
+    let ws_gold = tensors.get("w_standardized").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+    let ws_calc = t02::scaled_weight_standardization_cpu(&w_mat, 8, 8, eps);
+    for (i, (&calc, &gold)) in ws_calc.iter().zip(ws_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Weight Standardization error at {i}: {calc} vs {gold}");
+    }
+
+    Ok(())
+}

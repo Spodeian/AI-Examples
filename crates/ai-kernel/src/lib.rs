@@ -91,5 +91,8 @@ pub mod c01_paradigms_and_dichotomies {
 pub mod c03_building_blocks_and_losses {
     #[path = "01_activation_functions_zoo.rs"]
     pub mod t01_activation_functions_zoo;
+
+    #[path = "02_normalization_layers_complete.rs"]
+    pub mod t02_normalization_layers_complete;
 }
 
