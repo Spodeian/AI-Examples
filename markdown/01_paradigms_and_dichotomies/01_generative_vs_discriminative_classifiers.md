@@ -99,4 +99,4 @@ $$\mathcal{L}_{\text{CE}}(\mathbf{W}, \mathbf{b}) = -\frac{1}{N} \sum_{i=1}^N \s
 - **Hardware CPU Kernel:** [01_generative_vs_discriminative_classifiers_cpu.py](../../kernels/01_paradigms_and_dichotomies/01_generative_vs_discriminative_classifiers_cpu.py)
 - **Golden Reference Checkpoint:** [01_generative_vs_discriminative_classifiers.safetensors](../../weights/01_paradigms_and_dichotomies/01_generative_vs_discriminative_classifiers.safetensors)
 - **Previous Topic:** [00. Foundations / 11. Randomized Numerical Linear Algebra, Spectral Autograd & Hutch++](../00_foundations/11_randomized_numerical_linear_algebra_spectral_autograd_and_hutchpp.md)
-- **Next Topic:** 02. Tree vs Kernel vs Neural Classifiers (Upcoming in Category 01)
+- **Next Topic:** [02. Tree vs. Kernel vs. Neural Inductive Biases](02_tree_vs_kernel_vs_neural_inductive_biases.md)

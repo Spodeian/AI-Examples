@@ -44,6 +44,9 @@ pub mod c00_foundations {
 pub mod c01_paradigms_and_dichotomies {
     #[path = "01_generative_vs_discriminative_classifiers.rs"]
     pub mod t01_generative_vs_discriminative_classifiers;
+
+    #[path = "02_tree_vs_kernel_vs_neural_inductive_biases.rs"]
+    pub mod t02_tree_vs_kernel_vs_neural_inductive_biases;
 }
 
 

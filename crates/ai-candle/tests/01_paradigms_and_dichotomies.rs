@@ -2,3 +2,6 @@
 
 #[path = "01_paradigms_and_dichotomies/test_01_generative_vs_discriminative.rs"]
 mod test_01_generative_vs_discriminative;
+
+#[path = "01_paradigms_and_dichotomies/test_02_tree_vs_kernel_vs_neural.rs"]
+mod test_02_tree_vs_kernel_vs_neural;
