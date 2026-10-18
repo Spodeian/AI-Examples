@@ -261,4 +261,4 @@ torch.testing.assert_close(model.weight.grad, grad_w_analytic, atol=1e-5, rtol=1
 - **Native Rust Candle Crate:** [01_linear_neuron_and_invertible_transforms.rs](../../candle/00_foundations/01_linear_neuron_and_invertible_transforms.rs)
 - **CPU Fused Kernel:** [01_linear_neuron_and_invertible_transforms_cpu.py](../../kernels/00_foundations/01_linear_neuron_and_invertible_transforms_cpu.py)
 - **Golden Reference Checkpoint:** [01_linear_neuron_and_invertible_transforms.safetensors](../../weights/00_foundations/01_linear_neuron_and_invertible_transforms.safetensors)
-- **Next Topic:** 02. Tensors, Views, Strides & Memory Layouts *(Upcoming in Category 00)*
+- **Next Topic:** [02. Tensors, Views, Strides & Memory Layouts](02_tensors_views_strides_and_memory_layouts.md)

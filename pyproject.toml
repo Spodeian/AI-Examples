@@ -61,6 +61,7 @@ select = [
 ]
 ignore = [
     "ANN401", # dynamically typed expressions (typing.Any)
+    "B905",   # zip() without an explicit strict= parameter
     "E501",   # line length violations handled by ruff format
     "F722",   # syntax error in forward annotation (jaxtyping shape strings)
     "UP037",  # remove quotes from type annotation (breaks jaxtyping shapes)
@@ -69,7 +70,7 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["ANN", "B"]
 "scripts/*" = ["ANN201", "B007", "F401"]
-"notebooks/*" = ["ANN", "E741"]
+"notebooks/*" = ["ANN", "B", "E741"]
 
 [tool.mypy]
 python_version = "3.10"
