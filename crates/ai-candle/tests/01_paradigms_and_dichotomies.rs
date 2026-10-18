@@ -35,3 +35,6 @@ mod test_11_statistical_inference;
 
 #[path = "01_paradigms_and_dichotomies/test_12_inductive_vs_transductive.rs"]
 mod test_12_inductive_vs_transductive;
+
+#[path = "01_paradigms_and_dichotomies/test_13_information_geometry.rs"]
+mod test_13_information_geometry;

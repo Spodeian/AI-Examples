@@ -82,5 +82,8 @@ pub mod c01_paradigms_and_dichotomies {
 
     #[path = "12_inductive_vs_transductive_and_online_regret_vs_batch_iid.rs"]
     pub mod t12_inductive_vs_transductive_and_online_regret_vs_batch_iid;
+
+    #[path = "13_information_geometry_solomonoff_mdl_and_maxent_free_energy.rs"]
+    pub mod t13_information_geometry_solomonoff_mdl_and_maxent_free_energy;
 }
 

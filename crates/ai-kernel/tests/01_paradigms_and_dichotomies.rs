@@ -866,5 +866,123 @@ fn test_12_inductive_vs_transductive_cpu_and_auto() -> candle_core::Result<()> {
     Ok(())
 }
 
+#[test]
+fn test_13_information_geometry_cpu_and_auto() -> candle_core::Result<()> {
+    use ai_kernel::c01_paradigms_and_dichotomies::t13_information_geometry_solomonoff_mdl_and_maxent_free_energy as t13;
+
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "01_paradigms_and_dichotomies/13_information_geometry_solomonoff_mdl_and_maxent_free_energy.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    // 1. Linear Anchor on CPU
+    let x_anchor = tensors.get("x_anchor").unwrap().to_vec2::<f32>()?;
+    let x_anchor_flat: Vec<f32> = x_anchor.into_iter().flatten().collect();
+    let weight = tensors.get("weight").unwrap().to_vec2::<f32>()?;
+    let weight_flat: Vec<f32> = weight.into_iter().flatten().collect();
+    let bias = tensors.get("bias").unwrap().to_vec1::<f32>()?;
+    let anchor_gold = tensors.get("linear_anchor_out").unwrap().to_vec2::<f32>()?;
+    let anchor_gold_flat: Vec<f32> = anchor_gold.into_iter().flatten().collect();
+
+    let anchor_calc = t13::linear_anchor_forward_cpu(&x_anchor_flat, &weight_flat, &bias, 4, 8, 4);
+    for (i, (&calc, &gold)) in anchor_calc.iter().zip(anchor_gold_flat.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Linear anchor error at {i}: {calc} vs {gold}");
+    }
+
+    // 2. Amari Dually Flat Geometry on CPU
+    let theta = tensors.get("theta").unwrap().to_vec1::<f32>()?;
+    let psi_gold = tensors.get("psi").unwrap().to_vec1::<f32>()?[0];
+    let eta_gold = tensors.get("eta").unwrap().to_vec1::<f32>()?;
+    let phi_gold = tensors.get("phi").unwrap().to_vec1::<f32>()?[0];
+    let gap_gold = tensors.get("legendre_gap").unwrap().to_vec1::<f32>()?[0];
+    let fisher_gold = tensors.get("fisher_metric").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+
+    let psi_calc = t13::log_partition_cpu(&theta);
+    assert!((psi_calc - psi_gold).abs() < 1e-5, "psi error: {psi_calc} vs {psi_gold}");
+
+    let eta_calc = t13::expectation_param_cpu(&theta);
+    for (i, (&calc, &gold)) in eta_calc.iter().zip(eta_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "eta error at {i}: {calc} vs {gold}");
+    }
+
+    let phi_calc = t13::dual_potential_cpu(&eta_calc);
+    assert!((phi_calc - phi_gold).abs() < 1e-5, "phi error: {phi_calc} vs {phi_gold}");
+
+    let gap_calc = t13::legendre_gap_cpu(&theta, &eta_calc);
+    assert!((gap_calc - gap_gold).abs() < 1e-5, "gap error: {gap_calc} vs {gap_gold}");
+
+    let fisher_calc = t13::fisher_rao_metric_cpu(&eta_calc);
+    for (i, (&calc, &gold)) in fisher_calc.iter().zip(fisher_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Fisher error at {i}: {calc} vs {gold}");
+    }
+
+    // 3. Dual Geodesics (CPU & Auto)
+    let theta_1 = tensors.get("theta_1").unwrap().to_vec1::<f32>()?;
+    let theta_2 = tensors.get("theta_2").unwrap().to_vec1::<f32>()?;
+    let eta_1 = tensors.get("eta_1").unwrap().to_vec1::<f32>()?;
+    let eta_2 = tensors.get("eta_2").unwrap().to_vec1::<f32>()?;
+    let e_mid_gold = tensors.get("e_geodesic_mid").unwrap().to_vec1::<f32>()?;
+    let m_mid_gold = tensors.get("m_geodesic_mid_eta").unwrap().to_vec1::<f32>()?;
+    let kl_fwd_gold = tensors.get("kl_forward").unwrap().to_vec1::<f32>()?[0];
+    let kl_rev_gold = tensors.get("kl_reverse").unwrap().to_vec1::<f32>()?[0];
+    let bregman_gold = tensors.get("bregman_div").unwrap().to_vec1::<f32>()?[0];
+
+    let e_mid_cpu = t13::e_geodesic_cpu(&theta_1, &theta_2, 0.5);
+    for (i, (&calc, &gold)) in e_mid_cpu.iter().zip(e_mid_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "e-geodesic CPU error at {i}: {calc} vs {gold}");
+    }
+
+    let e_mid_auto = pollster::block_on(t13::dual_geodesic_auto(None, &theta_1, &theta_2, 0.5));
+    for (i, (&calc, &gold)) in e_mid_auto.iter().zip(e_mid_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "e-geodesic Auto error at {i}: {calc} vs {gold}");
+    }
+
+    let m_mid_cpu = t13::m_geodesic_eta_cpu(&eta_1, &eta_2, 0.5);
+    for (i, (&calc, &gold)) in m_mid_cpu.iter().zip(m_mid_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "m-geodesic CPU error at {i}: {calc} vs {gold}");
+    }
+
+    let kl_fwd_calc = t13::kl_divergence_cpu(&eta_1, &eta_2);
+    assert!((kl_fwd_calc - kl_fwd_gold).abs() < 1e-5, "KL fwd error: {kl_fwd_calc} vs {kl_fwd_gold}");
+
+    let kl_rev_calc = t13::kl_divergence_cpu(&eta_2, &eta_1);
+    assert!((kl_rev_calc - kl_rev_gold).abs() < 1e-5, "KL rev error: {kl_rev_calc} vs {kl_rev_gold}");
+
+    let bregman_calc = t13::bregman_divergence_cpu(&theta_1, &theta_2, &eta_1);
+    assert!((bregman_calc - bregman_gold).abs() < 1e-5, "Bregman error: {bregman_calc} vs {bregman_gold}");
+
+    // 4. Shtarkov NML & Prequential MDL on CPU
+    let stream_bits = tensors.get("stream_bits").unwrap().to_vec1::<f32>()?;
+    let nml_gold = tensors.get("nml_log_comp").unwrap().to_vec1::<f32>()?[0];
+    let preq_gold = tensors.get("prequential_codelength").unwrap().to_vec1::<f32>()?[0];
+
+    let nml_calc = t13::shtarkov_log_complexity_cpu(8);
+    assert!((nml_calc - nml_gold).abs() < 1e-5, "NML error: {nml_calc} vs {nml_gold}");
+
+    let preq_calc = t13::prequential_codelength_cpu(&stream_bits);
+    assert!((preq_calc - preq_gold).abs() < 1e-5, "Prequential error: {preq_calc} vs {preq_gold}");
+
+    // 5. Variational Free Energy on CPU
+    let q_mu = tensors.get("q_mu").unwrap().to_vec1::<f32>()?;
+    let q_sigma = tensors.get("q_sigma").unwrap().to_vec1::<f32>()?;
+    let p_prior_mu = tensors.get("p_prior_mu").unwrap().to_vec1::<f32>()?;
+    let p_prior_sigma = tensors.get("p_prior_sigma").unwrap().to_vec1::<f32>()?;
+    let obs_x = tensors.get("obs_x").unwrap().to_vec1::<f32>()?;
+    let a_mat = tensors.get("a_mat").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+    let kl_qp_gold = tensors.get("kl_qp").unwrap().to_vec1::<f32>()?[0];
+    let recon_gold = tensors.get("recon_loss").unwrap().to_vec1::<f32>()?[0];
+    let fe_gold = tensors.get("free_energy").unwrap().to_vec1::<f32>()?[0];
+
+    let (kl_calc, recon_calc, fe_calc) = t13::compute_variational_free_energy_cpu(
+        &q_mu, &q_sigma, &p_prior_mu, &p_prior_sigma, &obs_x, &a_mat, 0.2,
+    );
+    assert!((kl_calc - kl_qp_gold).abs() < 1e-5, "FE KL error: {kl_calc} vs {kl_qp_gold}");
+    assert!((recon_calc - recon_gold).abs() < 1e-5, "Recon error: {recon_calc} vs {recon_gold}");
+    assert!((fe_calc - fe_gold).abs() < 1e-5, "FE error: {fe_calc} vs {fe_gold}");
+
+    Ok(())
+}
+
 
 
