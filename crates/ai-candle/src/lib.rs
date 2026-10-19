@@ -155,6 +155,9 @@ pub mod c04_training_methods_and_optimisers {
 
     #[path = "02_constrained_pareto_and_blackbox_optimisation/03_coordinate_alternating_projections_and_majorization_minimization.rs"]
     pub mod t10_coordinate_alternating_projections_and_majorization_minimization;
+
+    #[path = "02_constrained_pareto_and_blackbox_optimisation/04_combinatorial_and_discrete_simulated_annealing_tempering_and_sinkhorn.rs"]
+    pub mod t11_combinatorial_and_discrete_simulated_annealing_tempering_and_sinkhorn;
 }
 
 

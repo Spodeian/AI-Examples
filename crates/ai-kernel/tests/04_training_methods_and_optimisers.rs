@@ -939,5 +939,84 @@ fn test_10_coordinate_alternating_projections_and_majorization_minimization_cpu_
     Ok(())
 }
 
+#[test]
+fn test_11_combinatorial_and_discrete_simulated_annealing_tempering_and_sinkhorn_cpu_and_auto() -> Result<()> {
+    use ai_kernel::c04_training_methods_and_optimisers::t11_combinatorial_and_discrete_simulated_annealing_tempering_and_sinkhorn as t11;
+
+    let kdev = KernelDevice::Cpu;
+    let weights_path = common::get_weights_path(
+        "04_training_methods_and_optimisers/02_constrained_pareto_and_blackbox_optimisation/04_combinatorial_and_discrete_simulated_annealing_tempering_and_sinkhorn.safetensors",
+    );
+    let tensors = load(weights_path, &Device::Cpu)?;
+
+    let log_alpha = tensors.get("log_alpha").unwrap().to_vec2::<f32>()?;
+    let flat_log_alpha: Vec<f32> = log_alpha.iter().flatten().copied().collect();
+
+    let candidates = tensors.get("candidates").unwrap().to_vec2::<f32>()?;
+    let flat_candidates: Vec<f32> = candidates.iter().flatten().copied().collect();
+    let scores = tensors.get("scores").unwrap().to_vec1::<f32>()?;
+
+    let delta_e = tensors.get("delta_e").unwrap().to_vec1::<f32>()?;
+    let sa_temp = tensors.get("sa_temp").unwrap().to_vec1::<f32>()?[0];
+
+    let pt_e1 = tensors.get("pt_e1").unwrap().to_vec1::<f32>()?[0];
+    let pt_e2 = tensors.get("pt_e2").unwrap().to_vec1::<f32>()?[0];
+    let pt_t1 = tensors.get("pt_t1").unwrap().to_vec1::<f32>()?[0];
+    let pt_t2 = tensors.get("pt_t2").unwrap().to_vec1::<f32>()?[0];
+
+    let gold_sinkhorn = tensors.get("golden_sinkhorn_out").unwrap().to_vec2::<f32>()?;
+    let flat_gold_sinkhorn: Vec<f32> = gold_sinkhorn.iter().flatten().copied().collect();
+
+    let gold_cem_mean = tensors.get("golden_cem_mean").unwrap().to_vec1::<f32>()?;
+    let gold_cem_std = tensors.get("golden_cem_std").unwrap().to_vec1::<f32>()?;
+    let gold_sa_probs = tensors.get("golden_sa_probs").unwrap().to_vec1::<f32>()?;
+    let gold_pt_prob = tensors.get("golden_pt_swap_prob").unwrap().to_vec1::<f32>()?[0];
+
+    let anchor_x = tensors.get("anchor_x").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let anchor_w = tensors.get("anchor_w").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let anchor_b = tensors.get("anchor_b").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let gold_anchor_out = tensors.get("golden_anchor_out").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    // 1. Sinkhorn CPU & Auto
+    let cpu_sinkhorn = t11::run_sinkhorn_cpu(&flat_log_alpha, 4, 4, 10, 0.5);
+    let auto_sinkhorn = t11::run_sinkhorn_auto(&kdev, &flat_log_alpha, 4, 4, 10, 0.5);
+    for j in 0..flat_gold_sinkhorn.len() {
+        assert!((cpu_sinkhorn[j] - flat_gold_sinkhorn[j]).abs() < 1e-5);
+        assert!((auto_sinkhorn[j] - flat_gold_sinkhorn[j]).abs() < 1e-5);
+    }
+
+    // 2. CEM CPU & Auto
+    let (cpu_mean, cpu_std) = t11::step_cem_cpu(&flat_candidates, &scores, 20, 4, 0.25);
+    let (auto_mean, auto_std) = t11::step_cem_auto(&kdev, &flat_candidates, &scores, 20, 4, 0.25);
+    for j in 0..4 {
+        assert!((cpu_mean[j] - gold_cem_mean[j]).abs() < 1e-5);
+        assert!((auto_mean[j] - gold_cem_mean[j]).abs() < 1e-5);
+        assert!((cpu_std[j] - gold_cem_std[j]).abs() < 1e-5);
+        assert!((auto_std[j] - gold_cem_std[j]).abs() < 1e-5);
+    }
+
+    // 3. Simulated Annealing CPU & Auto
+    let cpu_sa = t11::sa_acceptance_prob_cpu(&delta_e, sa_temp);
+    let auto_sa = t11::sa_acceptance_prob_auto(&kdev, &delta_e, sa_temp);
+    for j in 0..delta_e.len() {
+        assert!((cpu_sa[j] - gold_sa_probs[j]).abs() < 1e-5);
+        assert!((auto_sa[j] - gold_sa_probs[j]).abs() < 1e-5);
+    }
+
+    // 4. Parallel Tempering CPU & Auto
+    let cpu_pt = t11::parallel_tempering_swap_prob_cpu(pt_e1, pt_e2, pt_t1, pt_t2);
+    let auto_pt = t11::parallel_tempering_swap_prob_auto(&kdev, pt_e1, pt_e2, pt_t1, pt_t2);
+    assert!((cpu_pt - gold_pt_prob).abs() < 1e-5);
+    assert!((auto_pt - gold_pt_prob).abs() < 1e-5);
+
+    // 5. Linear Anchor CPU
+    let cpu_anchor_out = t11::anchor_forward_cpu(&anchor_x, &anchor_w, &anchor_b, 2, 8, 4);
+    for j in 0..gold_anchor_out.len() {
+        assert!((cpu_anchor_out[j] - gold_anchor_out[j]).abs() < 1e-5);
+    }
+
+    Ok(())
+}
+
 
 

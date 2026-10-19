@@ -28,3 +28,6 @@ pub mod test_09_multi_objective_pareto_mgda_tchebycheff_and_gradient_surgery;
 #[path = "04_training_methods_and_optimisers/test_10_coordinate_alternating_projections_and_majorization_minimization.rs"]
 pub mod test_10_coordinate_alternating_projections_and_majorization_minimization;
 
+#[path = "04_training_methods_and_optimisers/test_11_combinatorial_and_discrete_simulated_annealing_tempering_and_sinkhorn.rs"]
+pub mod test_11_combinatorial_and_discrete_simulated_annealing_tempering_and_sinkhorn;
+
