@@ -98,6 +98,9 @@ pub mod c02_classical_and_probabilistic_ml {
 
     #[path = "05_dimensionality_reduction_pca_lda_ica_tsne_umap.rs"]
     pub mod t05_dimensionality_reduction_pca_lda_ica_tsne_umap;
+
+    #[path = "06_naive_bayes_bayesian_regression_and_gaussian_processes.rs"]
+    pub mod t06_naive_bayes_bayesian_regression_and_gaussian_processes;
 }
 
 #[path = "../../../candle/03_building_blocks_and_losses"]

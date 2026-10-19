@@ -5,6 +5,7 @@ use ai_kernel::c02_classical_and_probabilistic_ml::t02_support_vector_machines_a
 use ai_kernel::c02_classical_and_probabilistic_ml::t03_knn_prototype_and_locally_weighted_regression as t03;
 use ai_kernel::c02_classical_and_probabilistic_ml::t04_clustering_kmeans_spectral_and_gmm_em as t04;
 use ai_kernel::c02_classical_and_probabilistic_ml::t05_dimensionality_reduction_pca_lda_ica_tsne_umap as t05;
+use ai_kernel::c02_classical_and_probabilistic_ml::t06_naive_bayes_bayesian_regression_and_gaussian_processes as t06;
 use ai_kernel::KernelDevice;
 use candle_core::{safetensors::load, Device, Result};
 
@@ -292,3 +293,61 @@ fn test_05_dimensionality_reduction_pca_lda_ica_tsne_umap_cpu_and_auto() -> Resu
 
     Ok(())
 }
+
+#[test]
+fn test_06_naive_bayes_bayesian_regression_and_gaussian_processes_cpu_and_auto() -> Result<()> {
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "02_classical_and_probabilistic_ml/06_naive_bayes_bayesian_regression_and_gaussian_processes.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    let x = tensors.get("X").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let means = tensors.get("nb_means").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let vars = tensors.get("nb_vars").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let priors = tensors.get("nb_priors").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_nb_log_probs = tensors.get("nb_log_probs").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let m_n = tensors.get("bayes_m_N").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let s_n = tensors.get("bayes_S_N").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_b_mean = tensors.get("bayes_pred_mean").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_b_var = tensors.get("bayes_pred_var").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_gp_k = tensors.get("gp_K").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let gp_alpha = tensors.get("gp_alpha").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_gp_mean = tensors.get("gp_pred_mean").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let n = 32;
+    let d = 4;
+    let c = 2;
+
+    // 1. RBF Kernel CPU & Auto
+    let kdev = KernelDevice::Cpu;
+    let cpu_k = t06::rbf_kernel_cpu(&x, n, d, 1.0, 1.0);
+    let auto_k = t06::rbf_kernel_auto(Some(&kdev), &x, n, d, 1.0, 1.0);
+    for i in 0..(n * n) {
+        assert!((cpu_k[i] - golden_gp_k[i]).abs() < 1e-4);
+        assert!((auto_k[i] - golden_gp_k[i]).abs() < 1e-4);
+    }
+
+    // 2. Gaussian Naive Bayes Log-Probabilities CPU
+    let log_priors = vec![priors[0].ln(), priors[1].ln()];
+    let cpu_nb_log_probs = t06::gaussian_naive_bayes_log_probs_cpu(&x, n, d, &means, &vars, &log_priors, c);
+    for i in 0..(n * c) {
+        assert!((cpu_nb_log_probs[i] - golden_nb_log_probs[i]).abs() < 1e-4);
+    }
+
+    // 3. Bayesian Linear Regression CPU
+    let (cpu_b_mean, cpu_b_var) = t06::bayesian_linear_regression_predict_cpu(&x, n, d, &m_n, &s_n, 2.0);
+    for i in 0..n {
+        assert!((cpu_b_mean[i] - golden_b_mean[i]).abs() < 1e-4);
+        assert!((cpu_b_var[i] - golden_b_var[i]).abs() < 1e-4);
+    }
+
+    // 4. GP Predictive Mean CPU
+    let cpu_gp_mean = t06::gp_predict_mean_cpu(&cpu_k, &gp_alpha, n, n);
+    for i in 0..n {
+        assert!((cpu_gp_mean[i] - golden_gp_mean[i]).abs() < 1e-4);
+    }
+
+    Ok(())
+}
+

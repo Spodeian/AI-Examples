@@ -14,3 +14,7 @@ pub mod test_04_clustering_kmeans_spectral_and_gmm_em;
 
 #[path = "02_classical_and_probabilistic_ml/test_05_dimensionality_reduction_pca_lda_ica_tsne_umap.rs"]
 pub mod test_05_dimensionality_reduction_pca_lda_ica_tsne_umap;
+
+#[path = "02_classical_and_probabilistic_ml/test_06_naive_bayes_bayesian_regression_and_gaussian_processes.rs"]
+pub mod test_06_naive_bayes_bayesian_regression_and_gaussian_processes;
+
