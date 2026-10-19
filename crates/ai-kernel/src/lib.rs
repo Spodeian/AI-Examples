@@ -151,5 +151,8 @@ pub mod c04_training_methods_and_optimisers {
 
     #[path = "01_gradient_and_curvature_optimisers/07_learning_rate_schedulers_and_lr_finder.rs"]
     pub mod t07_learning_rate_schedulers_and_lr_finder;
+
+    #[path = "02_constrained_pareto_and_blackbox_optimisation/01_constrained_proximal_frank_wolfe_admm_and_mirror_descent.rs"]
+    pub mod t08_constrained_proximal_frank_wolfe_admm_and_mirror_descent;
 }
 

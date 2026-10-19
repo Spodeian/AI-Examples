@@ -691,5 +691,79 @@ fn test_07_learning_rate_schedulers_and_lr_finder_cpu_and_auto() -> Result<()> {
     Ok(())
 }
 
+#[test]
+fn test_08_constrained_proximal_frank_wolfe_admm_and_mirror_descent_cpu_and_auto() -> Result<()> {
+    use ai_kernel::c04_training_methods_and_optimisers::t08_constrained_proximal_frank_wolfe_admm_and_mirror_descent as t08;
+
+    let kdev = KernelDevice::Cpu;
+    let weights_path = common::get_weights_path(
+        "04_training_methods_and_optimisers/02_constrained_pareto_and_blackbox_optimisation/01_constrained_proximal_frank_wolfe_admm_and_mirror_descent.safetensors",
+    );
+    let tensors = load(weights_path, &Device::Cpu)?;
+
+    let param_pgd = tensors.get("param_pgd").unwrap().to_vec1::<f32>()?;
+    let grad_pgd = tensors.get("grad_pgd").unwrap().to_vec1::<f32>()?;
+    let gold_p_pgd = tensors.get("golden_param_pgd").unwrap().to_vec1::<f32>()?;
+
+    let param_fw = tensors.get("param_fw").unwrap().to_vec1::<f32>()?;
+    let grad_fw = tensors.get("grad_fw").unwrap().to_vec1::<f32>()?;
+    let gold_p_fw = tensors.get("golden_param_fw").unwrap().to_vec1::<f32>()?;
+
+    let param_ista = tensors.get("param_ista").unwrap().to_vec1::<f32>()?;
+    let grad_ista = tensors.get("grad_ista").unwrap().to_vec1::<f32>()?;
+    let gold_p_ista = tensors.get("golden_param_ista").unwrap().to_vec1::<f32>()?;
+
+    let param_md = tensors.get("param_md").unwrap().to_vec1::<f32>()?;
+    let grad_md = tensors.get("grad_md").unwrap().to_vec1::<f32>()?;
+    let gold_p_md = tensors.get("golden_param_md").unwrap().to_vec1::<f32>()?;
+
+    let anchor_x = tensors.get("anchor_x").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let anchor_w = tensors.get("anchor_w").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let anchor_b = tensors.get("anchor_b").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let gold_anchor_out = tensors.get("golden_anchor_out").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let d = param_pgd.len();
+
+    // 1. PGD CPU & Auto
+    let cpu_pgd = t08::step_pgd_cpu(&param_pgd, &grad_pgd, 0.1, 1.0, 1e-8);
+    let auto_pgd = t08::step_pgd_auto(&kdev, &param_pgd, &grad_pgd, 0.1, 1.0, 1e-8);
+    for j in 0..d {
+        assert!((cpu_pgd[j] - gold_p_pgd[j]).abs() < 1e-5);
+        assert!((auto_pgd[j] - gold_p_pgd[j]).abs() < 1e-5);
+    }
+
+    // 2. Frank-Wolfe CPU & Auto
+    let cpu_fw = t08::step_frank_wolfe_cpu(&param_fw, &grad_fw, 1.0, 0.2);
+    let auto_fw = t08::step_frank_wolfe_auto(&kdev, &param_fw, &grad_fw, 1.0, 0.2);
+    for j in 0..d {
+        assert!((cpu_fw[j] - gold_p_fw[j]).abs() < 1e-5);
+        assert!((auto_fw[j] - gold_p_fw[j]).abs() < 1e-5);
+    }
+
+    // 3. ISTA CPU & Auto
+    let cpu_ista = t08::step_ista_cpu(&param_ista, &grad_ista, 0.05, 0.1);
+    let auto_ista = t08::step_ista_auto(&kdev, &param_ista, &grad_ista, 0.05, 0.1);
+    for j in 0..d {
+        assert!((cpu_ista[j] - gold_p_ista[j]).abs() < 1e-5);
+        assert!((auto_ista[j] - gold_p_ista[j]).abs() < 1e-5);
+    }
+
+    // 4. Mirror Descent CPU & Auto
+    let cpu_md = t08::step_mirror_descent_cpu(&param_md, &grad_md, 0.1, 1e-12);
+    let auto_md = t08::step_mirror_descent_auto(&kdev, &param_md, &grad_md, 0.1, 1e-12);
+    for j in 0..d {
+        assert!((cpu_md[j] - gold_p_md[j]).abs() < 1e-5);
+        assert!((auto_md[j] - gold_p_md[j]).abs() < 1e-5);
+    }
+
+    // 5. Linear Anchor CPU
+    let cpu_anchor_out = t08::anchor_forward_cpu(&anchor_x, &anchor_w, &anchor_b, 2, 8, 4);
+    for j in 0..gold_anchor_out.len() {
+        assert!((cpu_anchor_out[j] - gold_anchor_out[j]).abs() < 1e-5);
+    }
+
+    Ok(())
+}
+
 
 
