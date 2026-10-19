@@ -103,5 +103,8 @@ pub mod c03_building_blocks_and_losses {
 
     #[path = "05_pooling_and_downsampling_operators.rs"]
     pub mod t05_pooling_and_downsampling_operators;
+
+    #[path = "06_regularization_and_training_stabilizers.rs"]
+    pub mod t06_regularization_and_training_stabilizers;
 }
 

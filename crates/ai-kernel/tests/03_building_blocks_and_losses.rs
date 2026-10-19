@@ -370,3 +370,81 @@ fn test_05_pooling_and_downsampling_operators_cpu_and_auto() -> Result<()> {
 
     Ok(())
 }
+
+use ai_kernel::c03_building_blocks_and_losses::t06_regularization_and_training_stabilizers as t06;
+
+#[test]
+fn test_06_regularization_and_training_stabilizers_cpu_and_auto() -> Result<()> {
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "03_building_blocks_and_losses/06_regularization_and_training_stabilizers.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    let test_in = tensors.get("test_input").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+    let test_out = tensors.get("test_output").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+    let weight = tensors.get("weight").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect::<Vec<f32>>();
+    let bias = tensors.get("bias").unwrap().to_vec1::<f32>()?;
+
+    let x_drop = tensors.get("x_drop").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let drop_mask = tensors.get("drop_mask").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let drop_rate = tensors.get("drop_rate").unwrap().to_vec1::<f32>()?[0];
+    let y_drop_gold = tensors.get("y_drop").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let x_id = tensors.get("x_identity").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let x_br = tensors.get("x_branch").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let dp_mask = tensors.get("droppath_mask").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let dp_rate = tensors.get("droppath_rate").unwrap().to_vec1::<f32>()?[0];
+    let y_droppath_gold = tensors.get("y_droppath").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let x_log = tensors.get("x_logits").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let softcap = tensors.get("softcap_val").unwrap().to_vec1::<f32>()?[0];
+    let y_softcap_gold = tensors.get("y_softcap").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let logits_ls = tensors.get("logits_ls").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let targets_ls = tensors.get("targets_ls").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let alpha_ls = tensors.get("smooth_alpha").unwrap().to_vec1::<f32>()?[0];
+    let loss_ls_gold = tensors.get("loss_ls").unwrap().to_vec1::<f32>()?[0];
+
+    let router_logits = tensors.get("router_logits").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let z_coef = tensors.get("z_coef").unwrap().to_vec1::<f32>()?[0];
+    let loss_z_gold = tensors.get("loss_z").unwrap().to_vec1::<f32>()?[0];
+
+    // 1. Linear Anchor on CPU
+    let anchor_calc = t06::linear_anchor_forward_cpu(&test_in, &weight, &bias, 4, 8, 4);
+    for (i, (&calc, &gold)) in anchor_calc.iter().zip(test_out.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Linear anchor error at {i}: {calc} vs {gold}");
+    }
+
+    // 2. Inverted Dropout on CPU
+    let drop_calc = t06::dropout_cpu(&x_drop, &drop_mask, drop_rate);
+    for (i, (&calc, &gold)) in drop_calc.iter().zip(y_drop_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Dropout error at {i}: {calc} vs {gold}");
+    }
+
+    // 3. DropPath on CPU
+    let dp_calc = t06::droppath_cpu(&x_id, &x_br, &dp_mask, 4, 8, dp_rate);
+    for (i, (&calc, &gold)) in dp_calc.iter().zip(y_droppath_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "DropPath error at {i}: {calc} vs {gold}");
+    }
+
+    // 4. SoftCap on CPU and Auto
+    let sc_calc = t06::softcapping_cpu(&x_log, softcap);
+    for (i, (&calc, &gold)) in sc_calc.iter().zip(y_softcap_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "SoftCap CPU error at {i}: {calc} vs {gold}");
+    }
+    let sc_auto = pollster::block_on(t06::softcapping_auto(None, &x_log, softcap));
+    for (i, (&calc, &gold)) in sc_auto.iter().zip(y_softcap_gold.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "SoftCap Auto error at {i}: {calc} vs {gold}");
+    }
+
+    // 5. Label Smoothing on CPU
+    let ls_calc = t06::label_smoothing_loss_cpu(&logits_ls, &targets_ls, 4, 4, alpha_ls);
+    assert!((ls_calc - loss_ls_gold).abs() < 1e-5, "Label Smoothing error: {ls_calc} vs {loss_ls_gold}");
+
+    // 6. Router Z-Loss on CPU
+    let z_calc = t06::router_z_loss_cpu(&router_logits, 4, 4, z_coef);
+    assert!((z_calc - loss_z_gold).abs() < 1e-5, "Router Z-Loss error: {z_calc} vs {loss_z_gold}");
+
+    Ok(())
+}

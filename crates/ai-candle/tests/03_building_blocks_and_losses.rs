@@ -14,3 +14,6 @@ mod test_04_positional_and_structural_encodings;
 
 #[path = "03_building_blocks_and_losses/test_05_pooling_and_downsampling_operators.rs"]
 mod test_05_pooling_and_downsampling_operators;
+
+#[path = "03_building_blocks_and_losses/test_06_regularization_and_training_stabilizers.rs"]
+mod test_06_regularization_and_training_stabilizers;
