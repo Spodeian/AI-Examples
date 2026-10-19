@@ -64,3 +64,6 @@ pub mod test_21_scaling_laws_chinchilla_data_dedup_doremi_and_model_collapse;
 #[path = "04_training_methods_and_optimisers/test_22_meta_parameter_sensitivity_fanova_sobol_meta_landscapes_and_effective_lr.rs"]
 pub mod test_22_meta_parameter_sensitivity_fanova_sobol_meta_landscapes_and_effective_lr;
 
+#[path = "04_training_methods_and_optimisers/test_23_curriculum_self_paced_learning_and_dataset_distillation_mtt.rs"]
+pub mod test_23_curriculum_self_paced_learning_and_dataset_distillation_mtt;
+

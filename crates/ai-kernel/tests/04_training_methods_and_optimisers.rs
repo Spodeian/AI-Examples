@@ -1929,6 +1929,96 @@ fn test_22_meta_parameter_sensitivity_fanova_sobol_meta_landscapes_and_effective
     Ok(())
 }
 
+#[test]
+fn test_23_curriculum_self_paced_learning_and_dataset_distillation_mtt_cpu_and_auto() -> Result<()> {
+    use ai_kernel::c04_training_methods_and_optimisers::t23_curriculum_self_paced_learning_and_dataset_distillation_mtt as t23;
+
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "04_training_methods_and_optimisers/03_training_dynamics_self_optimising_non_backprop/09_curriculum_self_paced_learning_and_dataset_distillation_mtt.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    let losses = tensors.get("losses").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let pace_lambda = tensors.get("pace_lambda").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+    let golden_spl_hard_weights = tensors.get("golden_spl_hard_weights").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_spl_linear_weights = tensors.get("golden_spl_linear_weights").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_weighted_loss_hard = tensors.get("golden_weighted_loss_hard").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+    let golden_weighted_loss_linear = tensors.get("golden_weighted_loss_linear").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+
+    let difficulties = tensors.get("difficulties").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let step_t = tensors.get("step_t").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+    let t_warmup = tensors.get("t_warmup").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+    let c0 = tensors.get("c0").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+    let golden_competence = tensors.get("golden_competence").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+    let golden_active_curriculum_mask = tensors.get("golden_active_curriculum_mask").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let grad_real = tensors.get("grad_real").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let grad_synth = tensors.get("grad_synth").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_grad_matching_loss = tensors.get("golden_grad_matching_loss").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+
+    let theta_start = tensors.get("theta_start").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let theta_student = tensors.get("theta_student").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let theta_expert = tensors.get("theta_expert").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_mtt_loss = tensors.get("golden_mtt_loss").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+
+    let anchor_x = tensors.get("anchor_x").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let anchor_w = tensors.get("anchor_w").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let anchor_b = tensors.get("anchor_b").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let gold_anchor_out = tensors.get("golden_anchor_out").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let kdev = KernelDevice::Cpu;
+
+    // 1. SPL CPU & Auto
+    let (cpu_hw, cpu_lw, cpu_lh, cpu_ll) =
+        t23::compute_spl_weights_and_loss_cpu(&losses, pace_lambda);
+    let (auto_hw, auto_lw, auto_lh, auto_ll) =
+        t23::compute_spl_weights_and_loss_auto(&kdev, &losses, pace_lambda);
+
+    for j in 0..golden_spl_hard_weights.len() {
+        assert!((cpu_hw[j] - golden_spl_hard_weights[j]).abs() < 1e-5);
+        assert!((auto_hw[j] - golden_spl_hard_weights[j]).abs() < 1e-5);
+        assert!((cpu_lw[j] - golden_spl_linear_weights[j]).abs() < 1e-5);
+        assert!((auto_lw[j] - golden_spl_linear_weights[j]).abs() < 1e-5);
+    }
+    assert!((cpu_lh - golden_weighted_loss_hard).abs() < 1e-5);
+    assert!((auto_lh - golden_weighted_loss_hard).abs() < 1e-5);
+    assert!((cpu_ll - golden_weighted_loss_linear).abs() < 1e-5);
+    assert!((auto_ll - golden_weighted_loss_linear).abs() < 1e-5);
+
+    // 2. Curriculum Competence CPU & Auto
+    let (cpu_comp, cpu_mask) =
+        t23::compute_competence_and_curriculum_mask_cpu(&difficulties, step_t, t_warmup, c0);
+    let (auto_comp, auto_mask) =
+        t23::compute_competence_and_curriculum_mask_auto(&kdev, &difficulties, step_t, t_warmup, c0);
+    assert!((cpu_comp - golden_competence).abs() < 1e-5);
+    assert!((auto_comp - golden_competence).abs() < 1e-5);
+    for j in 0..golden_active_curriculum_mask.len() {
+        assert!((cpu_mask[j] - golden_active_curriculum_mask[j]).abs() < 1e-5);
+        assert!((auto_mask[j] - golden_active_curriculum_mask[j]).abs() < 1e-5);
+    }
+
+    // 3. Gradient Matching CPU & Auto
+    let cpu_gm = t23::compute_gradient_matching_loss_cpu(&grad_synth, &grad_real);
+    let auto_gm = t23::compute_gradient_matching_loss_auto(&kdev, &grad_synth, &grad_real);
+    assert!((cpu_gm - golden_grad_matching_loss).abs() < 1e-5);
+    assert!((auto_gm - golden_grad_matching_loss).abs() < 1e-5);
+
+    // 4. Trajectory Matching (MTT) CPU & Auto
+    let cpu_mtt = t23::compute_trajectory_matching_loss_cpu(&theta_start, &theta_student, &theta_expert);
+    let auto_mtt = t23::compute_trajectory_matching_loss_auto(&kdev, &theta_start, &theta_student, &theta_expert);
+    assert!((cpu_mtt - golden_mtt_loss).abs() < 1e-5);
+    assert!((auto_mtt - golden_mtt_loss).abs() < 1e-5);
+
+    // 5. Linear Anchor CPU
+    let cpu_anchor_out = t23::anchor_forward_cpu(&anchor_x, &anchor_w, &anchor_b, 2, 8, 4);
+    for j in 0..gold_anchor_out.len() {
+        assert!((cpu_anchor_out[j] - gold_anchor_out[j]).abs() < 1e-5);
+    }
+
+    Ok(())
+}
+
 
 
 

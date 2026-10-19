@@ -191,6 +191,9 @@ pub mod c04_training_methods_and_optimisers {
 
     #[path = "03_training_dynamics_self_optimising_non_backprop/08_meta_parameter_sensitivity_fanova_sobol_meta_landscapes_and_effective_lr.rs"]
     pub mod t22_meta_parameter_sensitivity_fanova_sobol_meta_landscapes_and_effective_lr;
+
+    #[path = "03_training_dynamics_self_optimising_non_backprop/09_curriculum_self_paced_learning_and_dataset_distillation_mtt.rs"]
+    pub mod t23_curriculum_self_paced_learning_and_dataset_distillation_mtt;
 }
 
 
