@@ -17,3 +17,6 @@ mod test_05_pooling_and_downsampling_operators;
 
 #[path = "03_building_blocks_and_losses/test_06_regularization_and_training_stabilizers.rs"]
 mod test_06_regularization_and_training_stabilizers;
+
+#[path = "03_building_blocks_and_losses/test_07_losses_regression_classification_and_barron_robust.rs"]
+mod test_07_losses_regression_classification_and_barron_robust;

@@ -106,5 +106,8 @@ pub mod c03_building_blocks_and_losses {
 
     #[path = "06_regularization_and_training_stabilizers.rs"]
     pub mod t06_regularization_and_training_stabilizers;
+
+    #[path = "07_losses_regression_classification_and_barron_robust.rs"]
+    pub mod t07_losses_regression_classification_and_barron_robust;
 }
 

@@ -448,3 +448,74 @@ fn test_06_regularization_and_training_stabilizers_cpu_and_auto() -> Result<()> 
 
     Ok(())
 }
+
+use ai_kernel::c03_building_blocks_and_losses::t07_losses_regression_classification_and_barron_robust as t07;
+
+#[test]
+fn test_07_losses_regression_classification_and_barron_robust_cpu_and_auto() -> Result<()> {
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "03_building_blocks_and_losses/07_losses_regression_classification_and_barron_robust.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    let test_in = tensors.get("test_input").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let test_out = tensors.get("test_output").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let weight = tensors.get("weight").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let bias = tensors.get("bias").unwrap().to_vec1::<f32>()?;
+
+    let r_barron = tensors.get("r_barron").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let alpha_b = tensors.get("alpha_barron").unwrap().to_vec1::<f32>()?[0];
+    let c_b = tensors.get("c_barron").unwrap().to_vec1::<f32>()?[0];
+    let loss_barron_gold = tensors.get("loss_barron").unwrap().to_vec1::<f32>()?[0];
+
+    let r_huber = tensors.get("r_huber").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let delta_h = tensors.get("delta_huber").unwrap().to_vec1::<f32>()?[0];
+    let loss_huber_gold = tensors.get("loss_huber").unwrap().to_vec1::<f32>()?[0];
+
+    let logits_clf = tensors.get("logits_clf").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let targets_clf = tensors.get("targets_clf").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let gamma_f = tensors.get("gamma_focal").unwrap().to_vec1::<f32>()?[0];
+    let loss_focal_gold = tensors.get("loss_focal").unwrap().to_vec1::<f32>()?[0];
+
+    let eps_p = tensors.get("eps_poly").unwrap().to_vec1::<f32>()?[0];
+    let loss_poly_gold = tensors.get("loss_poly").unwrap().to_vec1::<f32>()?[0];
+
+    let logits_asl = tensors.get("logits_asl").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let targets_asl = tensors.get("targets_asl").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let gamma_pos = tensors.get("gamma_pos").unwrap().to_vec1::<f32>()?[0];
+    let gamma_neg = tensors.get("gamma_neg").unwrap().to_vec1::<f32>()?[0];
+    let margin_asl = tensors.get("margin_asl").unwrap().to_vec1::<f32>()?[0];
+    let loss_asl_gold = tensors.get("loss_asl").unwrap().to_vec1::<f32>()?[0];
+
+    // 1. Linear Anchor on CPU
+    let anchor_calc = t07::linear_anchor_forward_cpu(&test_in, &weight, &bias, 4, 8, 4);
+    for (i, (&calc, &gold)) in anchor_calc.iter().zip(test_out.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Linear anchor error at {i}: {calc} vs {gold}");
+    }
+
+    // 2. Barron Robust Loss on CPU and Auto
+    let loss_b_calc = t07::barron_robust_loss_cpu(&r_barron, alpha_b, c_b);
+    assert!((loss_b_calc - loss_barron_gold).abs() < 1e-5, "Barron CPU error: {loss_b_calc} vs {loss_barron_gold}");
+
+    let loss_b_auto = pollster::block_on(t07::barron_robust_auto(None, &r_barron, alpha_b, c_b));
+    assert!((loss_b_auto - loss_barron_gold).abs() < 1e-5, "Barron Auto error: {loss_b_auto} vs {loss_barron_gold}");
+
+    // 3. Huber Loss on CPU
+    let loss_h_calc = t07::huber_loss_cpu(&r_huber, delta_h);
+    assert!((loss_h_calc - loss_huber_gold).abs() < 1e-5, "Huber CPU error: {loss_h_calc} vs {loss_huber_gold}");
+
+    // 4. Focal Loss on CPU
+    let loss_f_calc = t07::focal_loss_cpu(&logits_clf, &targets_clf, 4, 4, gamma_f);
+    assert!((loss_f_calc - loss_focal_gold).abs() < 1e-5, "Focal CPU error: {loss_f_calc} vs {loss_focal_gold}");
+
+    // 5. PolyLoss on CPU
+    let loss_p_calc = t07::polyloss_cpu(&logits_clf, &targets_clf, 4, 4, eps_p);
+    assert!((loss_p_calc - loss_poly_gold).abs() < 1e-5, "PolyLoss CPU error: {loss_p_calc} vs {loss_poly_gold}");
+
+    // 6. Asymmetric Loss on CPU
+    let loss_asl_calc = t07::asymmetric_loss_cpu(&logits_asl, &targets_asl, gamma_pos, gamma_neg, margin_asl, 1e-8);
+    assert!((loss_asl_calc - loss_asl_gold).abs() < 1e-5, "ASL CPU error: {loss_asl_calc} vs {loss_asl_gold}");
+
+    Ok(())
+}
