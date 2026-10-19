@@ -1415,6 +1415,108 @@ fn test_16_training_optimisations_progressive_stacking_data_pruning_mrl_and_plas
     Ok(())
 }
 
+#[test]
+fn test_17_self_optimising_hypergradients_learned_optimisers_and_meta_reweighting_cpu_and_auto() -> Result<()> {
+    use ai_kernel::c04_training_methods_and_optimisers::t17_self_optimising_hypergradients_learned_optimisers_and_meta_reweighting as t17;
+
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "04_training_methods_and_optimisers/03_training_dynamics_self_optimising_non_backprop/03_self_optimising_hypergradients_learned_optimisers_and_meta_reweighting.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    let w_hd = tensors.get("w_hd").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let g_curr = tensors.get("g_curr").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let g_prev = tensors.get("g_prev").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let lr_init = tensors.get("lr_init").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+    let hyper_lr = tensors.get("hyper_lr").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+    let golden_lr_next = tensors.get("golden_lr_next").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+    let golden_w_hd = tensors.get("golden_w_hd").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let per_sample_grads = tensors.get("per_sample_grads").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let val_grad = tensors.get("val_grad").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_sample_weights = tensors.get("golden_sample_weights").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_reweighted_grad = tensors.get("golden_reweighted_grad").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let param_learned = tensors.get("param_learned").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let grad_learned = tensors.get("grad_learned").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let momentum_learned = tensors.get("momentum_learned").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let mlp_w1 = tensors.get("mlp_w1").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let mlp_b1 = tensors.get("mlp_b1").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let mlp_w2 = tensors.get("mlp_w2").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let mlp_b2 = tensors.get("mlp_b2").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_delta_w = tensors.get("golden_delta_w").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_param_learned = tensors.get("golden_param_learned").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_momentum_learned = tensors.get("golden_momentum_learned").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let anchor_x = tensors.get("anchor_x").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let anchor_w = tensors.get("anchor_w").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let anchor_b = tensors.get("anchor_b").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let gold_anchor_out = tensors.get("golden_anchor_out").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let kdev = KernelDevice::Cpu;
+
+    // 1. Hypergradient Descent CPU & Auto
+    let (cpu_w, cpu_lr) = t17::step_hypergradient_descent_cpu(&w_hd, &g_curr, &g_prev, lr_init, hyper_lr);
+    let (auto_w, auto_lr) = t17::step_hypergradient_descent_auto(&kdev, &w_hd, &g_curr, &g_prev, lr_init, hyper_lr);
+    assert!((cpu_lr - golden_lr_next).abs() < 1e-5);
+    assert!((auto_lr - golden_lr_next).abs() < 1e-5);
+    for j in 0..golden_w_hd.len() {
+        assert!((cpu_w[j] - golden_w_hd[j]).abs() < 1e-5);
+        assert!((auto_w[j] - golden_w_hd[j]).abs() < 1e-5);
+    }
+
+    // 2. Meta-Sample Reweighting CPU & Auto
+    let (cpu_weights, cpu_rew_g) = t17::meta_sample_reweight_cpu(&per_sample_grads, &val_grad, 4, 8, 1e-8);
+    let (auto_weights, auto_rew_g) = t17::meta_sample_reweight_auto(&kdev, &per_sample_grads, &val_grad, 4, 8, 1e-8);
+    for j in 0..golden_sample_weights.len() {
+        assert!((cpu_weights[j] - golden_sample_weights[j]).abs() < 1e-5);
+        assert!((auto_weights[j] - golden_sample_weights[j]).abs() < 1e-5);
+    }
+    for j in 0..golden_reweighted_grad.len() {
+        assert!((cpu_rew_g[j] - golden_reweighted_grad[j]).abs() < 1e-5);
+        assert!((auto_rew_g[j] - golden_reweighted_grad[j]).abs() < 1e-5);
+    }
+
+    // 3. Learned Optimizer MLP CPU & Auto
+    let (cpu_p, cpu_m, cpu_dw) = t17::step_learned_optimizer_cpu(
+        &param_learned,
+        &grad_learned,
+        &momentum_learned,
+        &mlp_w1,
+        &mlp_b1,
+        &mlp_w2,
+        &mlp_b2,
+    );
+    let (auto_p, auto_m, auto_dw) = t17::step_learned_optimizer_auto(
+        &kdev,
+        &param_learned,
+        &grad_learned,
+        &momentum_learned,
+        &mlp_w1,
+        &mlp_b1,
+        &mlp_w2,
+        &mlp_b2,
+    );
+    for j in 0..golden_delta_w.len() {
+        assert!((cpu_dw[j] - golden_delta_w[j]).abs() < 1e-5);
+        assert!((auto_dw[j] - golden_delta_w[j]).abs() < 1e-5);
+        assert!((cpu_p[j] - golden_param_learned[j]).abs() < 1e-5);
+        assert!((auto_p[j] - golden_param_learned[j]).abs() < 1e-5);
+        assert!((cpu_m[j] - golden_momentum_learned[j]).abs() < 1e-5);
+        assert!((auto_m[j] - golden_momentum_learned[j]).abs() < 1e-5);
+    }
+
+    // 4. Linear Anchor CPU
+    let cpu_anchor_out = t17::anchor_forward_cpu(&anchor_x, &anchor_w, &anchor_b, 2, 8, 4);
+    for j in 0..gold_anchor_out.len() {
+        assert!((cpu_anchor_out[j] - gold_anchor_out[j]).abs() < 1e-5);
+    }
+
+    Ok(())
+}
+
+
 
 
 

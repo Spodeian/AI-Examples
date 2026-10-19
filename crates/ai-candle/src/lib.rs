@@ -173,6 +173,9 @@ pub mod c04_training_methods_and_optimisers {
 
     #[path = "03_training_dynamics_self_optimising_non_backprop/02_training_optimisations_progressive_stacking_data_pruning_mrl_and_plasticity.rs"]
     pub mod t16_training_optimisations_progressive_stacking_data_pruning_mrl_and_plasticity;
+
+    #[path = "03_training_dynamics_self_optimising_non_backprop/03_self_optimising_hypergradients_learned_optimisers_and_meta_reweighting.rs"]
+    pub mod t17_self_optimising_hypergradients_learned_optimisers_and_meta_reweighting;
 }
 
 

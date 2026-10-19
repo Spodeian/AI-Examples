@@ -57,7 +57,7 @@ pub fn jsd_forward(p: &Tensor, q: &Tensor) -> Result<Tensor> {
     let m = ((p + q)? * 0.5)?;
     let kl_pm = kl_forward(p, &m, 1e-12)?;
     let kl_qm = kl_forward(q, &m, 1e-12)?;
-    ((kl_pm + kl_qm)? * 0.5)
+    (kl_pm + kl_qm)? * 0.5
 }
 
 /// alpha-Renyi Divergence: 1/(alpha - 1) * log sum P^alpha * Q^(1-alpha).
