@@ -30,3 +30,6 @@ mod test_09_losses_divergences_information_bottleneck_and_coding_rate;
 #[path = "03_building_blocks_and_losses/test_10_losses_optimal_transport_wasserstein_sinkhorn_and_mmd.rs"]
 mod test_10_losses_optimal_transport_wasserstein_sinkhorn_and_mmd;
 
+#[path = "03_building_blocks_and_losses/test_11_losses_proper_scoring_evidential_and_differentiable_ranking.rs"]
+mod test_11_losses_proper_scoring_evidential_and_differentiable_ranking;
+

@@ -741,3 +741,83 @@ fn test_10_losses_optimal_transport_wasserstein_sinkhorn_and_mmd_cpu_and_auto() 
     Ok(())
 }
 
+use ai_kernel::c03_building_blocks_and_losses::t11_losses_proper_scoring_evidential_and_differentiable_ranking as t11;
+
+#[test]
+fn test_11_losses_proper_scoring_evidential_and_differentiable_ranking_cpu_and_auto() -> Result<()> {
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "03_building_blocks_and_losses/11_losses_proper_scoring_evidential_and_differentiable_ranking.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    let test_in = tensors.get("test_input").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let test_out = tensors.get("test_output").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let weight = tensors.get("weight").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let bias = tensors.get("bias").unwrap().to_vec1::<f32>()?;
+
+    let crps_y = tensors.get("crps_y").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let crps_mu = tensors.get("crps_mu").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let crps_sigma = tensors.get("crps_sigma").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let expected_crps = tensors.get("expected_crps").unwrap().to_vec1::<f32>()?[0];
+
+    let brier_p = tensors.get("brier_p").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let brier_y = tensors.get("brier_y").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let expected_brier = tensors.get("expected_brier").unwrap().to_vec1::<f32>()?[0];
+
+    let beta_nll_y = tensors.get("beta_nll_y").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let beta_nll_mu = tensors.get("beta_nll_mu").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let beta_nll_var = tensors.get("beta_nll_var").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let expected_beta_nll = tensors.get("expected_beta_nll").unwrap().to_vec1::<f32>()?[0];
+
+    let edl_alpha = tensors.get("edl_alpha").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let edl_y = tensors.get("edl_y").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let expected_edl = tensors.get("expected_edl").unwrap().to_vec1::<f32>()?[0];
+
+    let listmle_scores = tensors.get("listmle_scores").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let listmle_perm = tensors.get("listmle_perm").unwrap().flatten_all()?.to_vec1::<i64>()?;
+    let expected_listmle = tensors.get("expected_listmle").unwrap().to_vec1::<f32>()?[0];
+
+    let soft_scores = tensors.get("soft_scores").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let expected_soft_ranks = tensors.get("expected_soft_ranks").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    // 1. Linear Anchor on CPU
+    let anchor_calc = t11::linear_anchor_forward_cpu(&test_in, &weight, &bias, 8, 4, 4);
+    for (i, (&calc, &gold)) in anchor_calc.iter().zip(test_out.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Linear anchor error at {i}: {calc} vs {gold}");
+    }
+
+    // 2. CRPS Gaussian on CPU
+    let crps_calc = t11::crps_gaussian_cpu(&crps_y, &crps_mu, &crps_sigma, 1e-6);
+    assert!((crps_calc - expected_crps).abs() < 1e-5, "CRPS error: {crps_calc} vs {expected_crps}");
+
+    // 3. Brier Score on CPU
+    let brier_calc = t11::brier_score_cpu(&brier_p, &brier_y, 8, 4);
+    assert!((brier_calc - expected_brier).abs() < 1e-5, "Brier error: {brier_calc} vs {expected_brier}");
+
+    // 4. Beta-NLL on CPU
+    let beta_nll_calc = t11::beta_nll_cpu(&beta_nll_y, &beta_nll_mu, &beta_nll_var, 0.5, 1e-6);
+    assert!((beta_nll_calc - expected_beta_nll).abs() < 1e-5, "Beta-NLL error: {beta_nll_calc} vs {expected_beta_nll}");
+
+    // 5. EDL MSE on CPU
+    let edl_calc = t11::edl_mse_cpu(&edl_alpha, &edl_y, 8, 4);
+    assert!((edl_calc - expected_edl).abs() < 1e-5, "EDL MSE error: {edl_calc} vs {expected_edl}");
+
+    // 6. ListMLE on CPU
+    let listmle_calc = t11::listmle_cpu(&listmle_scores, &listmle_perm, 8, 4);
+    assert!((listmle_calc - expected_listmle).abs() < 1e-5, "ListMLE error: {listmle_calc} vs {expected_listmle}");
+
+    // 7. Soft Ranks on CPU and Auto
+    let soft_calc = t11::soft_ranks_cpu(&soft_scores, 8, 4, 0.5);
+    for (i, (&calc, &gold)) in soft_calc.iter().zip(expected_soft_ranks.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Soft ranks CPU error at {i}: {calc} vs {gold}");
+    }
+
+    let soft_auto_calc = t11::soft_ranks_auto(None, &soft_scores, 8, 4, 0.5);
+    for (i, (&calc, &gold)) in soft_auto_calc.iter().zip(expected_soft_ranks.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Soft ranks Auto error at {i}: {calc} vs {gold}");
+    }
+
+    Ok(())
+}
+

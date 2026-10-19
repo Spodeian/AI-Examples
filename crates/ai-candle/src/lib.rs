@@ -113,6 +113,9 @@ pub mod c03_building_blocks_and_losses {
 
     #[path = "10_losses_optimal_transport_wasserstein_sinkhorn_and_mmd.rs"]
     pub mod t10_losses_optimal_transport_wasserstein_sinkhorn_and_mmd;
+
+    #[path = "11_losses_proper_scoring_evidential_and_differentiable_ranking.rs"]
+    pub mod t11_losses_proper_scoring_evidential_and_differentiable_ranking;
 }
 
 
