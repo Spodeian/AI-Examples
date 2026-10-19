@@ -1516,6 +1516,98 @@ fn test_17_self_optimising_hypergradients_learned_optimisers_and_meta_reweightin
     Ok(())
 }
 
+#[test]
+fn test_18_self_optimising_test_time_adaptation_tent_memo_star_and_spin_cpu_and_auto() -> Result<()> {
+    use ai_kernel::c04_training_methods_and_optimisers::t18_self_optimising_test_time_adaptation_tent_memo_star_and_spin as t18;
+
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "04_training_methods_and_optimisers/03_training_dynamics_self_optimising_non_backprop/04_self_optimising_test_time_adaptation_tent_memo_star_and_spin.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    let tent_logits = tensors.get("tent_logits").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let tent_scale = tensors.get("tent_scale").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let tent_shift = tensors.get("tent_shift").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_tent_entropy = tensors.get("golden_tent_entropy").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+    let golden_scale_grad = tensors.get("golden_scale_grad").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_shift_grad = tensors.get("golden_shift_grad").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_scale_next = tensors.get("golden_scale_next").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_shift_next = tensors.get("golden_shift_next").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let memo_aug_logits = tensors.get("memo_aug_logits").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_marginal_p = tensors.get("golden_marginal_p").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_memo_entropy = tensors.get("golden_memo_entropy").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+
+    let logp_win = tensors.get("logp_win").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let logp_lose = tensors.get("logp_lose").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_spin_loss = tensors.get("golden_spin_loss").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+
+    let anchor_x = tensors.get("anchor_x").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let anchor_w = tensors.get("anchor_w").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let anchor_b = tensors.get("anchor_b").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let gold_anchor_out = tensors.get("golden_anchor_out").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let kdev = KernelDevice::Cpu;
+
+    // 1. TENT Step CPU & Auto
+    let (cpu_s_next, cpu_sh_next, cpu_ent, cpu_gs, cpu_gsh) = t18::compute_tent_step_cpu(
+        &tent_logits,
+        &tent_scale,
+        &tent_shift,
+        4,
+        4,
+        0.05,
+    );
+    let (auto_s_next, auto_sh_next, auto_ent, auto_gs, auto_gsh) = t18::compute_tent_step_auto(
+        &kdev,
+        &tent_logits,
+        &tent_scale,
+        &tent_shift,
+        4,
+        4,
+        0.05,
+    );
+
+    assert!((cpu_ent - golden_tent_entropy).abs() < 1e-5);
+    assert!((auto_ent - golden_tent_entropy).abs() < 1e-5);
+    for c in 0..4 {
+        assert!((cpu_s_next[c] - golden_scale_next[c]).abs() < 1e-5);
+        assert!((auto_s_next[c] - golden_scale_next[c]).abs() < 1e-5);
+        assert!((cpu_sh_next[c] - golden_shift_next[c]).abs() < 1e-5);
+        assert!((auto_sh_next[c] - golden_shift_next[c]).abs() < 1e-5);
+        assert!((cpu_gs[c] - golden_scale_grad[c]).abs() < 1e-5);
+        assert!((auto_gs[c] - golden_scale_grad[c]).abs() < 1e-5);
+        assert!((cpu_gsh[c] - golden_shift_grad[c]).abs() < 1e-5);
+        assert!((auto_gsh[c] - golden_shift_grad[c]).abs() < 1e-5);
+    }
+
+    // 2. MEMO CPU & Auto
+    let (cpu_mp, cpu_me) = t18::compute_memo_marginal_entropy_cpu(&memo_aug_logits, 3, 4, 1e-8);
+    let (auto_mp, auto_me) = t18::compute_memo_marginal_entropy_auto(&kdev, &memo_aug_logits, 3, 4, 1e-8);
+    assert!((cpu_me - golden_memo_entropy).abs() < 1e-5);
+    assert!((auto_me - golden_memo_entropy).abs() < 1e-5);
+    for c in 0..4 {
+        assert!((cpu_mp[c] - golden_marginal_p[c]).abs() < 1e-5);
+        assert!((auto_mp[c] - golden_marginal_p[c]).abs() < 1e-5);
+    }
+
+    // 3. SPIN CPU & Auto
+    let cpu_spin = t18::compute_spin_loss_cpu(&logp_win, &logp_lose, 0.5);
+    let auto_spin = t18::compute_spin_loss_auto(&kdev, &logp_win, &logp_lose, 0.5);
+    assert!((cpu_spin - golden_spin_loss).abs() < 1e-5);
+    assert!((auto_spin - golden_spin_loss).abs() < 1e-5);
+
+    // 4. Linear Anchor CPU
+    let cpu_anchor_out = t18::anchor_forward_cpu(&anchor_x, &anchor_w, &anchor_b, 2, 8, 4);
+    for j in 0..gold_anchor_out.len() {
+        assert!((cpu_anchor_out[j] - gold_anchor_out[j]).abs() < 1e-5);
+    }
+
+    Ok(())
+}
+
+
 
 
 

@@ -181,5 +181,8 @@ pub mod c04_training_methods_and_optimisers {
 
     #[path = "03_training_dynamics_self_optimising_non_backprop/03_self_optimising_hypergradients_learned_optimisers_and_meta_reweighting.rs"]
     pub mod t17_self_optimising_hypergradients_learned_optimisers_and_meta_reweighting;
+
+    #[path = "03_training_dynamics_self_optimising_non_backprop/04_self_optimising_test_time_adaptation_tent_memo_star_and_spin.rs"]
+    pub mod t18_self_optimising_test_time_adaptation_tent_memo_star_and_spin;
 }
 

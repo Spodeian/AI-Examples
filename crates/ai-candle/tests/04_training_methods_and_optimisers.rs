@@ -49,3 +49,6 @@ pub mod test_16_training_optimisations_progressive_stacking_data_pruning_mrl_and
 #[path = "04_training_methods_and_optimisers/test_17_self_optimising_hypergradients_learned_optimisers_and_meta_reweighting.rs"]
 pub mod test_17_self_optimising_hypergradients_learned_optimisers_and_meta_reweighting;
 
+#[path = "04_training_methods_and_optimisers/test_18_self_optimising_test_time_adaptation_tent_memo_star_and_spin.rs"]
+pub mod test_18_self_optimising_test_time_adaptation_tent_memo_star_and_spin;
+
