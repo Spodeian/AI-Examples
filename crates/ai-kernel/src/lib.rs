@@ -129,3 +129,9 @@ pub mod c03_building_blocks_and_losses {
     pub mod t13_differentiable_sorting_ranking_topk_permutahedron_and_imle;
 }
 
+#[path = "../../../kernels/04_training_methods_and_optimisers"]
+pub mod c04_training_methods_and_optimisers {
+    #[path = "01_gradient_and_curvature_optimisers/01_first_order_and_adaptive_optimisers.rs"]
+    pub mod t01_first_order_and_adaptive_optimisers;
+}
+
