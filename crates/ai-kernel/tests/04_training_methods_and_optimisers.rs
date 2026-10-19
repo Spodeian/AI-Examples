@@ -1607,6 +1607,86 @@ fn test_18_self_optimising_test_time_adaptation_tent_memo_star_and_spin_cpu_and_
     Ok(())
 }
 
+#[test]
+fn test_19_non_backprop_forward_forward_predictive_coding_eqprop_dfa_hebbian_cpu_and_auto() -> Result<()> {
+    use ai_kernel::c04_training_methods_and_optimisers::t19_non_backprop_forward_forward_predictive_coding_eqprop_dfa_hebbian as t19;
+
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "04_training_methods_and_optimisers/03_training_dynamics_self_optimising_non_backprop/05_non_backprop_forward_forward_predictive_coding_eqprop_dfa_hebbian.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    let h_pos = tensors.get("h_pos").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let h_neg = tensors.get("h_neg").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_ff_loss = tensors.get("golden_ff_loss").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+    let golden_h_norm = tensors.get("golden_h_norm").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let pc_x = tensors.get("pc_x").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let pc_r = tensors.get("pc_r").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let pc_w = tensors.get("pc_w").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_pc_r_next = tensors.get("golden_pc_r_next").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let top_error = tensors.get("top_error").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let dfa_feedback = tensors.get("dfa_feedback").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let act_pre = tensors.get("act_pre").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_dfa_grad = tensors.get("golden_dfa_grad").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let oja_x = tensors.get("oja_x").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let oja_w = tensors.get("oja_w").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_oja_w_next = tensors.get("golden_oja_w_next").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let anchor_x = tensors.get("anchor_x").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let anchor_w = tensors.get("anchor_w").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let anchor_b = tensors.get("anchor_b").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let gold_anchor_out = tensors.get("golden_anchor_out").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let kdev = KernelDevice::Cpu;
+
+    // 1. Forward-Forward CPU & Auto
+    let (cpu_ff_loss, cpu_h_norm) = t19::forward_forward_loss_and_norm_cpu(&h_pos, &h_neg, 4, 8, 2.0, 1e-8);
+    let (auto_ff_loss, auto_h_norm) = t19::forward_forward_loss_and_norm_auto(&kdev, &h_pos, &h_neg, 4, 8, 2.0, 1e-8);
+    assert!((cpu_ff_loss - golden_ff_loss).abs() < 1e-5);
+    assert!((auto_ff_loss - golden_ff_loss).abs() < 1e-5);
+    for j in 0..golden_h_norm.len() {
+        assert!((cpu_h_norm[j] - golden_h_norm[j]).abs() < 1e-5);
+        assert!((auto_h_norm[j] - golden_h_norm[j]).abs() < 1e-5);
+    }
+
+    // 2. Predictive Coding CPU & Auto
+    let cpu_pc_r = t19::predictive_coding_step_cpu(&pc_x, &pc_r, &pc_w, 8, 0.1, 0.01);
+    let auto_pc_r = t19::predictive_coding_step_auto(&kdev, &pc_x, &pc_r, &pc_w, 8, 0.1, 0.01);
+    for j in 0..8 {
+        assert!((cpu_pc_r[j] - golden_pc_r_next[j]).abs() < 1e-5);
+        assert!((auto_pc_r[j] - golden_pc_r_next[j]).abs() < 1e-5);
+    }
+
+    // 3. DFA CPU & Auto
+    let cpu_dfa = t19::dfa_project_error_cpu(&top_error, &dfa_feedback, &act_pre, 4, 8, 4);
+    let auto_dfa = t19::dfa_project_error_auto(&kdev, &top_error, &dfa_feedback, &act_pre, 4, 8, 4);
+    for j in 0..golden_dfa_grad.len() {
+        assert!((cpu_dfa[j] - golden_dfa_grad[j]).abs() < 1e-5);
+        assert!((auto_dfa[j] - golden_dfa_grad[j]).abs() < 1e-5);
+    }
+
+    // 4. Oja Hebbian CPU & Auto
+    let cpu_oja = t19::oja_hebbian_step_cpu(&oja_x, &oja_w, 0.05);
+    let auto_oja = t19::oja_hebbian_step_auto(&kdev, &oja_x, &oja_w, 0.05);
+    for j in 0..8 {
+        assert!((cpu_oja[j] - golden_oja_w_next[j]).abs() < 1e-5);
+        assert!((auto_oja[j] - golden_oja_w_next[j]).abs() < 1e-5);
+    }
+
+    // 5. Linear Anchor CPU
+    let cpu_anchor_out = t19::anchor_forward_cpu(&anchor_x, &anchor_w, &anchor_b, 2, 8, 4);
+    for j in 0..gold_anchor_out.len() {
+        assert!((cpu_anchor_out[j] - gold_anchor_out[j]).abs() < 1e-5);
+    }
+
+    Ok(())
+}
+
+
 
 
 

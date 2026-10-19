@@ -179,6 +179,9 @@ pub mod c04_training_methods_and_optimisers {
 
     #[path = "03_training_dynamics_self_optimising_non_backprop/04_self_optimising_test_time_adaptation_tent_memo_star_and_spin.rs"]
     pub mod t18_self_optimising_test_time_adaptation_tent_memo_star_and_spin;
+
+    #[path = "03_training_dynamics_self_optimising_non_backprop/05_non_backprop_forward_forward_predictive_coding_eqprop_dfa_hebbian.rs"]
+    pub mod t19_non_backprop_forward_forward_predictive_coding_eqprop_dfa_hebbian;
 }
 
 

@@ -52,3 +52,6 @@ pub mod test_17_self_optimising_hypergradients_learned_optimisers_and_meta_rewei
 #[path = "04_training_methods_and_optimisers/test_18_self_optimising_test_time_adaptation_tent_memo_star_and_spin.rs"]
 pub mod test_18_self_optimising_test_time_adaptation_tent_memo_star_and_spin;
 
+#[path = "04_training_methods_and_optimisers/test_19_non_backprop_forward_forward_predictive_coding_eqprop_dfa_hebbian.rs"]
+pub mod test_19_non_backprop_forward_forward_predictive_coding_eqprop_dfa_hebbian;
+
