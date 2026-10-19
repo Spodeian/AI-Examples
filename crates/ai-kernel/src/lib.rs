@@ -157,5 +157,8 @@ pub mod c04_training_methods_and_optimisers {
 
     #[path = "02_constrained_pareto_and_blackbox_optimisation/02_multi_objective_pareto_mgda_tchebycheff_and_gradient_surgery.rs"]
     pub mod t09_multi_objective_pareto_mgda_tchebycheff_and_gradient_surgery;
+
+    #[path = "02_constrained_pareto_and_blackbox_optimisation/03_coordinate_alternating_projections_and_majorization_minimization.rs"]
+    pub mod t10_coordinate_alternating_projections_and_majorization_minimization;
 }
 

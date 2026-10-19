@@ -851,5 +851,93 @@ fn test_09_multi_objective_pareto_mgda_tchebycheff_and_gradient_surgery_cpu_and_
     Ok(())
 }
 
+#[test]
+fn test_10_coordinate_alternating_projections_and_majorization_minimization_cpu_and_auto() -> Result<()> {
+    use ai_kernel::c04_training_methods_and_optimisers::t10_coordinate_alternating_projections_and_majorization_minimization as t10;
+
+    let kdev = KernelDevice::Cpu;
+    let weights_path = common::get_weights_path(
+        "04_training_methods_and_optimisers/02_constrained_pareto_and_blackbox_optimisation/03_coordinate_alternating_projections_and_majorization_minimization.safetensors",
+    );
+    let tensors = load(weights_path, &Device::Cpu)?;
+
+    let x0 = tensors.get("x0").unwrap().to_vec1::<f32>()?;
+    let normal = tensors.get("normal").unwrap().to_vec1::<f32>()?;
+    let offset = tensors.get("offset").unwrap().to_vec1::<f32>()?[0];
+
+    let param_bcd = tensors.get("param_bcd").unwrap().to_vec1::<f32>()?;
+    let b_bcd = tensors.get("b_bcd").unwrap().to_vec1::<f32>()?;
+    let a_diag = tensors.get("A_diag").unwrap().to_vec1::<f32>()?;
+
+    let param_irls = tensors.get("param_irls").unwrap().to_vec1::<f32>()?;
+    let target_irls = tensors.get("target_irls").unwrap().to_vec1::<f32>()?;
+
+    let param_cccp = tensors.get("param_cccp").unwrap().to_vec1::<f32>()?;
+
+    let gold_dykstra_x = tensors.get("golden_dykstra_x").unwrap().to_vec1::<f32>()?;
+    let gold_dykstra_y = tensors.get("golden_dykstra_y").unwrap().to_vec1::<f32>()?;
+    let gold_dykstra_p = tensors.get("golden_dykstra_p").unwrap().to_vec1::<f32>()?;
+    let gold_dykstra_q = tensors.get("golden_dykstra_q").unwrap().to_vec1::<f32>()?;
+
+    let gold_param_bcd = tensors.get("golden_param_bcd").unwrap().to_vec1::<f32>()?;
+    let gold_param_irls = tensors.get("golden_param_irls").unwrap().to_vec1::<f32>()?;
+    let gold_param_cccp = tensors.get("golden_param_cccp").unwrap().to_vec1::<f32>()?;
+
+    let anchor_x = tensors.get("anchor_x").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let anchor_w = tensors.get("anchor_w").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let anchor_b = tensors.get("anchor_b").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let gold_anchor_out = tensors.get("golden_anchor_out").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let d = x0.len();
+
+    // 1. Dykstra CPU & Auto
+    let p0 = vec![0.0f32; d];
+    let q0 = vec![0.0f32; d];
+    let (cpu_x, cpu_y, cpu_p, cpu_q) = t10::step_dykstra_cpu(&x0, &p0, &q0, &normal, offset, 0.0, 2.0);
+    let (auto_x, auto_y, auto_p, auto_q) = t10::step_dykstra_auto(&kdev, &x0, &p0, &q0, &normal, offset, 0.0, 2.0);
+    for j in 0..d {
+        assert!((cpu_x[j] - gold_dykstra_x[j]).abs() < 1e-5);
+        assert!((auto_x[j] - gold_dykstra_x[j]).abs() < 1e-5);
+        assert!((cpu_y[j] - gold_dykstra_y[j]).abs() < 1e-5);
+        assert!((auto_y[j] - gold_dykstra_y[j]).abs() < 1e-5);
+        assert!((cpu_p[j] - gold_dykstra_p[j]).abs() < 1e-5);
+        assert!((auto_p[j] - gold_dykstra_p[j]).abs() < 1e-5);
+        assert!((cpu_q[j] - gold_dykstra_q[j]).abs() < 1e-5);
+        assert!((auto_q[j] - gold_dykstra_q[j]).abs() < 1e-5);
+    }
+
+    // 2. BCD CPU & Auto
+    let cpu_bcd = t10::step_bcd_cpu(&param_bcd, &b_bcd, &a_diag, 0.2);
+    let auto_bcd = t10::step_bcd_auto(&kdev, &param_bcd, &b_bcd, &a_diag, 0.2);
+    for j in 0..d {
+        assert!((cpu_bcd[j] - gold_param_bcd[j]).abs() < 1e-5);
+        assert!((auto_bcd[j] - gold_param_bcd[j]).abs() < 1e-5);
+    }
+
+    // 3. IRLS CPU & Auto
+    let cpu_irls = t10::step_irls_cpu(&param_irls, &target_irls, 0.5, 1e-4);
+    let auto_irls = t10::step_irls_auto(&kdev, &param_irls, &target_irls, 0.5, 1e-4);
+    for j in 0..d {
+        assert!((cpu_irls[j] - gold_param_irls[j]).abs() < 1e-5);
+        assert!((auto_irls[j] - gold_param_irls[j]).abs() < 1e-5);
+    }
+
+    // 4. CCCP CPU & Auto
+    let cpu_cccp = t10::step_cccp_cpu(&param_cccp);
+    let auto_cccp = t10::step_cccp_auto(&kdev, &param_cccp);
+    for j in 0..d {
+        assert!((cpu_cccp[j] - gold_param_cccp[j]).abs() < 1e-5);
+        assert!((auto_cccp[j] - gold_param_cccp[j]).abs() < 1e-5);
+    }
+
+    // 5. Linear Anchor CPU
+    let cpu_anchor_out = t10::anchor_forward_cpu(&anchor_x, &anchor_w, &anchor_b, 2, 8, 4);
+    for j in 0..gold_anchor_out.len() {
+        assert!((cpu_anchor_out[j] - gold_anchor_out[j]).abs() < 1e-5);
+    }
+
+    Ok(())
+}
+
 
 
