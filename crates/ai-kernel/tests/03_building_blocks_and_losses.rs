@@ -597,3 +597,79 @@ fn test_08_losses_metric_contrastive_and_structured_vision_cpu_and_auto() -> Res
 
     Ok(())
 }
+
+use ai_kernel::c03_building_blocks_and_losses::t09_losses_divergences_information_bottleneck_and_coding_rate as t09;
+
+#[test]
+fn test_09_losses_divergences_information_bottleneck_and_coding_rate_cpu_and_auto() -> Result<()> {
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "03_building_blocks_and_losses/09_losses_divergences_information_bottleneck_and_coding_rate.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    let test_in = tensors.get("test_input").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let test_out = tensors.get("test_output").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let weight = tensors.get("weight").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let bias = tensors.get("bias").unwrap().to_vec1::<f32>()?;
+
+    let p_dist = tensors.get("p_dist").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let q_dist = tensors.get("q_dist").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let loss_fwd_gold = tensors.get("loss_fwd_kl").unwrap().to_vec1::<f32>()?[0];
+    let loss_rev_gold = tensors.get("loss_rev_kl").unwrap().to_vec1::<f32>()?[0];
+    let loss_jsd_gold = tensors.get("loss_jsd").unwrap().to_vec1::<f32>()?[0];
+
+    let r_alpha = tensors.get("renyi_alpha").unwrap().to_vec1::<f32>()?[0];
+    let loss_renyi_gold = tensors.get("loss_renyi").unwrap().to_vec1::<f32>()?[0];
+
+    let is_x = tensors.get("is_x").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let is_y = tensors.get("is_y").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let loss_is_gold = tensors.get("loss_is").unwrap().to_vec1::<f32>()?[0];
+
+    let vib_mu = tensors.get("vib_mu").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let vib_logvar = tensors.get("vib_logvar").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let loss_vib_gold = tensors.get("loss_vib").unwrap().to_vec1::<f32>()?[0];
+
+    let mcr2_z = tensors.get("mcr2_z").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let mcr2_eps = tensors.get("mcr2_eps").unwrap().to_vec1::<f32>()?[0];
+    let loss_mcr2_gold = tensors.get("loss_mcr2").unwrap().to_vec1::<f32>()?[0];
+
+    // 1. Linear Anchor on CPU
+    let anchor_calc = t09::linear_anchor_forward_cpu(&test_in, &weight, &bias, 4, 8, 4);
+    for (i, (&calc, &gold)) in anchor_calc.iter().zip(test_out.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Linear anchor error at {i}: {calc} vs {gold}");
+    }
+
+    // 2. Forward KL on CPU
+    let loss_fwd_calc = t09::kl_forward_cpu(&p_dist, &q_dist, 4, 4, 1e-12);
+    assert!((loss_fwd_calc - loss_fwd_gold).abs() < 1e-5, "Forward KL error: {loss_fwd_calc} vs {loss_fwd_gold}");
+
+    // 3. Reverse KL on CPU
+    let loss_rev_calc = t09::kl_reverse_cpu(&p_dist, &q_dist, 4, 4, 1e-12);
+    assert!((loss_rev_calc - loss_rev_gold).abs() < 1e-5, "Reverse KL error: {loss_rev_calc} vs {loss_rev_gold}");
+
+    // 4. JSD on CPU
+    let loss_jsd_calc = t09::jsd_cpu(&p_dist, &q_dist, 4, 4);
+    assert!((loss_jsd_calc - loss_jsd_gold).abs() < 1e-5, "JSD error: {loss_jsd_calc} vs {loss_jsd_gold}");
+
+    // 5. Renyi on CPU
+    let loss_renyi_calc = t09::renyi_divergence_cpu(&p_dist, &q_dist, 4, 4, r_alpha, 1e-12);
+    assert!((loss_renyi_calc - loss_renyi_gold).abs() < 1e-5, "Renyi error: {loss_renyi_calc} vs {loss_renyi_gold}");
+
+    // 6. Itakura-Saito on CPU and Auto
+    let loss_is_calc = t09::itakura_saito_cpu(&is_x, &is_y, 1e-12);
+    assert!((loss_is_calc - loss_is_gold).abs() < 1e-5, "Itakura-Saito CPU error: {loss_is_calc} vs {loss_is_gold}");
+
+    let loss_is_auto = pollster::block_on(t09::itakura_saito_auto(None, &is_x, &is_y, 1e-12));
+    assert!((loss_is_auto - loss_is_gold).abs() < 1e-5, "Itakura-Saito Auto error: {loss_is_auto} vs {loss_is_gold}");
+
+    // 7. VIB KL on CPU
+    let loss_vib_calc = t09::vib_kl_cpu(&vib_mu, &vib_logvar, 4, 8);
+    assert!((loss_vib_calc - loss_vib_gold).abs() < 1e-5, "VIB KL error: {loss_vib_calc} vs {loss_vib_gold}");
+
+    // 8. MCR^2 Coding Rate on CPU
+    let loss_mcr2_calc = t09::mcr2_coding_rate_cpu(&mcr2_z, 4, 4, mcr2_eps);
+    assert!((loss_mcr2_calc - loss_mcr2_gold).abs() < 1e-5, "MCR^2 error: {loss_mcr2_calc} vs {loss_mcr2_gold}");
+
+    Ok(())
+}

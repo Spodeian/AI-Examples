@@ -23,3 +23,6 @@ mod test_07_losses_regression_classification_and_barron_robust;
 
 #[path = "03_building_blocks_and_losses/test_08_losses_metric_contrastive_and_structured_vision.rs"]
 mod test_08_losses_metric_contrastive_and_structured_vision;
+
+#[path = "03_building_blocks_and_losses/test_09_losses_divergences_information_bottleneck_and_coding_rate.rs"]
+mod test_09_losses_divergences_information_bottleneck_and_coding_rate;

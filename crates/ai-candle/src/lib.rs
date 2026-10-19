@@ -107,6 +107,9 @@ pub mod c03_building_blocks_and_losses {
 
     #[path = "08_losses_metric_contrastive_and_structured_vision.rs"]
     pub mod t08_losses_metric_contrastive_and_structured_vision;
+
+    #[path = "09_losses_divergences_information_bottleneck_and_coding_rate.rs"]
+    pub mod t09_losses_divergences_information_bottleneck_and_coding_rate;
 }
 
 
