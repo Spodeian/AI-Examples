@@ -140,6 +140,9 @@ pub mod c04_training_methods_and_optimisers {
 
     #[path = "01_gradient_and_curvature_optimisers/05_second_order_and_curvature_optimisers.rs"]
     pub mod t05_second_order_and_curvature_optimisers;
+
+    #[path = "01_gradient_and_curvature_optimisers/06_schedule_free_and_parameter_free_optimisers.rs"]
+    pub mod t06_schedule_free_and_parameter_free_optimisers;
 }
 
 

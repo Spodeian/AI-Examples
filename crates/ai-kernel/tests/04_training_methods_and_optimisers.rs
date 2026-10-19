@@ -515,5 +515,88 @@ fn test_05_second_order_and_curvature_optimisers_cpu_and_auto() -> Result<()> {
     Ok(())
 }
 
+#[test]
+fn test_06_schedule_free_and_parameter_free_optimisers_cpu_and_auto() -> Result<()> {
+    use ai_kernel::c04_training_methods_and_optimisers::t06_schedule_free_and_parameter_free_optimisers as t06;
+
+    let kdev = KernelDevice::Cpu;
+    let weights_path = common::get_weights_path(
+        "04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/06_schedule_free_and_parameter_free_optimisers.safetensors",
+    );
+    let tensors = load(weights_path, &Device::Cpu)?;
+
+    let sf_x = tensors.get("sf_x").unwrap().to_vec1::<f32>()?;
+    let sf_z = tensors.get("sf_z").unwrap().to_vec1::<f32>()?;
+    let sf_y = tensors.get("sf_y").unwrap().to_vec1::<f32>()?;
+    let sf_grad = tensors.get("sf_grad").unwrap().to_vec1::<f32>()?;
+    let sf_m = tensors.get("sf_m").unwrap().to_vec1::<f32>()?;
+    let sf_v = tensors.get("sf_v").unwrap().to_vec1::<f32>()?;
+
+    let polyak_param = tensors.get("polyak_param").unwrap().to_vec1::<f32>()?;
+    let polyak_grad = tensors.get("polyak_grad").unwrap().to_vec1::<f32>()?;
+    let f_val = tensors.get("f_val").unwrap().to_vec1::<f32>()?[0];
+    let f_opt = tensors.get("f_opt").unwrap().to_vec1::<f32>()?[0];
+
+    let bb_param = tensors.get("bb_param").unwrap().to_vec1::<f32>()?;
+    let bb_grad = tensors.get("bb_grad").unwrap().to_vec1::<f32>()?;
+    let bb_s = tensors.get("bb_s").unwrap().to_vec1::<f32>()?;
+    let bb_y = tensors.get("bb_y").unwrap().to_vec1::<f32>()?;
+
+    let d_param = tensors.get("d_param").unwrap().to_vec1::<f32>()?;
+    let d_grad = tensors.get("d_grad").unwrap().to_vec1::<f32>()?;
+    let d_est = tensors.get("d_est").unwrap().to_vec1::<f32>()?[0];
+
+    let gold_sf_x = tensors.get("golden_sf_x").unwrap().to_vec1::<f32>()?;
+    let gold_sf_z = tensors.get("golden_sf_z").unwrap().to_vec1::<f32>()?;
+    let gold_sf_y = tensors.get("golden_sf_y").unwrap().to_vec1::<f32>()?;
+    let gold_polyak = tensors.get("golden_polyak_param").unwrap().to_vec1::<f32>()?;
+    let gold_bb = tensors.get("golden_bb_param").unwrap().to_vec1::<f32>()?;
+    let gold_dadapt = tensors.get("golden_d_adapt_param").unwrap().to_vec1::<f32>()?;
+
+    let d = sf_x.len();
+
+    // 1. Schedule-Free AdamW CPU & Auto
+    let (cpu_x, cpu_z, cpu_y, _, _) = t06::step_schedule_free_cpu(
+        &sf_x, &sf_z, &sf_y, &sf_grad, &sf_m, &sf_v, 0.01, 0.9, 0.999, 0.01, 1, 1e-8,
+    );
+    let (auto_x, auto_z, auto_y, _, _) = t06::step_schedule_free_auto(
+        &kdev, &sf_x, &sf_z, &sf_y, &sf_grad, &sf_m, &sf_v, 0.01, 0.9, 0.999, 0.01, 1, 1e-8,
+    );
+    for j in 0..d {
+        assert!((cpu_x[j] - gold_sf_x[j]).abs() < 1e-5);
+        assert!((auto_x[j] - gold_sf_x[j]).abs() < 1e-5);
+        assert!((cpu_z[j] - gold_sf_z[j]).abs() < 1e-5);
+        assert!((auto_z[j] - gold_sf_z[j]).abs() < 1e-5);
+        assert!((cpu_y[j] - gold_sf_y[j]).abs() < 1e-5);
+        assert!((auto_y[j] - gold_sf_y[j]).abs() < 1e-5);
+    }
+
+    // 2. Polyak CPU & Auto
+    let cpu_polyak = t06::step_polyak_cpu(&polyak_param, &polyak_grad, f_val, f_opt, 1e-8);
+    let auto_polyak = t06::step_polyak_auto(&kdev, &polyak_param, &polyak_grad, f_val, f_opt, 1e-8);
+    for j in 0..d {
+        assert!((cpu_polyak[j] - gold_polyak[j]).abs() < 1e-5);
+        assert!((auto_polyak[j] - gold_polyak[j]).abs() < 1e-5);
+    }
+
+    // 3. Barzilai-Borwein CPU & Auto
+    let cpu_bb = t06::step_barzilai_borwein_cpu(&bb_param, &bb_grad, &bb_s, &bb_y, 1e-8);
+    let auto_bb = t06::step_barzilai_borwein_auto(&kdev, &bb_param, &bb_grad, &bb_s, &bb_y, 1e-8);
+    for j in 0..d {
+        assert!((cpu_bb[j] - gold_bb[j]).abs() < 1e-5);
+        assert!((auto_bb[j] - gold_bb[j]).abs() < 1e-5);
+    }
+
+    // 4. D-Adaptation CPU & Auto
+    let (cpu_dadapt, _) = t06::step_d_adaptation_cpu(&d_param, &d_grad, d_est, 0.01, 1e-8);
+    let (auto_dadapt, _) = t06::step_d_adaptation_auto(&kdev, &d_param, &d_grad, d_est, 0.01, 1e-8);
+    for j in 0..d {
+        assert!((cpu_dadapt[j] - gold_dadapt[j]).abs() < 1e-5);
+        assert!((auto_dadapt[j] - gold_dadapt[j]).abs() < 1e-5);
+    }
+
+    Ok(())
+}
+
 
 

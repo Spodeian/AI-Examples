@@ -13,3 +13,6 @@ pub mod test_04_orthogonal_and_preconditioned_matrix_optimisers;
 #[path = "04_training_methods_and_optimisers/test_05_second_order_and_curvature_optimisers.rs"]
 pub mod test_05_second_order_and_curvature_optimisers;
 
+#[path = "04_training_methods_and_optimisers/test_06_schedule_free_and_parameter_free_optimisers.rs"]
+pub mod test_06_schedule_free_and_parameter_free_optimisers;
+
