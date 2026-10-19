@@ -519,3 +519,81 @@ fn test_07_losses_regression_classification_and_barron_robust_cpu_and_auto() -> 
 
     Ok(())
 }
+
+use ai_kernel::c03_building_blocks_and_losses::t08_losses_metric_contrastive_and_structured_vision as t08;
+
+#[test]
+fn test_08_losses_metric_contrastive_and_structured_vision_cpu_and_auto() -> Result<()> {
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "03_building_blocks_and_losses/08_losses_metric_contrastive_and_structured_vision.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    let test_in = tensors.get("test_input").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let test_out = tensors.get("test_output").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let weight = tensors.get("weight").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let bias = tensors.get("bias").unwrap().to_vec1::<f32>()?;
+
+    let q_repr = tensors.get("q_repr").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let k_repr = tensors.get("k_repr").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let tau = tensors.get("tau_val").unwrap().to_vec1::<f32>()?[0];
+    let loss_infonce_gold = tensors.get("loss_infonce").unwrap().to_vec1::<f32>()?[0];
+
+    let siglip_scale = tensors.get("siglip_scale").unwrap().to_vec1::<f32>()?[0];
+    let siglip_bias = tensors.get("siglip_bias").unwrap().to_vec1::<f32>()?[0];
+    let loss_siglip_gold = tensors.get("loss_siglip").unwrap().to_vec1::<f32>()?[0];
+
+    let arc_emb = tensors.get("arc_emb").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let arc_w = tensors.get("arc_weights").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let arc_targets: Vec<f32> = tensors
+        .get("arc_targets")
+        .unwrap()
+        .flatten_all()?
+        .to_vec1::<i64>()?
+        .into_iter()
+        .map(|x| x as f32)
+        .collect();
+    let arc_s = tensors.get("arc_s").unwrap().to_vec1::<f32>()?[0];
+    let arc_m = tensors.get("arc_m").unwrap().to_vec1::<f32>()?[0];
+    let loss_arcface_gold = tensors.get("loss_arcface").unwrap().to_vec1::<f32>()?[0];
+
+    let dice_probs = tensors.get("dice_probs").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let dice_targets = tensors.get("dice_targets").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let loss_dice_gold = tensors.get("loss_dice").unwrap().to_vec1::<f32>()?[0];
+
+    let boxes1 = tensors.get("boxes1").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let boxes2 = tensors.get("boxes2").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let loss_giou_gold = tensors.get("loss_giou").unwrap().to_vec1::<f32>()?[0];
+
+    // 1. Linear Anchor on CPU
+    let anchor_calc = t08::linear_anchor_forward_cpu(&test_in, &weight, &bias, 4, 8, 4);
+    for (i, (&calc, &gold)) in anchor_calc.iter().zip(test_out.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Linear anchor error at {i}: {calc} vs {gold}");
+    }
+
+    // 2. InfoNCE Loss on CPU
+    let loss_infonce_calc = t08::infonce_loss_cpu(&q_repr, &k_repr, 4, 8, tau);
+    assert!((loss_infonce_calc - loss_infonce_gold).abs() < 1e-5, "InfoNCE error: {loss_infonce_calc} vs {loss_infonce_gold}");
+
+    // 3. SigLIP Loss on CPU
+    let loss_siglip_calc = t08::siglip_loss_cpu(&q_repr, &k_repr, 4, 8, siglip_scale, siglip_bias);
+    assert!((loss_siglip_calc - loss_siglip_gold).abs() < 1e-5, "SigLIP error: {loss_siglip_calc} vs {loss_siglip_gold}");
+
+    // 4. ArcFace Loss on CPU
+    let loss_arc_calc = t08::arcface_loss_cpu(&arc_emb, &arc_w, &arc_targets, 4, 5, 8, arc_s, arc_m);
+    assert!((loss_arc_calc - loss_arcface_gold).abs() < 1e-5, "ArcFace error: {loss_arc_calc} vs {loss_arcface_gold}");
+
+    // 5. Soft-Dice on CPU and Auto
+    let loss_dice_calc = t08::soft_dice_loss_cpu(&dice_probs, &dice_targets, 1e-6);
+    assert!((loss_dice_calc - loss_dice_gold).abs() < 1e-5, "Soft-Dice CPU error: {loss_dice_calc} vs {loss_dice_gold}");
+
+    let loss_dice_auto = pollster::block_on(t08::soft_dice_auto(None, &dice_probs, &dice_targets, 1e-6));
+    assert!((loss_dice_auto - loss_dice_gold).abs() < 1e-5, "Soft-Dice Auto error: {loss_dice_auto} vs {loss_dice_gold}");
+
+    // 6. GIoU Loss on CPU
+    let loss_giou_calc = t08::giou_loss_cpu(&boxes1, &boxes2, 4);
+    assert!((loss_giou_calc - loss_giou_gold).abs() < 1e-5, "GIoU error: {loss_giou_calc} vs {loss_giou_gold}");
+
+    Ok(())
+}

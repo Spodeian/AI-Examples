@@ -20,3 +20,6 @@ mod test_06_regularization_and_training_stabilizers;
 
 #[path = "03_building_blocks_and_losses/test_07_losses_regression_classification_and_barron_robust.rs"]
 mod test_07_losses_regression_classification_and_barron_robust;
+
+#[path = "03_building_blocks_and_losses/test_08_losses_metric_contrastive_and_structured_vision.rs"]
+mod test_08_losses_metric_contrastive_and_structured_vision;

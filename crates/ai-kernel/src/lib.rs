@@ -109,5 +109,8 @@ pub mod c03_building_blocks_and_losses {
 
     #[path = "07_losses_regression_classification_and_barron_robust.rs"]
     pub mod t07_losses_regression_classification_and_barron_robust;
+
+    #[path = "08_losses_metric_contrastive_and_structured_vision.rs"]
+    pub mod t08_losses_metric_contrastive_and_structured_vision;
 }
 
