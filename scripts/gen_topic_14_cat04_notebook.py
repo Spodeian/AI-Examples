@@ -1,0 +1,239 @@
+"""Generate the 8-cell educational notebook for Category 04 Topic 14 (Subfolder 02 Topic 07):
+Minimax Saddle Point, Extragradient, OGDA, SGA, and Trust-Region BOBYQA."""
+
+import json
+from pathlib import Path
+
+
+def build_notebook() -> dict:
+    cells = [
+        # Cell 0: Header Markdown
+        {
+            "id": "cell_0",
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "# Minimax Saddle Point, Extragradient, OGDA, SGA, and Trust-Region BOBYQA (C04 Topic 14)\n",
+                "\n",
+                "**Citations:** Korpelevich (1976 Extragradient); Daskalakis et al. (2018 OGDA); Balduzzi et al. (2018 SGA); Powell (2009 BOBYQA); Nelder & Mead (1965 Simplex); Heusel et al. (2017 TTUR).\n",
+                "\n",
+                "### Purpose & Topic Bridges\n",
+                "Single-objective optimization minimizes a scalar potential function where gradient descent naturally descends along conservative vector fields (zero rotation). In stark contrast, multi-agent adversarial games—including Generative Adversarial Networks (GANs), robust minimax control, actor-critic reinforcement learning, and primal-dual formulations—optimize conflicting objectives $\\min_x \\max_y f(x, y)$. The game vector field contains a non-conservative **rotational (Hamiltonian) component**.\n",
+                "\n",
+                "Under standard **Simultaneous Gradient Descent-Ascent (GDA)**, rotational game dynamics force iterates to step tangentially along circular contours, causing catastrophic exponential divergence to $\\infty$. **Korpelevich Extragradient (`EG`)** evaluates a lookahead gradient predictor to impart negative rotational friction, proving linear geometric contraction to the Nash equilibrium. **Optimistic GDA (`OGDA`)** achieves this contraction using past gradient momentum with only a single gradient evaluation per step. **Symplectic Gradient Adjustment (`SGA`)** decomposes the game Jacobian to directly quench the rotational component. For derivative-free black-box landscapes, **Nelder-Mead Simplex** and **Powell's BOBYQA** provide gradient-free trust-region optimization.\n",
+                "\n",
+                "**Decision Boundary:** Use **Extragradient** or **OGDA** whenever optimizing adversarial, zero-sum, or minimax objectives. Use **SGA** when game dynamics exhibit severe rotational oscillations. Use **Nelder-Mead / BOBYQA** for low-dimensional black-box physics simulators without autograd. When NOT to use: Never use naive simultaneous **GDA** without optimism or extragradient corrections on bilinear/saddle-point games; GDA provably diverges for any positive step size $\\eta > 0$."
+            ]
+        },
+        # Cell 1: Theory Markdown
+        {
+            "cell_type": "markdown",
+            "id": "cell_1",
+            "metadata": {},
+            "source": [
+                "## 2. Mathematical Foundations & Governing Equations\n",
+                "\n",
+                "1. **Bilinear Game & Vector Field Jacobian:** For $\\min_x \\max_y x^T A y$, vector field $F(z) = [Ay, -A^T x]^T$ has Jacobian $J_F = [[0, A], [-A^T, 0]]$ with purely imaginary eigenvalues $\\pm i \\sigma$.\n",
+                "2. **Simultaneous GDA Divergence:** Update $z_{t+1} = (I - \\eta J_F) z_t$ has eigenvalues with modulus $|\\lambda| = \\sqrt{1 + \\eta^2 \\sigma^2} > 1$, diverging as $\\|z_t\\|_2 = (1 + \\eta^2 \\sigma^2)^{t/2} \\|z_0\\|_2 \\to \\infty$.\n",
+                "3. **Korpelevich Extragradient Contraction:**\n",
+                "$$\\tilde{z}_t = z_t - \\eta F(z_t), \\quad z_{t+1} = z_t - \\eta F(\\tilde{z}_t) \\implies |\\lambda_{\\text{EG}}|^2 = 1 - \\eta^2 \\sigma^2 (1 - \\eta^2 \\sigma^2) < 1$$\n",
+                "4. **Optimistic GDA (OGDA):** Approximates Extragradient with past momentum in 1 gradient evaluation:\n",
+                "$$z_{t+1} = z_t - 2\\eta F(z_t) + \\eta F(z_{t-1})$$\n",
+                "5. **Symplectic Gradient Adjustment (SGA):** With rotation $A = \\frac{1}{2}(J_F - J_F^T)$:\n",
+                "$$F_{\\text{SGA}} = F + \\lambda A^T F = \\begin{bmatrix} Ay + \\lambda A A^T x \\\\ -A^T x + \\lambda A^T A y \\end{bmatrix}$$\n",
+                "6. **Nelder-Mead Simplex Reflection:** Centroid $\\bar{x} = \\frac{1}{2}(x_0 + x_1)$, reflected point $x_r = \\bar{x} + \\alpha (\\bar{x} - x_2)$."
+            ]
+        },
+        # Cell 2: Imports & Environment Setup
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "id": "cell_2",
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "import sys\n",
+                "from pathlib import Path\n",
+                "import numpy as np, torch, torch.nn as nn\n",
+                "\n",
+                "repo_root = Path.cwd().resolve()\n",
+                "while not (repo_root / \"core\").exists() and repo_root.parent != repo_root:\n",
+                "    repo_root = repo_root.parent\n",
+                "if str(repo_root) not in sys.path:\n",
+                "    sys.path.insert(0, str(repo_root))\n",
+                "import core\n",
+                "core.setup_env(seed=42)\n",
+                "device = torch.device(\"cuda\" if torch.cuda.is_available() else \"cpu\")\n",
+                "\n",
+                "ckpt_path = repo_root / \"weights/04_training_methods_and_optimisers/02_constrained_pareto_and_blackbox_optimisation/07_minimax_saddle_point_extragradient_ogda_sga_and_trust_region_bobyqa.safetensors\"\n",
+                "weights, test_in, test_out, meta = core.parity.load_reference_checkpoint(ckpt_path, device=device)\n",
+                "print(f\"Device: {device} | Checkpoint: {ckpt_path.name} | Loaded {len(weights)} tensors\")"
+            ]
+        },
+        # Cell 3: Unified Module Definition
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "id": "cell_3",
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "def step_extragradient(x, y, A, eta_x=0.1, eta_y=0.1):\n",
+                "    gx, gy = torch.matmul(A, y), torch.matmul(A.T, x)\n",
+                "    x_tilde, y_tilde = x - eta_x * gx, y + eta_y * gy\n",
+                "    gx_tilde, gy_tilde = torch.matmul(A, y_tilde), torch.matmul(A.T, x_tilde)\n",
+                "    return x - eta_x * gx_tilde, y + eta_y * gy_tilde\n",
+                "\n",
+                "def step_ogda(x, y, x_prev, y_prev, A, eta_x=0.1, eta_y=0.1):\n",
+                "    gx, gy = torch.matmul(A, y), torch.matmul(A.T, x)\n",
+                "    gxp, gyp = torch.matmul(A, y_prev), torch.matmul(A.T, x_prev)\n",
+                "    return x - 2.0 * eta_x * gx + eta_x * gxp, y + 2.0 * eta_y * gy - eta_y * gyp\n",
+                "\n",
+                "def step_sga(x, y, A, lambda_sga=0.5, eta_x=0.1, eta_y=0.1):\n",
+                "    AAT_x, ATA_y = torch.matmul(A, torch.matmul(A.T, x)), torch.matmul(A.T, torch.matmul(A, y))\n",
+                "    gx, gy = torch.matmul(A, y), torch.matmul(A.T, x)\n",
+                "    return x - eta_x * (gx + lambda_sga * AAT_x), y + eta_y * (gy - lambda_sga * ATA_y)\n",
+                "\n",
+                "def nelder_mead_reflect(x_best, x_second, x_worst, alpha=1.0):\n",
+                "    centroid = 0.5 * (x_best + x_second)\n",
+                "    return centroid + alpha * (centroid - x_worst)\n",
+                "\n",
+                "class LinearAnchor(nn.Module):\n",
+                "    def __init__(self, in_f, out_f):\n",
+                "        super().__init__()\n",
+                "        self.weight = nn.Parameter(torch.zeros(out_f, in_f))\n",
+                "        self.bias = nn.Parameter(torch.zeros(out_f))\n",
+                "    def forward(self, x):\n",
+                "        return torch.matmul(x, self.weight.T) + self.bias\n",
+                "\n",
+                "print('MinimaxUnifiedModule routines defined successfully.')"
+            ]
+        },
+        # Cell 4: Live Verification & Invariant Checks
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "id": "cell_4",
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "# 1. Extragradient Invariant\n",
+                "x_eg, y_eg = step_extragradient(weights['state_x'], weights['state_y'], weights['matrix_A'], 0.1, 0.1)\n",
+                "err_eg = max(float(torch.max(torch.abs(x_eg - weights['golden_x_eg']))), float(torch.max(torch.abs(y_eg - weights['golden_y_eg']))))\n",
+                "\n",
+                "# 2. OGDA Invariant\n",
+                "x_ogda, y_ogda = step_ogda(weights['state_x'], weights['state_y'], weights['state_x_prev'], weights['state_y_prev'], weights['matrix_A'], 0.1, 0.1)\n",
+                "err_ogda = max(float(torch.max(torch.abs(x_ogda - weights['golden_x_ogda']))), float(torch.max(torch.abs(y_ogda - weights['golden_y_ogda']))))\n",
+                "\n",
+                "# 3. SGA Invariant\n",
+                "x_sga, y_sga = step_sga(weights['state_x'], weights['state_y'], weights['matrix_A'], 0.5, 0.1, 0.1)\n",
+                "err_sga = max(float(torch.max(torch.abs(x_sga - weights['golden_x_sga']))), float(torch.max(torch.abs(y_sga - weights['golden_y_sga']))))\n",
+                "\n",
+                "# 4. Nelder-Mead Reflection Invariant\n",
+                "x_refl = nelder_mead_reflect(weights['x_best'], weights['x_second'], weights['x_worst'], 1.0)\n",
+                "err_refl = float(torch.max(torch.abs(x_refl - weights['golden_x_reflect'])))\n",
+                "\n",
+                "# 5. Linear Anchor Invariant\n",
+                "anchor = LinearAnchor(8, 4)\n",
+                "anchor.weight.data.copy_(weights['anchor_w'].T)\n",
+                "anchor.bias.data.copy_(weights['anchor_b'])\n",
+                "anchor_out = anchor(weights['anchor_x']).detach()\n",
+                "err_anchor = float(torch.max(torch.abs(anchor_out - weights['golden_anchor_out'])))\n",
+                "\n",
+                "for name, err in [('Extragradient', err_eg), ('OGDA', err_ogda), ('SGA', err_sga), ('Nelder-Mead', err_refl), ('Anchor', err_anchor)]:\n",
+                "    assert err < 1e-5, f'{name} invariant failed: {err:.2e}'\n",
+                "print(f'All 5 invariants verified! EG: {err_eg:.2e}, OGDA: {err_ogda:.2e}, SGA: {err_sga:.2e}, Nelder-Mead: {err_refl:.2e}, Anchor: {err_anchor:.2e}')"
+            ]
+        },
+        # Cell 5: Performance Profile & Roofline Benchmark
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "id": "cell_5",
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "track_fns = {\n",
+                "    'Linear Anchor': lambda: anchor(weights['anchor_x']),\n",
+                "    'Extragradient Step': lambda: step_extragradient(weights['state_x'], weights['state_y'], weights['matrix_A']),\n",
+                "    'OGDA Step': lambda: step_ogda(weights['state_x'], weights['state_y'], weights['state_x_prev'], weights['state_y_prev'], weights['matrix_A']),\n",
+                "    'SGA Step': lambda: step_sga(weights['state_x'], weights['state_y'], weights['matrix_A']),\n",
+                "    'Nelder-Mead Reflect': lambda: nelder_mead_reflect(weights['x_best'], weights['x_second'], weights['x_worst']),\n",
+                "}\n",
+                "bench_results = core.benchmark.compare_tracks(track_fns, warmup=3, iters=15, batch_size=8)\n",
+                "print(core.benchmark.format_benchmark_table(bench_results))"
+            ]
+        },
+        # Cell 6: Active Failure Mode Demonstration
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "id": "cell_6",
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "# Active Failure Mode: Catastrophic Rotational Divergence in Simultaneous GDA vs Extragradient Contraction\n",
+                "# Bilinear game: min_x max_y x * y. Initial state: (x0, y0) = (1.0, 1.0), Nash equilibrium: (0, 0).\n",
+                "eta = 0.5\n",
+                "# Run 25 steps of Simultaneous GDA: x_{t+1} = x_t - eta * y_t, y_{t+1} = y_t + eta * x_t\n",
+                "xg, yg = torch.tensor(1.0), torch.tensor(1.0)\n",
+                "for _ in range(25):\n",
+                "    new_x = xg - eta * yg\n",
+                "    new_y = yg + eta * xg\n",
+                "    xg, yg = new_x, new_y\n",
+                "norm_gda = torch.sqrt(xg**2 + yg**2).item()\n",
+                "\n",
+                "# Run 25 steps of Korpelevich Extragradient: lookahead dampens rotation and contracts to origin\n",
+                "xe, ye = torch.tensor(1.0), torch.tensor(1.0)\n",
+                "for _ in range(25):\n",
+                "    xt, yt = xe - eta * ye, ye + eta * xe\n",
+                "    xe, ye = xe - eta * yt, ye + eta * xt\n",
+                "norm_eg = torch.sqrt(xe**2 + ye**2).item()\n",
+                "\n",
+                "print(f'[FAILURE DEMONSTRATED] Simultaneous GDA exploded outward from norm 1.414 to {norm_gda:.2f}!')\n",
+                "print(f'[CORRECT] Extragradient contracted inward to Nash equilibrium: norm {norm_eg:.4f}!')\n",
+                "assert norm_gda > 10.0 and norm_eg < 0.15, 'Rotational divergence vs contraction not cleanly reproduced.'\n",
+                "print('[REMEDY] Always use Extragradient, OGDA, or SGA on minimax objectives to impart negative rotational friction.')"
+            ]
+        },
+        # Cell 7: Summary Markdown
+        {
+            "cell_type": "markdown",
+            "id": "cell_7",
+            "metadata": {},
+            "source": [
+                "## 8. Algorithmic Takeaways & Cross-Domain Isomorphisms\n",
+                "\n",
+                "1. **Game Dynamics Differ Fundamentally from Minimization:** Minimax vector fields possess rotational Hamiltonian vorticity that causes standard gradient descent to spiral outward.\n",
+                "2. **Lookahead Imparts Negative Rotational Friction:** Korpelevich Extragradient and OGDA dampen rotations by evaluating lookahead gradients or past momentum, guaranteeing linear geometric contraction to Nash equilibria.\n",
+                "3. **Milestone Achieved — Category 04 Complete:** This concludes Category 04 (*Training Methods & Optimizers*), spanning 20 comprehensive topics across First-Order, Second-Order, Schedule-Free, Constrained, Pareto, Blackbox, SAM, and Minimax optimization.\n",
+                "\n",
+                "---\n",
+                "**Curriculum Navigation:** [Master Index](file:///c:/Users/Liam/Code/AI-Examples/README.md) | [Previous: 06_sharpness_aware_swad_and_weight_averaging_dynamics](file:///c:/Users/Liam/Code/AI-Examples/notebooks/04_training_methods_and_optimisers/02_constrained_pareto_and_blackbox_optimisation/06_sharpness_aware_swad_and_weight_averaging_dynamics.ipynb) | [Next: Category 05 — Architectures & Sequence Models](file:///c:/Users/Liam/Code/AI-Examples/notebooks/05_architectures/)"
+            ]
+        }
+    ]
+
+    nb = {
+        "cells": cells,
+        "metadata": {
+            "language_info": {"name": "python", "version": "3.10"}
+        },
+        "nbformat": 4,
+        "nbformat_minor": 5
+    }
+    return nb
+
+
+def main():
+    nb = build_notebook()
+    out_dir = Path("notebooks/04_training_methods_and_optimisers/02_constrained_pareto_and_blackbox_optimisation")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = out_dir / "07_minimax_saddle_point_extragradient_ogda_sga_and_trust_region_bobyqa.ipynb"
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(nb, f, indent=1)
+    print(f"Generated {out_path} with {len(nb['cells'])} cells.")
+
+
+if __name__ == "__main__":
+    main()

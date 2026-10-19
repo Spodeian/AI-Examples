@@ -164,6 +164,9 @@ pub mod c04_training_methods_and_optimisers {
 
     #[path = "02_constrained_pareto_and_blackbox_optimisation/06_sharpness_aware_swad_and_weight_averaging_dynamics.rs"]
     pub mod t13_sharpness_aware_swad_and_weight_averaging_dynamics;
+
+    #[path = "02_constrained_pareto_and_blackbox_optimisation/07_minimax_saddle_point_extragradient_ogda_sga_and_trust_region_bobyqa.rs"]
+    pub mod t14_minimax_saddle_point_extragradient_ogda_sga_and_trust_region_bobyqa;
 }
 
 

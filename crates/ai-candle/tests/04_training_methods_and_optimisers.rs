@@ -37,3 +37,6 @@ pub mod test_12_multi_fidelity_hyperparameter_optimisation_hyperband_asha_and_bo
 #[path = "04_training_methods_and_optimisers/test_13_sharpness_aware_swad_and_weight_averaging_dynamics.rs"]
 pub mod test_13_sharpness_aware_swad_and_weight_averaging_dynamics;
 
+#[path = "04_training_methods_and_optimisers/test_14_minimax_saddle_point_extragradient_ogda_sga_and_trust_region_bobyqa.rs"]
+pub mod test_14_minimax_saddle_point_extragradient_ogda_sga_and_trust_region_bobyqa;
+

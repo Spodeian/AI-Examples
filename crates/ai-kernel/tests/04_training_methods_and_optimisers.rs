@@ -1176,5 +1176,85 @@ fn test_13_sharpness_aware_swad_and_weight_averaging_dynamics_cpu_and_auto() -> 
     Ok(())
 }
 
+#[test]
+fn test_14_minimax_saddle_point_extragradient_ogda_sga_and_trust_region_bobyqa_cpu_and_auto() -> Result<()> {
+    use ai_kernel::c04_training_methods_and_optimisers::t14_minimax_saddle_point_extragradient_ogda_sga_and_trust_region_bobyqa as t14;
+
+    let kdev = KernelDevice::Cpu;
+    let weights_path = common::get_weights_path(
+        "04_training_methods_and_optimisers/02_constrained_pareto_and_blackbox_optimisation/07_minimax_saddle_point_extragradient_ogda_sga_and_trust_region_bobyqa.safetensors",
+    );
+    let tensors = load(weights_path, &Device::Cpu)?;
+
+    let matrix_a = tensors.get("matrix_A").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let state_x = tensors.get("state_x").unwrap().to_vec1::<f32>()?;
+    let state_y = tensors.get("state_y").unwrap().to_vec1::<f32>()?;
+    let state_x_prev = tensors.get("state_x_prev").unwrap().to_vec1::<f32>()?;
+    let state_y_prev = tensors.get("state_y_prev").unwrap().to_vec1::<f32>()?;
+
+    let golden_x_eg = tensors.get("golden_x_eg").unwrap().to_vec1::<f32>()?;
+    let golden_y_eg = tensors.get("golden_y_eg").unwrap().to_vec1::<f32>()?;
+    let golden_x_ogda = tensors.get("golden_x_ogda").unwrap().to_vec1::<f32>()?;
+    let golden_y_ogda = tensors.get("golden_y_ogda").unwrap().to_vec1::<f32>()?;
+    let golden_x_sga = tensors.get("golden_x_sga").unwrap().to_vec1::<f32>()?;
+    let golden_y_sga = tensors.get("golden_y_sga").unwrap().to_vec1::<f32>()?;
+
+    let x_best = tensors.get("x_best").unwrap().to_vec1::<f32>()?;
+    let x_second = tensors.get("x_second").unwrap().to_vec1::<f32>()?;
+    let x_worst = tensors.get("x_worst").unwrap().to_vec1::<f32>()?;
+    let golden_x_reflect = tensors.get("golden_x_reflect").unwrap().to_vec1::<f32>()?;
+
+    let anchor_x = tensors.get("anchor_x").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let anchor_w = tensors.get("anchor_w").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let anchor_b = tensors.get("anchor_b").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let gold_anchor_out = tensors.get("golden_anchor_out").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    // 1. Extragradient CPU & Auto
+    let (cpu_x_eg, cpu_y_eg) = t14::step_extragradient_cpu(&state_x, &state_y, &matrix_a, 0.1, 0.1);
+    let (auto_x_eg, auto_y_eg) = t14::step_extragradient_auto(&kdev, &state_x, &state_y, &matrix_a, 0.1, 0.1);
+    for j in 0..golden_x_eg.len() {
+        assert!((cpu_x_eg[j] - golden_x_eg[j]).abs() < 1e-5);
+        assert!((auto_x_eg[j] - golden_x_eg[j]).abs() < 1e-5);
+        assert!((cpu_y_eg[j] - golden_y_eg[j]).abs() < 1e-5);
+        assert!((auto_y_eg[j] - golden_y_eg[j]).abs() < 1e-5);
+    }
+
+    // 2. OGDA CPU & Auto
+    let (cpu_x_ogda, cpu_y_ogda) = t14::step_ogda_cpu(&state_x, &state_y, &state_x_prev, &state_y_prev, &matrix_a, 0.1, 0.1);
+    let (auto_x_ogda, auto_y_ogda) = t14::step_ogda_auto(&kdev, &state_x, &state_y, &state_x_prev, &state_y_prev, &matrix_a, 0.1, 0.1);
+    for j in 0..golden_x_ogda.len() {
+        assert!((cpu_x_ogda[j] - golden_x_ogda[j]).abs() < 1e-5);
+        assert!((auto_x_ogda[j] - golden_x_ogda[j]).abs() < 1e-5);
+        assert!((cpu_y_ogda[j] - golden_y_ogda[j]).abs() < 1e-5);
+        assert!((auto_y_ogda[j] - golden_y_ogda[j]).abs() < 1e-5);
+    }
+
+    // 3. SGA CPU & Auto
+    let (cpu_x_sga, cpu_y_sga) = t14::step_sga_cpu(&state_x, &state_y, &matrix_a, 0.5, 0.1, 0.1);
+    let (auto_x_sga, auto_y_sga) = t14::step_sga_auto(&kdev, &state_x, &state_y, &matrix_a, 0.5, 0.1, 0.1);
+    for j in 0..golden_x_sga.len() {
+        assert!((cpu_x_sga[j] - golden_x_sga[j]).abs() < 1e-5);
+        assert!((auto_x_sga[j] - golden_x_sga[j]).abs() < 1e-5);
+        assert!((cpu_y_sga[j] - golden_y_sga[j]).abs() < 1e-5);
+        assert!((auto_y_sga[j] - golden_y_sga[j]).abs() < 1e-5);
+    }
+
+    // 4. Nelder-Mead Reflection CPU & Auto
+    let cpu_refl = t14::nelder_mead_reflect_cpu(&x_best, &x_second, &x_worst, 1.0);
+    let auto_refl = t14::nelder_mead_reflect_auto(&kdev, &x_best, &x_second, &x_worst, 1.0);
+    for j in 0..golden_x_reflect.len() {
+        assert!((cpu_refl[j] - golden_x_reflect[j]).abs() < 1e-5);
+        assert!((auto_refl[j] - golden_x_reflect[j]).abs() < 1e-5);
+    }
+
+    // 5. Linear Anchor CPU
+    let cpu_anchor_out = t14::anchor_forward_cpu(&anchor_x, &anchor_w, &anchor_b, 2, 8, 4);
+    for j in 0..gold_anchor_out.len() {
+        assert!((cpu_anchor_out[j] - gold_anchor_out[j]).abs() < 1e-5);
+    }
+
+    Ok(())
+}
+
 
 
