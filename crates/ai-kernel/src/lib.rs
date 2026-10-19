@@ -106,6 +106,9 @@ pub mod c02_classical_and_probabilistic_ml {
 
     #[path = "06_naive_bayes_bayesian_regression_and_gaussian_processes.rs"]
     pub mod t06_naive_bayes_bayesian_regression_and_gaussian_processes;
+
+    #[path = "07_differentiable_trees_node_soft_gbdt_and_gam_nam.rs"]
+    pub mod t07_differentiable_trees_node_soft_gbdt_and_gam_nam;
 }
 
 #[path = "../../../kernels/03_building_blocks_and_losses"]

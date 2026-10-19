@@ -18,3 +18,7 @@ pub mod test_05_dimensionality_reduction_pca_lda_ica_tsne_umap;
 #[path = "02_classical_and_probabilistic_ml/test_06_naive_bayes_bayesian_regression_and_gaussian_processes.rs"]
 pub mod test_06_naive_bayes_bayesian_regression_and_gaussian_processes;
 
+#[path = "02_classical_and_probabilistic_ml/test_07_differentiable_trees_node_soft_gbdt_and_gam_nam.rs"]
+pub mod test_07_differentiable_trees_node_soft_gbdt_and_gam_nam;
+
+

@@ -6,6 +6,7 @@ use ai_kernel::c02_classical_and_probabilistic_ml::t03_knn_prototype_and_locally
 use ai_kernel::c02_classical_and_probabilistic_ml::t04_clustering_kmeans_spectral_and_gmm_em as t04;
 use ai_kernel::c02_classical_and_probabilistic_ml::t05_dimensionality_reduction_pca_lda_ica_tsne_umap as t05;
 use ai_kernel::c02_classical_and_probabilistic_ml::t06_naive_bayes_bayesian_regression_and_gaussian_processes as t06;
+use ai_kernel::c02_classical_and_probabilistic_ml::t07_differentiable_trees_node_soft_gbdt_and_gam_nam as t07;
 use ai_kernel::KernelDevice;
 use candle_core::{safetensors::load, Device, Result};
 
@@ -350,4 +351,61 @@ fn test_06_naive_bayes_bayesian_regression_and_gaussian_processes_cpu_and_auto()
 
     Ok(())
 }
+
+#[test]
+fn test_07_differentiable_trees_node_soft_gbdt_and_gam_nam_cpu_and_auto() -> Result<()> {
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "02_classical_and_probabilistic_ml/07_differentiable_trees_node_soft_gbdt_and_gam_nam.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    let x = tensors.get("X").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let w_split = tensors.get("W_split").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let b_split = tensors.get("b_split").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let leaf_values = tensors.get("leaf_values").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_node_out = tensors.get("node_out").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let nam_w1 = tensors.get("nam_w1").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let nam_b1 = tensors.get("nam_b1").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let nam_w2 = tensors.get("nam_w2").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let nam_b2 = tensors.get("nam_b2").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let nam_bias0 = tensors.get("nam_bias0").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+    let golden_nam_out = tensors.get("nam_out").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let y_noisy = tensors.get("y_noisy").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_iso_fit = tensors.get("iso_fit").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let n = 32;
+    let d = 4;
+    let n_trees = 2;
+
+    // 1. NODE Forward CPU & Auto
+    let kdev = KernelDevice::Cpu;
+    let cpu_node = t07::node_forward_cpu(&x, n, d, &w_split, &b_split, &leaf_values, n_trees);
+    for i in 0..n {
+        assert!((cpu_node[i] - golden_node_out[i]).abs() < 1e-4);
+    }
+
+    let single_tree_w = &w_split[..8]; // depth=2, d=4 -> 8
+    let single_tree_b = &b_split[..2];
+    let single_tree_leaves = &leaf_values[..4];
+    let auto_single = t07::node_single_tree_auto(Some(&kdev), &x, n, d, single_tree_w, single_tree_b, single_tree_leaves);
+    assert_eq!(auto_single.len(), n);
+
+    // 2. NAM Forward CPU
+    let cpu_nam = t07::nam_forward_cpu(&x, n, d, &nam_w1, &nam_b1, &nam_w2, &nam_b2, nam_bias0, 8);
+    for i in 0..n {
+        assert!((cpu_nam[i] - golden_nam_out[i]).abs() < 1e-4);
+    }
+
+    // 3. PAV Isotonic Regression CPU
+    let cpu_iso = t07::pav_isotonic_regression_cpu(&y_noisy);
+    for i in 0..n {
+        assert!((cpu_iso[i] - golden_iso_fit[i]).abs() < 1e-5);
+    }
+
+    Ok(())
+}
+
 
