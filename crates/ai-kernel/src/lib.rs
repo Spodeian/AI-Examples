@@ -190,5 +190,8 @@ pub mod c04_training_methods_and_optimisers {
 
     #[path = "03_training_dynamics_self_optimising_non_backprop/06_zeroth_order_mezo_synthetic_gradients_and_hsic_bottleneck.rs"]
     pub mod t20_zeroth_order_mezo_synthetic_gradients_and_hsic_bottleneck;
+
+    #[path = "03_training_dynamics_self_optimising_non_backprop/07_scaling_laws_chinchilla_data_dedup_doremi_and_model_collapse.rs"]
+    pub mod t21_scaling_laws_chinchilla_data_dedup_doremi_and_model_collapse;
 }
 

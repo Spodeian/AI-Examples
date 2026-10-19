@@ -1761,6 +1761,86 @@ fn test_20_zeroth_order_mezo_synthetic_gradients_and_hsic_bottleneck_cpu_and_aut
     Ok(())
 }
 
+#[test]
+fn test_21_scaling_laws_chinchilla_data_dedup_doremi_and_model_collapse_cpu_and_auto() -> Result<()> {
+    use ai_kernel::c04_training_methods_and_optimisers::t21_scaling_laws_chinchilla_data_dedup_doremi_and_model_collapse as t21;
+
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "04_training_methods_and_optimisers/03_training_dynamics_self_optimising_non_backprop/07_scaling_laws_chinchilla_data_dedup_doremi_and_model_collapse.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    let n_val = tensors.get("n_val").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+    let d_val = tensors.get("d_val").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+    let golden_chinchilla_loss = tensors.get("golden_chinchilla_loss").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+    let golden_n_opt = tensors.get("golden_n_opt").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+    let golden_d_opt = tensors.get("golden_d_opt").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+
+    let w_doremi_init = tensors.get("w_doremi_init").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let losses_model = tensors.get("losses_model").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let losses_ref = tensors.get("losses_ref").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_excess_loss = tensors.get("golden_excess_loss").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_w_doremi_next = tensors.get("golden_w_doremi_next").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let signatures = tensors.get("signatures").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_jaccard_matrix = tensors.get("golden_jaccard_matrix").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let var_synth = tensors.get("var_synth").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+    let var_real = tensors.get("var_real").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+    let golden_cured_var = tensors.get("golden_cured_var").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+
+    let anchor_x = tensors.get("anchor_x").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let anchor_w = tensors.get("anchor_w").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let anchor_b = tensors.get("anchor_b").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let gold_anchor_out = tensors.get("golden_anchor_out").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let kdev = KernelDevice::Cpu;
+
+    // 1. Chinchilla CPU & Auto
+    let (cpu_l, cpu_n, cpu_d) = t21::compute_chinchilla_loss_and_opt_cpu(n_val, d_val, 1.69, 40.0, 50.0, 0.34, 0.28, 0.6);
+    let (auto_l, auto_n, auto_d) = t21::compute_chinchilla_loss_and_opt_auto(&kdev, n_val, d_val, 1.69, 40.0, 50.0, 0.34, 0.28, 0.6);
+    assert!((cpu_l - golden_chinchilla_loss).abs() < 1e-5);
+    assert!((auto_l - golden_chinchilla_loss).abs() < 1e-5);
+    assert!((cpu_n - golden_n_opt).abs() < 1e-5);
+    assert!((auto_n - golden_n_opt).abs() < 1e-5);
+    assert!((cpu_d - golden_d_opt).abs() < 1e-5);
+    assert!((auto_d - golden_d_opt).abs() < 1e-5);
+
+    // 2. DoReMi CPU & Auto
+    let (cpu_ex, cpu_wn) = t21::doremi_update_step_cpu(&w_doremi_init, &losses_model, &losses_ref, 1.0);
+    let (auto_ex, auto_wn) = t21::doremi_update_step_auto(&kdev, &w_doremi_init, &losses_model, &losses_ref, 1.0);
+    for j in 0..4 {
+        assert!((cpu_ex[j] - golden_excess_loss[j]).abs() < 1e-5);
+        assert!((auto_ex[j] - golden_excess_loss[j]).abs() < 1e-5);
+        assert!((cpu_wn[j] - golden_w_doremi_next[j]).abs() < 1e-5);
+        assert!((auto_wn[j] - golden_w_doremi_next[j]).abs() < 1e-5);
+    }
+
+    // 3. MinHash CPU & Auto
+    let cpu_jaccard = t21::minhash_pairwise_jaccard_cpu(&signatures, 4, 8);
+    let auto_jaccard = t21::minhash_pairwise_jaccard_auto(&kdev, &signatures, 4, 8);
+    for j in 0..golden_jaccard_matrix.len() {
+        assert!((cpu_jaccard[j] - golden_jaccard_matrix[j]).abs() < 1e-5);
+        assert!((auto_jaccard[j] - golden_jaccard_matrix[j]).abs() < 1e-5);
+    }
+
+    // 4. Model Collapse CPU & Auto
+    let cpu_cured = t21::model_collapse_variance_cure_cpu(var_synth, var_real, 0.25);
+    let auto_cured = t21::model_collapse_variance_cure_auto(&kdev, var_synth, var_real, 0.25);
+    assert!((cpu_cured - golden_cured_var).abs() < 1e-5);
+    assert!((auto_cured - golden_cured_var).abs() < 1e-5);
+
+    // 5. Linear Anchor CPU
+    let cpu_anchor_out = t21::anchor_forward_cpu(&anchor_x, &anchor_w, &anchor_b, 2, 8, 4);
+    for j in 0..gold_anchor_out.len() {
+        assert!((cpu_anchor_out[j] - gold_anchor_out[j]).abs() < 1e-5);
+    }
+
+    Ok(())
+}
+
+
 
 
 

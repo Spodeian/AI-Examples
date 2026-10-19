@@ -58,3 +58,6 @@ pub mod test_19_non_backprop_forward_forward_predictive_coding_eqprop_dfa_hebbia
 #[path = "04_training_methods_and_optimisers/test_20_zeroth_order_mezo_synthetic_gradients_and_hsic_bottleneck.rs"]
 pub mod test_20_zeroth_order_mezo_synthetic_gradients_and_hsic_bottleneck;
 
+#[path = "04_training_methods_and_optimisers/test_21_scaling_laws_chinchilla_data_dedup_doremi_and_model_collapse.rs"]
+pub mod test_21_scaling_laws_chinchilla_data_dedup_doremi_and_model_collapse;
+
