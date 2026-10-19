@@ -1686,6 +1686,82 @@ fn test_19_non_backprop_forward_forward_predictive_coding_eqprop_dfa_hebbian_cpu
     Ok(())
 }
 
+#[test]
+fn test_20_zeroth_order_mezo_synthetic_gradients_and_hsic_bottleneck_cpu_and_auto() -> Result<()> {
+    use ai_kernel::c04_training_methods_and_optimisers::t20_zeroth_order_mezo_synthetic_gradients_and_hsic_bottleneck as t20;
+
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "04_training_methods_and_optimisers/03_training_dynamics_self_optimising_non_backprop/06_zeroth_order_mezo_synthetic_gradients_and_hsic_bottleneck.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    let theta = tensors.get("theta").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let z = tensors.get("z").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let theta_star = tensors.get("theta_star").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_loss_pos = tensors.get("golden_loss_pos").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+    let golden_loss_neg = tensors.get("golden_loss_neg").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+    let golden_dir_deriv = tensors.get("golden_dir_deriv").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+    let golden_theta_next = tensors.get("golden_theta_next").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let h = tensors.get("h").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let w_synth = tensors.get("w_synth").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let b_synth = tensors.get("b_synth").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let target_grad = tensors.get("target_grad").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_pred_grad = tensors.get("golden_pred_grad").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_dni_loss = tensors.get("golden_dni_loss").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+
+    let hsic_h = tensors.get("hsic_h").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let hsic_y = tensors.get("hsic_y").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_hsic_score = tensors.get("golden_hsic_score").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+
+    let anchor_x = tensors.get("anchor_x").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let anchor_w = tensors.get("anchor_w").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let anchor_b = tensors.get("anchor_b").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let gold_anchor_out = tensors.get("golden_anchor_out").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let kdev = KernelDevice::Cpu;
+
+    // 1. MeZO CPU & Auto
+    let (cpu_lp, cpu_ln, cpu_dd, cpu_th_next) = t20::mezo_step_cpu(&theta, &z, &theta_star, 1e-3, 0.05);
+    let (auto_lp, auto_ln, auto_dd, auto_th_next) = t20::mezo_step_auto(&kdev, &theta, &z, &theta_star, 1e-3, 0.05);
+    assert!((cpu_lp - golden_loss_pos).abs() < 1e-5);
+    assert!((auto_lp - golden_loss_pos).abs() < 1e-5);
+    assert!((cpu_ln - golden_loss_neg).abs() < 1e-5);
+    assert!((auto_ln - golden_loss_neg).abs() < 1e-5);
+    assert!((cpu_dd - golden_dir_deriv).abs() < 1e-5);
+    assert!((auto_dd - golden_dir_deriv).abs() < 1e-5);
+    for j in 0..golden_theta_next.len() {
+        assert!((cpu_th_next[j] - golden_theta_next[j]).abs() < 1e-5);
+        assert!((auto_th_next[j] - golden_theta_next[j]).abs() < 1e-5);
+    }
+
+    // 2. DNI CPU & Auto
+    let (cpu_pg, cpu_dl) = t20::dni_synthetic_gradient_cpu(&h, &w_synth, &b_synth, &target_grad, 4, 8);
+    let (auto_pg, auto_dl) = t20::dni_synthetic_gradient_auto(&kdev, &h, &w_synth, &b_synth, &target_grad, 4, 8);
+    assert!((cpu_dl - golden_dni_loss).abs() < 1e-5);
+    assert!((auto_dl - golden_dni_loss).abs() < 1e-5);
+    for j in 0..golden_pred_grad.len() {
+        assert!((cpu_pg[j] - golden_pred_grad[j]).abs() < 1e-5);
+        assert!((auto_pg[j] - golden_pred_grad[j]).abs() < 1e-5);
+    }
+
+    // 3. HSIC CPU & Auto
+    let cpu_hsic = t20::hsic_bottleneck_cpu(&hsic_h, &hsic_y, 4, 8, 4);
+    let auto_hsic = t20::hsic_bottleneck_auto(&kdev, &hsic_h, &hsic_y, 4, 8, 4);
+    assert!((cpu_hsic - golden_hsic_score).abs() < 1e-5);
+    assert!((auto_hsic - golden_hsic_score).abs() < 1e-5);
+
+    // 4. Linear Anchor CPU
+    let cpu_anchor_out = t20::anchor_forward_cpu(&anchor_x, &anchor_w, &anchor_b, 2, 8, 4);
+    for j in 0..gold_anchor_out.len() {
+        assert!((cpu_anchor_out[j] - gold_anchor_out[j]).abs() < 1e-5);
+    }
+
+    Ok(())
+}
+
+
 
 
 

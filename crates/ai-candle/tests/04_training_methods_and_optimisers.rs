@@ -55,3 +55,6 @@ pub mod test_18_self_optimising_test_time_adaptation_tent_memo_star_and_spin;
 #[path = "04_training_methods_and_optimisers/test_19_non_backprop_forward_forward_predictive_coding_eqprop_dfa_hebbian.rs"]
 pub mod test_19_non_backprop_forward_forward_predictive_coding_eqprop_dfa_hebbian;
 
+#[path = "04_training_methods_and_optimisers/test_20_zeroth_order_mezo_synthetic_gradients_and_hsic_bottleneck.rs"]
+pub mod test_20_zeroth_order_mezo_synthetic_gradients_and_hsic_bottleneck;
+

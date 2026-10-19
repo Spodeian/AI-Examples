@@ -187,5 +187,8 @@ pub mod c04_training_methods_and_optimisers {
 
     #[path = "03_training_dynamics_self_optimising_non_backprop/05_non_backprop_forward_forward_predictive_coding_eqprop_dfa_hebbian.rs"]
     pub mod t19_non_backprop_forward_forward_predictive_coding_eqprop_dfa_hebbian;
+
+    #[path = "03_training_dynamics_self_optimising_non_backprop/06_zeroth_order_mezo_synthetic_gradients_and_hsic_bottleneck.rs"]
+    pub mod t20_zeroth_order_mezo_synthetic_gradients_and_hsic_bottleneck;
 }
 
