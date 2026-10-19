@@ -1018,5 +1018,81 @@ fn test_11_combinatorial_and_discrete_simulated_annealing_tempering_and_sinkhorn
     Ok(())
 }
 
+#[test]
+fn test_12_multi_fidelity_hyperparameter_optimisation_hyperband_asha_and_boed_cpu_and_auto() -> Result<()> {
+    use ai_kernel::c04_training_methods_and_optimisers::t12_multi_fidelity_hyperparameter_optimisation_hyperband_asha_and_boed as t12;
+
+    let kdev = KernelDevice::Cpu;
+    let weights_path = common::get_weights_path(
+        "04_training_methods_and_optimisers/02_constrained_pareto_and_blackbox_optimisation/05_multi_fidelity_hyperparameter_optimisation_hyperband_asha_and_boed.safetensors",
+    );
+    let tensors = load(weights_path, &Device::Cpu)?;
+
+    let sha_losses = tensors.get("sha_losses").unwrap().to_vec1::<f32>()?;
+    let golden_sha_idx = tensors.get("golden_sha_idx").unwrap().to_vec1::<f32>()?;
+    let golden_sha_losses = tensors.get("golden_sha_losses").unwrap().to_vec1::<f32>()?;
+
+    let golden_hb_schedule = tensors.get("golden_hb_schedule").unwrap().to_vec2::<f32>()?;
+    let flat_golden_hb_schedule: Vec<f32> = golden_hb_schedule.iter().flatten().copied().collect();
+
+    let x_query = tensors.get("x_query").unwrap().to_vec1::<f32>()?;
+    let good_samples = tensors.get("good_samples").unwrap().to_vec1::<f32>()?;
+    let bad_samples = tensors.get("bad_samples").unwrap().to_vec1::<f32>()?;
+    let golden_tpe_log_ratio = tensors.get("golden_tpe_log_ratio").unwrap().to_vec1::<f32>()?;
+
+    let rung_losses = tensors.get("rung_losses").unwrap().to_vec1::<f32>()?;
+    let candidate_losses = tensors.get("candidate_losses").unwrap().to_vec1::<f32>()?;
+    let golden_asha_promoted = tensors.get("golden_asha_promoted").unwrap().to_vec1::<f32>()?;
+
+    let anchor_x = tensors.get("anchor_x").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let anchor_w = tensors.get("anchor_w").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let anchor_b = tensors.get("anchor_b").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let gold_anchor_out = tensors.get("golden_anchor_out").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    // 1. SHA CPU & Auto
+    let (cpu_idx, cpu_losses) = t12::compute_sha_top_k_cpu(&sha_losses, 3);
+    let (auto_idx, auto_losses) = t12::compute_sha_top_k_auto(&kdev, &sha_losses, 3);
+    for j in 0..golden_sha_idx.len() {
+        assert!((cpu_idx[j] - golden_sha_idx[j]).abs() < 1e-5);
+        assert!((auto_idx[j] - golden_sha_idx[j]).abs() < 1e-5);
+        assert!((cpu_losses[j] - golden_sha_losses[j]).abs() < 1e-5);
+        assert!((auto_losses[j] - golden_sha_losses[j]).abs() < 1e-5);
+    }
+
+    // 2. Hyperband CPU & Auto
+    let cpu_hb = t12::compute_hyperband_schedule_cpu(81, 3);
+    let auto_hb = t12::compute_hyperband_schedule_auto(&kdev, 81, 3);
+    for j in 0..flat_golden_hb_schedule.len() {
+        assert!((cpu_hb[j] - flat_golden_hb_schedule[j]).abs() < 1e-5);
+        assert!((auto_hb[j] - flat_golden_hb_schedule[j]).abs() < 1e-5);
+    }
+
+    // 3. TPE CPU & Auto
+    let cpu_tpe = t12::compute_tpe_log_ratio_cpu(&x_query, &good_samples, &bad_samples, 0.5);
+    let auto_tpe = t12::compute_tpe_log_ratio_auto(&kdev, &x_query, &good_samples, &bad_samples, 0.5);
+    for j in 0..golden_tpe_log_ratio.len() {
+        assert!((cpu_tpe[j] - golden_tpe_log_ratio[j]).abs() < 1e-5);
+        assert!((auto_tpe[j] - golden_tpe_log_ratio[j]).abs() < 1e-5);
+    }
+
+    // 4. ASHA CPU & Auto
+    let cpu_p0 = t12::check_asha_promotion_cpu(&rung_losses, candidate_losses[0], 3);
+    let cpu_p1 = t12::check_asha_promotion_cpu(&rung_losses, candidate_losses[1], 3);
+    let auto_p0 = t12::check_asha_promotion_auto(&kdev, &rung_losses, candidate_losses[0], 3);
+    let auto_p1 = t12::check_asha_promotion_auto(&kdev, &rung_losses, candidate_losses[1], 3);
+    assert!((cpu_p0 - golden_asha_promoted[0]).abs() < 1e-5);
+    assert!((cpu_p1 - golden_asha_promoted[1]).abs() < 1e-5);
+    assert!((auto_p0 - golden_asha_promoted[0]).abs() < 1e-5);
+    assert!((auto_p1 - golden_asha_promoted[1]).abs() < 1e-5);
+
+    // 5. Linear Anchor CPU
+    let cpu_anchor_out = t12::anchor_forward_cpu(&anchor_x, &anchor_w, &anchor_b, 2, 8, 4);
+    for j in 0..gold_anchor_out.len() {
+        assert!((cpu_anchor_out[j] - gold_anchor_out[j]).abs() < 1e-5);
+    }
+
+    Ok(())
+}
+
 
 

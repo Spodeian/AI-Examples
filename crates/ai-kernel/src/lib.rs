@@ -163,5 +163,8 @@ pub mod c04_training_methods_and_optimisers {
 
     #[path = "02_constrained_pareto_and_blackbox_optimisation/04_combinatorial_and_discrete_simulated_annealing_tempering_and_sinkhorn.rs"]
     pub mod t11_combinatorial_and_discrete_simulated_annealing_tempering_and_sinkhorn;
+
+    #[path = "02_constrained_pareto_and_blackbox_optimisation/05_multi_fidelity_hyperparameter_optimisation_hyperband_asha_and_boed.rs"]
+    pub mod t12_multi_fidelity_hyperparameter_optimisation_hyperband_asha_and_boed;
 }
 
