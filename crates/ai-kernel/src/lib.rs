@@ -172,5 +172,8 @@ pub mod c04_training_methods_and_optimisers {
 
     #[path = "02_constrained_pareto_and_blackbox_optimisation/07_minimax_saddle_point_extragradient_ogda_sga_and_trust_region_bobyqa.rs"]
     pub mod t14_minimax_saddle_point_extragradient_ogda_sga_and_trust_region_bobyqa;
+
+    #[path = "03_training_dynamics_self_optimising_non_backprop/01_grokking_phase_transitions_edge_of_stability_and_implicit_bias.rs"]
+    pub mod t15_grokking_phase_transitions_edge_of_stability_and_implicit_bias;
 }
 

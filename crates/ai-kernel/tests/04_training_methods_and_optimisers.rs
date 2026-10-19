@@ -1256,5 +1256,73 @@ fn test_14_minimax_saddle_point_extragradient_ogda_sga_and_trust_region_bobyqa_c
     Ok(())
 }
 
+#[test]
+fn test_15_grokking_phase_transitions_edge_of_stability_and_implicit_bias_cpu_and_auto() -> Result<()> {
+    use ai_kernel::c04_training_methods_and_optimisers::t15_grokking_phase_transitions_edge_of_stability_and_implicit_bias as t15;
+
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "04_training_methods_and_optimisers/03_training_dynamics_self_optimising_non_backprop/01_grokking_phase_transitions_edge_of_stability_and_implicit_bias.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    let g_raw = tensors.get("g_raw").unwrap().to_vec1::<f32>()?;
+    let mu_prev = tensors.get("mu_prev").unwrap().to_vec1::<f32>()?;
+    let golden_mu = tensors.get("golden_mu").unwrap().to_vec1::<f32>()?;
+    let golden_g_grokfast = tensors.get("golden_g_grokfast").unwrap().to_vec1::<f32>()?;
+
+    let x_eos = tensors.get("x_eos").unwrap().to_vec1::<f32>()?;
+    let h_eos = tensors.get("h_eos").unwrap().to_vec1::<f32>()?;
+    let gamma_eos = tensors.get("gamma_eos").unwrap().to_vec1::<f32>()?;
+    let golden_x_eos = tensors.get("golden_x_eos").unwrap().to_vec1::<f32>()?;
+
+    let w_sep = tensors.get("w_sep").unwrap().to_vec1::<f32>()?;
+    let x_sep = tensors.get("x_sep").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let y_sep = tensors.get("y_sep").unwrap().to_vec1::<f32>()?;
+    let golden_w_sep = tensors.get("golden_w_sep").unwrap().to_vec1::<f32>()?;
+
+    let anchor_x = tensors.get("anchor_x").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let anchor_w = tensors.get("anchor_w").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let anchor_b = tensors.get("anchor_b").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let gold_anchor_out = tensors.get("golden_anchor_out").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let kdev = KernelDevice::Cpu;
+
+    // 1. Grokfast CPU & Auto
+    let (cpu_gf, cpu_mu) = t15::step_grokfast_cpu(&g_raw, &mu_prev, 0.8, 2.0);
+    let (auto_gf, auto_mu) = t15::step_grokfast_auto(&kdev, &g_raw, &mu_prev, 0.8, 2.0);
+    for j in 0..golden_mu.len() {
+        assert!((cpu_mu[j] - golden_mu[j]).abs() < 1e-5);
+        assert!((auto_mu[j] - golden_mu[j]).abs() < 1e-5);
+        assert!((cpu_gf[j] - golden_g_grokfast[j]).abs() < 1e-5);
+        assert!((auto_gf[j] - golden_g_grokfast[j]).abs() < 1e-5);
+    }
+
+    // 2. EOS CPU & Auto
+    let cpu_eos = t15::step_edge_of_stability_cpu(&x_eos, &h_eos, &gamma_eos, 0.1);
+    let auto_eos = t15::step_edge_of_stability_auto(&kdev, &x_eos, &h_eos, &gamma_eos, 0.1);
+    for j in 0..golden_x_eos.len() {
+        assert!((cpu_eos[j] - golden_x_eos[j]).abs() < 1e-5);
+        assert!((auto_eos[j] - golden_x_eos[j]).abs() < 1e-5);
+    }
+
+    // 3. Implicit Bias CPU & Auto
+    let cpu_w_sep = t15::step_implicit_bias_cpu(&w_sep, &x_sep, &y_sep, 0.2);
+    let auto_w_sep = t15::step_implicit_bias_auto(&kdev, &w_sep, &x_sep, &y_sep, 0.2);
+    for j in 0..golden_w_sep.len() {
+        assert!((cpu_w_sep[j] - golden_w_sep[j]).abs() < 1e-5);
+        assert!((auto_w_sep[j] - golden_w_sep[j]).abs() < 1e-5);
+    }
+
+    // 4. Linear Anchor CPU
+    let cpu_anchor_out = t15::anchor_forward_cpu(&anchor_x, &anchor_w, &anchor_b, 2, 8, 4);
+    for j in 0..gold_anchor_out.len() {
+        assert!((cpu_anchor_out[j] - gold_anchor_out[j]).abs() < 1e-5);
+    }
+
+    Ok(())
+}
+
+
 
 

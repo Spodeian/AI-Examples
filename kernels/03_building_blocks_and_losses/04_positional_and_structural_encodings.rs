@@ -194,7 +194,7 @@ pub async fn rope_wgpu(
     let half_dim = (dim / 2) as u32;
     let total_pairs = (seq_len as u32) * half_dim;
     let byte_size = (x.len() * std::mem::size_of::<f32>()) as u64;
-    let angle_byte_size = (cos.len() * std::mem::size_of::<f32>()) as u64;
+    let _angle_byte_size = (cos.len() * std::mem::size_of::<f32>()) as u64;
 
     let in_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
         label: Some("RoPE Input Buffer"),

@@ -30,16 +30,15 @@ try:
 except ImportError:
     pass
 
-FORBIDDEN_CALLS = [
-    "urllib.request",
-    "requests.get",
-    "requests.post",
-    "wget",
-    "curl",
-    "hf_hub_download",
-    "snapshot_download",
-    "torchvision.datasets",
-    "torchaudio.datasets",
+FORBIDDEN_CALL_PATTERNS = [
+    (re.compile(r"urllib\.request"), "urllib.request"),
+    (re.compile(r"requests\.(?:get|post|put|delete|head)"), "requests"),
+    (re.compile(r"\bwget\b"), "wget"),
+    (re.compile(r"\bcurl\s+(?:-[a-zA-Z]|https?://)"), "curl"),
+    (re.compile(r"hf_hub_download"), "hf_hub_download"),
+    (re.compile(r"snapshot_download"), "snapshot_download"),
+    (re.compile(r"torchvision\.datasets"), "torchvision.datasets"),
+    (re.compile(r"torchaudio\.datasets"), "torchaudio.datasets"),
 ]
 
 EXPECTED_CELL_TYPES = [
@@ -132,9 +131,10 @@ def validate_notebook_structure(path: Path) -> list[str]:
         total_lines += len(source_lines)
 
         source_text = "".join(source_lines)
-        for forbidden in FORBIDDEN_CALLS:
-            if forbidden in source_text:
-                errors.append(f"Cell {idx + 1} contains forbidden network call '{forbidden}'")
+        if actual_type == "code":
+            for pattern, name in FORBIDDEN_CALL_PATTERNS:
+                if pattern.search(source_text):
+                    errors.append(f"Cell {idx + 1} contains forbidden network call '{name}'")
 
     if total_lines > 220:
         errors.append(f"Total lines ({total_lines}) exceeds 220-line ceiling")
