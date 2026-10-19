@@ -170,6 +170,9 @@ pub mod c04_training_methods_and_optimisers {
 
     #[path = "03_training_dynamics_self_optimising_non_backprop/01_grokking_phase_transitions_edge_of_stability_and_implicit_bias.rs"]
     pub mod t15_grokking_phase_transitions_edge_of_stability_and_implicit_bias;
+
+    #[path = "03_training_dynamics_self_optimising_non_backprop/02_training_optimisations_progressive_stacking_data_pruning_mrl_and_plasticity.rs"]
+    pub mod t16_training_optimisations_progressive_stacking_data_pruning_mrl_and_plasticity;
 }
 
 

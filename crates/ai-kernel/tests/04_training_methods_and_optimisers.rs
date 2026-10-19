@@ -1323,6 +1323,99 @@ fn test_15_grokking_phase_transitions_edge_of_stability_and_implicit_bias_cpu_an
     Ok(())
 }
 
+#[test]
+fn test_16_training_optimisations_progressive_stacking_data_pruning_mrl_and_plasticity_cpu_and_auto() -> Result<()> {
+    use ai_kernel::c04_training_methods_and_optimisers::t16_training_optimisations_progressive_stacking_data_pruning_mrl_and_plasticity as t16;
+
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "04_training_methods_and_optimisers/03_training_dynamics_self_optimising_non_backprop/02_training_optimisations_progressive_stacking_data_pruning_mrl_and_plasticity.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    let z_emb = tensors.get("z_emb").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let mrl_w = tensors.get("mrl_w").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let mrl_b = tensors.get("mrl_b").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_logits_d2 = tensors.get("golden_logits_d2").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_logits_d4 = tensors.get("golden_logits_d4").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_logits_d8 = tensors.get("golden_logits_d8").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let p_probs = tensors.get("p_probs").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let y_targets = tensors.get("y_targets").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_el2n = tensors.get("golden_el2n").unwrap().to_vec1::<f32>()?;
+    let loss_model = tensors.get("loss_model").unwrap().to_vec1::<f32>()?;
+    let loss_ref = tensors.get("loss_ref").unwrap().to_vec1::<f32>()?;
+    let golden_rho_loss = tensors.get("golden_rho_loss").unwrap().to_vec1::<f32>()?;
+
+    let activations = tensors.get("activations").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_mean_act = tensors.get("mean_act").unwrap().to_vec1::<f32>()?;
+    let golden_dormant_mask = tensors.get("dormant_mask").unwrap().to_vec1::<f32>()?;
+
+    let anchor_x = tensors.get("anchor_x").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let anchor_w = tensors.get("anchor_w").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let anchor_b = tensors.get("anchor_b").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let gold_anchor_out = tensors.get("golden_anchor_out").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let kdev = KernelDevice::Cpu;
+
+    // 1. MRL CPU & Auto
+    let cpu_d2 = t16::mrl_slice_forward_cpu(&z_emb, &mrl_w, &mrl_b, 4, 8, 4, 2);
+    let auto_d2 = t16::mrl_slice_forward_auto(&kdev, &z_emb, &mrl_w, &mrl_b, 4, 8, 4, 2);
+    for j in 0..golden_logits_d2.len() {
+        assert!((cpu_d2[j] - golden_logits_d2[j]).abs() < 1e-5);
+        assert!((auto_d2[j] - golden_logits_d2[j]).abs() < 1e-5);
+    }
+
+    let cpu_d4 = t16::mrl_slice_forward_cpu(&z_emb, &mrl_w, &mrl_b, 4, 8, 4, 4);
+    let auto_d4 = t16::mrl_slice_forward_auto(&kdev, &z_emb, &mrl_w, &mrl_b, 4, 8, 4, 4);
+    for j in 0..golden_logits_d4.len() {
+        assert!((cpu_d4[j] - golden_logits_d4[j]).abs() < 1e-5);
+        assert!((auto_d4[j] - golden_logits_d4[j]).abs() < 1e-5);
+    }
+
+    let cpu_d8 = t16::mrl_slice_forward_cpu(&z_emb, &mrl_w, &mrl_b, 4, 8, 4, 8);
+    let auto_d8 = t16::mrl_slice_forward_auto(&kdev, &z_emb, &mrl_w, &mrl_b, 4, 8, 4, 8);
+    for j in 0..golden_logits_d8.len() {
+        assert!((cpu_d8[j] - golden_logits_d8[j]).abs() < 1e-5);
+        assert!((auto_d8[j] - golden_logits_d8[j]).abs() < 1e-5);
+    }
+
+    // 2. EL2N CPU & Auto
+    let cpu_el2n = t16::compute_el2n_cpu(&p_probs, &y_targets, 4, 3);
+    let auto_el2n = t16::compute_el2n_auto(&kdev, &p_probs, &y_targets, 4, 3);
+    for j in 0..golden_el2n.len() {
+        assert!((cpu_el2n[j] - golden_el2n[j]).abs() < 1e-5);
+        assert!((auto_el2n[j] - golden_el2n[j]).abs() < 1e-5);
+    }
+
+    // 3. RHO-Loss CPU & Auto
+    let cpu_rho = t16::compute_rho_loss_cpu(&loss_model, &loss_ref);
+    let auto_rho = t16::compute_rho_loss_auto(&kdev, &loss_model, &loss_ref);
+    for j in 0..golden_rho_loss.len() {
+        assert!((cpu_rho[j] - golden_rho_loss[j]).abs() < 1e-5);
+        assert!((auto_rho[j] - golden_rho_loss[j]).abs() < 1e-5);
+    }
+
+    // 4. ReDo Dormant Neurons CPU & Auto
+    let (cpu_mean, cpu_mask) = t16::detect_dormant_neurons_cpu(&activations, 4, 6, 0.15);
+    let (auto_mean, auto_mask) = t16::detect_dormant_neurons_auto(&kdev, &activations, 4, 6, 0.15);
+    for j in 0..golden_mean_act.len() {
+        assert!((cpu_mean[j] - golden_mean_act[j]).abs() < 1e-5);
+        assert!((auto_mean[j] - golden_mean_act[j]).abs() < 1e-5);
+        assert!((cpu_mask[j] - golden_dormant_mask[j]).abs() < 1e-5);
+        assert!((auto_mask[j] - golden_dormant_mask[j]).abs() < 1e-5);
+    }
+
+    // 5. Linear Anchor CPU
+    let cpu_anchor_out = t16::anchor_forward_cpu(&anchor_x, &anchor_w, &anchor_b, 2, 8, 4);
+    for j in 0..gold_anchor_out.len() {
+        assert!((cpu_anchor_out[j] - gold_anchor_out[j]).abs() < 1e-5);
+    }
+
+    Ok(())
+}
+
+
 
 
 
