@@ -100,6 +100,9 @@ pub mod c02_classical_and_probabilistic_ml {
 
     #[path = "04_clustering_kmeans_spectral_and_gmm_em.rs"]
     pub mod t04_clustering_kmeans_spectral_and_gmm_em;
+
+    #[path = "05_dimensionality_reduction_pca_lda_ica_tsne_umap.rs"]
+    pub mod t05_dimensionality_reduction_pca_lda_ica_tsne_umap;
 }
 
 #[path = "../../../kernels/03_building_blocks_and_losses"]

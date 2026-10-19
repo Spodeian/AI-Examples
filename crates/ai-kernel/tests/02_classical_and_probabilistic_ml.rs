@@ -4,6 +4,7 @@ use ai_kernel::c02_classical_and_probabilistic_ml::t01_generalized_linear_models
 use ai_kernel::c02_classical_and_probabilistic_ml::t02_support_vector_machines_and_kernel_methods as t02;
 use ai_kernel::c02_classical_and_probabilistic_ml::t03_knn_prototype_and_locally_weighted_regression as t03;
 use ai_kernel::c02_classical_and_probabilistic_ml::t04_clustering_kmeans_spectral_and_gmm_em as t04;
+use ai_kernel::c02_classical_and_probabilistic_ml::t05_dimensionality_reduction_pca_lda_ica_tsne_umap as t05;
 use ai_kernel::KernelDevice;
 use candle_core::{safetensors::load, Device, Result};
 
@@ -232,6 +233,61 @@ fn test_04_clustering_kmeans_spectral_and_gmm_em_cpu_and_auto() -> Result<()> {
     let cpu_l_sym = t04::compute_symmetric_laplacian_cpu(&x, n, d, 0.1);
     for i in 0..(n * n) {
         assert!((cpu_l_sym[i] - golden_l_sym[i]).abs() < 1e-4);
+    }
+
+    Ok(())
+}
+
+#[test]
+fn test_05_dimensionality_reduction_pca_lda_ica_tsne_umap_cpu_and_auto() -> Result<()> {
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "02_classical_and_probabilistic_ml/05_dimensionality_reduction_pca_lda_ica_tsne_umap.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    let x = tensors.get("X").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let y_class = tensors.get("y_class").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let mean = tensors.get("mean").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let v_top = tensors.get("V_top").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_pca_proj = tensors.get("pca_proj").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_w_lda = tensors.get("w_lda").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_lda_proj = tensors.get("lda_proj").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let n = 64;
+    let d = 8;
+    let k = 3;
+
+    // 1. Mean Centering CPU & Auto
+    let kdev = KernelDevice::Cpu;
+    let cpu_centered = t05::center_matrix_cpu(&x, n, d, &mean);
+    let auto_centered = t05::compute_center_matrix_auto(&kdev, &x, n, d, &mean);
+    for i in 0..(n * d) {
+        assert!((cpu_centered[i] - auto_centered[i]).abs() < 1e-5);
+    }
+
+    // 2. PCA Projection CPU
+    let cpu_pca_proj = t05::pca_project_cpu(&cpu_centered, n, d, &v_top, k);
+    for i in 0..(n * k) {
+        assert!((cpu_pca_proj[i] - golden_pca_proj[i]).abs() < 1e-4);
+    }
+
+    // 3. Fisher's LDA Direction & Projection CPU
+    let cpu_w_lda = t05::solve_lda_direction_cpu(&cpu_centered, &y_class, n, d, 1e-3);
+    for j in 0..d {
+        assert!((cpu_w_lda[j] - golden_w_lda[j]).abs() < 1e-4);
+    }
+
+    let mut cpu_lda_proj = vec![0.0f32; n];
+    for i in 0..n {
+        let mut sum = 0.0f32;
+        for j in 0..d {
+            sum += cpu_centered[i * d + j] * cpu_w_lda[j];
+        }
+        cpu_lda_proj[i] = sum;
+    }
+    for i in 0..n {
+        assert!((cpu_lda_proj[i] - golden_lda_proj[i]).abs() < 1e-4);
     }
 
     Ok(())

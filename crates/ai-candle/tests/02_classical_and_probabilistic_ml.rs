@@ -11,3 +11,6 @@ pub mod test_03_knn_prototype_and_locally_weighted_regression;
 
 #[path = "02_classical_and_probabilistic_ml/test_04_clustering_kmeans_spectral_and_gmm_em.rs"]
 pub mod test_04_clustering_kmeans_spectral_and_gmm_em;
+
+#[path = "02_classical_and_probabilistic_ml/test_05_dimensionality_reduction_pca_lda_ica_tsne_umap.rs"]
+pub mod test_05_dimensionality_reduction_pca_lda_ica_tsne_umap;
