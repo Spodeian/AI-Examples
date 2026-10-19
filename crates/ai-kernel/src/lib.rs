@@ -136,5 +136,8 @@ pub mod c04_training_methods_and_optimisers {
 
     #[path = "01_gradient_and_curvature_optimisers/02_modern_sign_and_factored_optimisers.rs"]
     pub mod t02_modern_sign_and_factored_optimisers;
+
+    #[path = "01_gradient_and_curvature_optimisers/03_large_batch_and_layerwise_optimisers.rs"]
+    pub mod t03_large_batch_and_layerwise_optimisers;
 }
 
