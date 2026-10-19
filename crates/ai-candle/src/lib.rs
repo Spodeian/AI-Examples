@@ -92,6 +92,9 @@ pub mod c02_classical_and_probabilistic_ml {
 
     #[path = "03_knn_prototype_and_locally_weighted_regression.rs"]
     pub mod t03_knn_prototype_and_locally_weighted_regression;
+
+    #[path = "04_clustering_kmeans_spectral_and_gmm_em.rs"]
+    pub mod t04_clustering_kmeans_spectral_and_gmm_em;
 }
 
 #[path = "../../../candle/03_building_blocks_and_losses"]

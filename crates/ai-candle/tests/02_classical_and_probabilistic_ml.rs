@@ -8,3 +8,6 @@ pub mod test_02_support_vector_machines_and_kernel_methods;
 
 #[path = "02_classical_and_probabilistic_ml/test_03_knn_prototype_and_locally_weighted_regression.rs"]
 pub mod test_03_knn_prototype_and_locally_weighted_regression;
+
+#[path = "02_classical_and_probabilistic_ml/test_04_clustering_kmeans_spectral_and_gmm_em.rs"]
+pub mod test_04_clustering_kmeans_spectral_and_gmm_em;

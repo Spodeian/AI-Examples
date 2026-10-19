@@ -3,6 +3,7 @@
 use ai_kernel::c02_classical_and_probabilistic_ml::t01_generalized_linear_models_and_proximal_lasso as t01;
 use ai_kernel::c02_classical_and_probabilistic_ml::t02_support_vector_machines_and_kernel_methods as t02;
 use ai_kernel::c02_classical_and_probabilistic_ml::t03_knn_prototype_and_locally_weighted_regression as t03;
+use ai_kernel::c02_classical_and_probabilistic_ml::t04_clustering_kmeans_spectral_and_gmm_em as t04;
 use ai_kernel::KernelDevice;
 use candle_core::{safetensors::load, Device, Result};
 
@@ -187,6 +188,50 @@ fn test_03_knn_prototype_and_locally_weighted_regression_cpu_and_auto() -> Resul
     let cpu_nw_pred = t03::nadaraya_watson_regress_cpu(&x_train, &y_train_cont, n_train, &x_test, n_test, d, 1.0);
     for j in 0..n_test {
         assert!((cpu_nw_pred[j] - golden_nw_pred[j]).abs() < 1e-4);
+    }
+
+    Ok(())
+}
+
+#[test]
+fn test_04_clustering_kmeans_spectral_and_gmm_em_cpu_and_auto() -> Result<()> {
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "02_classical_and_probabilistic_ml/04_clustering_kmeans_spectral_and_gmm_em.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    let x = tensors.get("X").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let centers = tensors.get("centers").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_kmeans_assign = tensors.get("kmeans_assignments").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_resp = tensors.get("resp").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_l_sym = tensors.get("L_sym").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let n = 64;
+    let d = 8;
+    let k = 3;
+
+    // 1. k-Means Assign CPU & Auto
+    let kdev = KernelDevice::Cpu;
+    let cpu_assign = t04::kmeans_assign_cpu(&x, n, &centers, k, d);
+    let auto_assign = t04::compute_kmeans_assign_auto(&kdev, &x, n, &centers, k, d);
+    for i in 0..n {
+        assert!((cpu_assign[i] - golden_kmeans_assign[i]).abs() < 1e-4);
+        assert!((auto_assign[i] - golden_kmeans_assign[i]).abs() < 1e-4);
+    }
+
+    // 2. GMM E-step CPU
+    let pi = vec![1.0f32 / (k as f32); k];
+    let var = vec![1.0f32; k * d];
+    let cpu_resp = t04::gmm_e_step_cpu(&x, n, &centers, &var, &pi, k, d);
+    for i in 0..(n * k) {
+        assert!((cpu_resp[i] - golden_resp[i]).abs() < 1e-4);
+    }
+
+    // 3. Symmetric Normalized Laplacian CPU
+    let cpu_l_sym = t04::compute_symmetric_laplacian_cpu(&x, n, d, 0.1);
+    for i in 0..(n * n) {
+        assert!((cpu_l_sym[i] - golden_l_sym[i]).abs() < 1e-4);
     }
 
     Ok(())
