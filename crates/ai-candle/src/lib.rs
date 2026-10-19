@@ -143,6 +143,9 @@ pub mod c04_training_methods_and_optimisers {
 
     #[path = "01_gradient_and_curvature_optimisers/06_schedule_free_and_parameter_free_optimisers.rs"]
     pub mod t06_schedule_free_and_parameter_free_optimisers;
+
+    #[path = "01_gradient_and_curvature_optimisers/07_learning_rate_schedulers_and_lr_finder.rs"]
+    pub mod t07_learning_rate_schedulers_and_lr_finder;
 }
 
 

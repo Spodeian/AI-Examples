@@ -598,5 +598,98 @@ fn test_06_schedule_free_and_parameter_free_optimisers_cpu_and_auto() -> Result<
     Ok(())
 }
 
+#[test]
+fn test_07_learning_rate_schedulers_and_lr_finder_cpu_and_auto() -> Result<()> {
+    use ai_kernel::c04_training_methods_and_optimisers::t07_learning_rate_schedulers_and_lr_finder as t07;
+
+    let kdev = KernelDevice::Cpu;
+    let weights_path = common::get_weights_path(
+        "04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/07_learning_rate_schedulers_and_lr_finder.safetensors",
+    );
+    let tensors = load(weights_path, &Device::Cpu)?;
+
+    let param_cosine = tensors.get("param_cosine").unwrap().to_vec1::<f32>()?;
+    let grad_cosine = tensors.get("grad_cosine").unwrap().to_vec1::<f32>()?;
+    let gold_lr_cos = tensors.get("golden_lr_cosine").unwrap().to_vec1::<f32>()?[0];
+    let gold_p_cos = tensors.get("golden_param_cosine").unwrap().to_vec1::<f32>()?;
+
+    let param_wsd = tensors.get("param_wsd").unwrap().to_vec1::<f32>()?;
+    let grad_wsd = tensors.get("grad_wsd").unwrap().to_vec1::<f32>()?;
+    let gold_lr_wsd = tensors.get("golden_lr_wsd").unwrap().to_vec1::<f32>()?[0];
+    let gold_p_wsd = tensors.get("golden_param_wsd").unwrap().to_vec1::<f32>()?;
+
+    let param_onecycle = tensors.get("param_onecycle").unwrap().to_vec1::<f32>()?;
+    let grad_onecycle = tensors.get("grad_onecycle").unwrap().to_vec1::<f32>()?;
+    let gold_lr_oc = tensors.get("golden_lr_onecycle").unwrap().to_vec1::<f32>()?[0];
+    let gold_p_oc = tensors.get("golden_param_onecycle").unwrap().to_vec1::<f32>()?;
+
+    let param_autoclip = tensors.get("param_autoclip").unwrap().to_vec1::<f32>()?;
+    let grad_autoclip = tensors.get("grad_autoclip").unwrap().to_vec1::<f32>()?;
+    let norm_history = tensors.get("norm_history").unwrap().to_vec1::<f32>()?;
+    let gold_clipped_g = tensors.get("golden_clipped_grad").unwrap().to_vec1::<f32>()?;
+    let gold_p_ac = tensors.get("golden_param_autoclip").unwrap().to_vec1::<f32>()?;
+
+    let anchor_x = tensors.get("anchor_x").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let anchor_w = tensors.get("anchor_w").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let anchor_b = tensors.get("anchor_b").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let gold_anchor_out = tensors.get("golden_anchor_out").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let d = param_cosine.len();
+
+    // 1. Cosine Annealing with Warmup CPU & Auto
+    let cpu_lr_cos = t07::schedule_cosine_warmup_cpu(30, 100, 10, 1e-5, 0.01);
+    let auto_lr_cos = t07::schedule_cosine_warmup_auto(&kdev, 30, 100, 10, 1e-5, 0.01);
+    assert!((cpu_lr_cos - gold_lr_cos).abs() < 1e-5);
+    assert!((auto_lr_cos - gold_lr_cos).abs() < 1e-5);
+    let cpu_p_cos = t07::step_sgd_cpu(&param_cosine, &grad_cosine, cpu_lr_cos);
+    let auto_p_cos = t07::step_sgd_auto(&kdev, &param_cosine, &grad_cosine, auto_lr_cos);
+    for j in 0..d {
+        assert!((cpu_p_cos[j] - gold_p_cos[j]).abs() < 1e-5);
+        assert!((auto_p_cos[j] - gold_p_cos[j]).abs() < 1e-5);
+    }
+
+    // 2. WSD CPU & Auto
+    let cpu_lr_wsd = t07::schedule_wsd_cpu(85, 100, 10, 20, 1e-4, 0.01);
+    let auto_lr_wsd = t07::schedule_wsd_auto(&kdev, 85, 100, 10, 20, 1e-4, 0.01);
+    assert!((cpu_lr_wsd - gold_lr_wsd).abs() < 1e-5);
+    assert!((auto_lr_wsd - gold_lr_wsd).abs() < 1e-5);
+    let cpu_p_wsd = t07::step_sgd_cpu(&param_wsd, &grad_wsd, cpu_lr_wsd);
+    let auto_p_wsd = t07::step_sgd_auto(&kdev, &param_wsd, &grad_wsd, auto_lr_wsd);
+    for j in 0..d {
+        assert!((cpu_p_wsd[j] - gold_p_wsd[j]).abs() < 1e-5);
+        assert!((auto_p_wsd[j] - gold_p_wsd[j]).abs() < 1e-5);
+    }
+
+    // 3. OneCycleLR CPU & Auto
+    let cpu_lr_oc = t07::schedule_onecycle_cpu(40, 100, 30, 0.01, 25.0, 1000.0);
+    let auto_lr_oc = t07::schedule_onecycle_auto(&kdev, 40, 100, 30, 0.01, 25.0, 1000.0);
+    assert!((cpu_lr_oc - gold_lr_oc).abs() < 1e-5);
+    assert!((auto_lr_oc - gold_lr_oc).abs() < 1e-5);
+    let cpu_p_oc = t07::step_sgd_cpu(&param_onecycle, &grad_onecycle, cpu_lr_oc);
+    let auto_p_oc = t07::step_sgd_auto(&kdev, &param_onecycle, &grad_onecycle, auto_lr_oc);
+    for j in 0..d {
+        assert!((cpu_p_oc[j] - gold_p_oc[j]).abs() < 1e-5);
+        assert!((auto_p_oc[j] - gold_p_oc[j]).abs() < 1e-5);
+    }
+
+    // 4. AutoClip CPU & Auto
+    let (cpu_p_ac, cpu_cg, _) = t07::step_autoclip_cpu(&param_autoclip, &grad_autoclip, &norm_history, 90.0, 0.01, 1e-8);
+    let (auto_p_ac, auto_cg, _) = t07::step_autoclip_auto(&kdev, &param_autoclip, &grad_autoclip, &norm_history, 90.0, 0.01, 1e-8);
+    for j in 0..d {
+        assert!((cpu_cg[j] - gold_clipped_g[j]).abs() < 1e-5);
+        assert!((auto_cg[j] - gold_clipped_g[j]).abs() < 1e-5);
+        assert!((cpu_p_ac[j] - gold_p_ac[j]).abs() < 1e-5);
+        assert!((auto_p_ac[j] - gold_p_ac[j]).abs() < 1e-5);
+    }
+
+    // 5. Linear Anchor CPU
+    let cpu_anchor_out = t07::anchor_forward_cpu(&anchor_x, &anchor_w, &anchor_b, 2, 8, 4);
+    for j in 0..gold_anchor_out.len() {
+        assert!((cpu_anchor_out[j] - gold_anchor_out[j]).abs() < 1e-5);
+    }
+
+    Ok(())
+}
+
 
 

@@ -16,3 +16,6 @@ pub mod test_05_second_order_and_curvature_optimisers;
 #[path = "04_training_methods_and_optimisers/test_06_schedule_free_and_parameter_free_optimisers.rs"]
 pub mod test_06_schedule_free_and_parameter_free_optimisers;
 
+#[path = "04_training_methods_and_optimisers/test_07_learning_rate_schedulers_and_lr_finder.rs"]
+pub mod test_07_learning_rate_schedulers_and_lr_finder;
+
