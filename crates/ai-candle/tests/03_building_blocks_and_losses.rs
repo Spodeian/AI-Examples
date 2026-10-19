@@ -33,3 +33,6 @@ mod test_10_losses_optimal_transport_wasserstein_sinkhorn_and_mmd;
 #[path = "03_building_blocks_and_losses/test_11_losses_proper_scoring_evidential_and_differentiable_ranking.rs"]
 mod test_11_losses_proper_scoring_evidential_and_differentiable_ranking;
 
+#[path = "03_building_blocks_and_losses/test_12_latent_decision_gates_highway_hard_concrete_entmax_and_ponder_halting.rs"]
+mod test_12_latent_decision_gates_highway_hard_concrete_entmax_and_ponder_halting;
+

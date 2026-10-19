@@ -821,3 +821,108 @@ fn test_11_losses_proper_scoring_evidential_and_differentiable_ranking_cpu_and_a
     Ok(())
 }
 
+use ai_kernel::c03_building_blocks_and_losses::t12_latent_decision_gates_highway_hard_concrete_entmax_and_ponder_halting as t12;
+
+#[test]
+fn test_12_latent_decision_gates_highway_hard_concrete_entmax_and_ponder_halting_cpu_and_auto() -> Result<()> {
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "03_building_blocks_and_losses/12_latent_decision_gates_highway_hard_concrete_entmax_and_ponder_halting.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    let test_in = tensors.get("test_input").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let test_out = tensors.get("test_output").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let weight = tensors.get("weight").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let bias = tensors.get("bias").unwrap().to_vec1::<f32>()?;
+
+    let highway_x = tensors.get("highway_x").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let w_h = tensors.get("w_h").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let b_h = tensors.get("b_h").unwrap().to_vec1::<f32>()?;
+    let w_t = tensors.get("w_t").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let b_t = tensors.get("b_t").unwrap().to_vec1::<f32>()?;
+    let expected_highway = tensors.get("expected_highway").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let glu_x = tensors.get("glu_x").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let w_glu = tensors.get("w_glu").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let b_glu = tensors.get("b_glu").unwrap().to_vec1::<f32>()?;
+    let expected_glu = tensors.get("expected_glu").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let log_alpha = tensors.get("log_alpha").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let hard_concrete_u = tensors.get("hard_concrete_u").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let expected_hc_g = tensors.get("expected_hard_concrete_g").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let expected_hc_l0 = tensors.get("expected_hard_concrete_l0").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let sparsemax_logits = tensors.get("sparsemax_logits").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let expected_sparsemax = tensors.get("expected_sparsemax").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let ponder_lambdas = tensors.get("ponder_lambdas").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let expected_ponder_p = tensors.get("expected_ponder_p").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let expected_ponder_steps = tensors.get("expected_ponder_steps").unwrap().to_vec1::<f32>()?;
+    let expected_ponder_kl = tensors.get("expected_ponder_kl").unwrap().to_vec1::<f32>()?;
+
+    let film_x = tensors.get("film_x").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let film_gamma = tensors.get("film_gamma").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let film_beta = tensors.get("film_beta").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let expected_film = tensors.get("expected_film").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    // 1. Linear Anchor on CPU
+    let anchor_calc = t12::linear_anchor_forward_cpu(&test_in, &weight, &bias, 8, 4, 4);
+    for (i, (&calc, &gold)) in anchor_calc.iter().zip(test_out.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Linear anchor error at {i}: {calc} vs {gold}");
+    }
+
+    // 2. Highway Network on CPU
+    let highway_calc = t12::highway_forward_cpu(&highway_x, &w_h, &b_h, &w_t, &b_t, 8, 4);
+    for (i, (&calc, &gold)) in highway_calc.iter().zip(expected_highway.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Highway error at {i}: {calc} vs {gold}");
+    }
+
+    // 3. GLU on CPU
+    let glu_calc = t12::glu_forward_cpu(&glu_x, &w_glu, &b_glu, 8, 4);
+    for (i, (&calc, &gold)) in glu_calc.iter().zip(expected_glu.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "GLU error at {i}: {calc} vs {gold}");
+    }
+
+    // 4. Hard Concrete on CPU
+    let (hc_g_calc, hc_l0_calc) = t12::hard_concrete_cpu(&log_alpha, &hard_concrete_u, 8, 4, 0.67, -0.1, 1.1);
+    for (i, (&calc, &gold)) in hc_g_calc.iter().zip(expected_hc_g.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Hard concrete g error at {i}: {calc} vs {gold}");
+    }
+    for (i, (&calc, &gold)) in hc_l0_calc.iter().zip(expected_hc_l0.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Hard concrete L0 error at {i}: {calc} vs {gold}");
+    }
+
+    // 5. Sparsemax on CPU
+    let sparsemax_calc = t12::sparsemax_cpu(&sparsemax_logits, 8, 4);
+    for (i, (&calc, &gold)) in sparsemax_calc.iter().zip(expected_sparsemax.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Sparsemax error at {i}: {calc} vs {gold}");
+    }
+
+    // 6. PonderNet Halting on CPU
+    let (ponder_p_calc, ponder_steps_calc, ponder_kl_calc) =
+        t12::pondernet_halting_cpu(&ponder_lambdas, 8, 4, 0.3, 1e-8);
+    for (i, (&calc, &gold)) in ponder_p_calc.iter().zip(expected_ponder_p.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "PonderNet p error at {i}: {calc} vs {gold}");
+    }
+    for (i, (&calc, &gold)) in ponder_steps_calc.iter().zip(expected_ponder_steps.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "PonderNet steps error at {i}: {calc} vs {gold}");
+    }
+    for (i, (&calc, &gold)) in ponder_kl_calc.iter().zip(expected_ponder_kl.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "PonderNet KL error at {i}: {calc} vs {gold}");
+    }
+
+    // 7. FiLM on CPU and Auto
+    let film_calc = t12::film_cpu(&film_x, &film_gamma, &film_beta, 8, 4);
+    for (i, (&calc, &gold)) in film_calc.iter().zip(expected_film.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "FiLM CPU error at {i}: {calc} vs {gold}");
+    }
+
+    let film_auto_calc = t12::film_auto(None, &film_x, &film_gamma, &film_beta, 8, 4);
+    for (i, (&calc, &gold)) in film_auto_calc.iter().zip(expected_film.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "FiLM Auto error at {i}: {calc} vs {gold}");
+    }
+
+    Ok(())
+}
+

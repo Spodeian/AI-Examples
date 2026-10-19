@@ -116,6 +116,9 @@ pub mod c03_building_blocks_and_losses {
 
     #[path = "11_losses_proper_scoring_evidential_and_differentiable_ranking.rs"]
     pub mod t11_losses_proper_scoring_evidential_and_differentiable_ranking;
+
+    #[path = "12_latent_decision_gates_highway_hard_concrete_entmax_and_ponder_halting.rs"]
+    pub mod t12_latent_decision_gates_highway_hard_concrete_entmax_and_ponder_halting;
 }
 
 
