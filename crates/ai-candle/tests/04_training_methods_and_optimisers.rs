@@ -34,3 +34,6 @@ pub mod test_11_combinatorial_and_discrete_simulated_annealing_tempering_and_sin
 #[path = "04_training_methods_and_optimisers/test_12_multi_fidelity_hyperparameter_optimisation_hyperband_asha_and_boed.rs"]
 pub mod test_12_multi_fidelity_hyperparameter_optimisation_hyperband_asha_and_boed;
 
+#[path = "04_training_methods_and_optimisers/test_13_sharpness_aware_swad_and_weight_averaging_dynamics.rs"]
+pub mod test_13_sharpness_aware_swad_and_weight_averaging_dynamics;
+

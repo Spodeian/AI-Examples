@@ -1094,5 +1094,87 @@ fn test_12_multi_fidelity_hyperparameter_optimisation_hyperband_asha_and_boed_cp
     Ok(())
 }
 
+#[test]
+fn test_13_sharpness_aware_swad_and_weight_averaging_dynamics_cpu_and_auto() -> Result<()> {
+    use ai_kernel::c04_training_methods_and_optimisers::t13_sharpness_aware_swad_and_weight_averaging_dynamics as t13;
+
+    let kdev = KernelDevice::Cpu;
+    let weights_path = common::get_weights_path(
+        "04_training_methods_and_optimisers/02_constrained_pareto_and_blackbox_optimisation/06_sharpness_aware_swad_and_weight_averaging_dynamics.safetensors",
+    );
+    let tensors = load(weights_path, &Device::Cpu)?;
+
+    let param_sam = tensors.get("param_sam").unwrap().to_vec1::<f32>()?;
+    let grad_at_w = tensors.get("grad_at_w").unwrap().to_vec1::<f32>()?;
+    let grad_at_pert = tensors.get("grad_at_pert").unwrap().to_vec1::<f32>()?;
+    let golden_param_sam = tensors.get("golden_param_sam").unwrap().to_vec1::<f32>()?;
+    let golden_epsilon_sam = tensors.get("golden_epsilon_sam").unwrap().to_vec1::<f32>()?;
+
+    let slow_p = tensors.get("slow_p").unwrap().to_vec1::<f32>()?;
+    let fast_p = tensors.get("fast_p").unwrap().to_vec1::<f32>()?;
+    let golden_slow_p = tensors.get("golden_slow_p").unwrap().to_vec1::<f32>()?;
+    let golden_fast_p = tensors.get("golden_fast_p").unwrap().to_vec1::<f32>()?;
+
+    let swa_avg = tensors.get("swa_avg").unwrap().to_vec1::<f32>()?;
+    let ema_avg = tensors.get("ema_avg").unwrap().to_vec1::<f32>()?;
+    let curr_param = tensors.get("curr_param").unwrap().to_vec1::<f32>()?;
+    let golden_swa = tensors.get("golden_swa").unwrap().to_vec1::<f32>()?;
+    let golden_ema = tensors.get("golden_ema").unwrap().to_vec1::<f32>()?;
+
+    let soup_models = tensors.get("soup_models").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_soup = tensors.get("golden_soup").unwrap().to_vec1::<f32>()?;
+
+    let anchor_x = tensors.get("anchor_x").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let anchor_w = tensors.get("anchor_w").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let anchor_b = tensors.get("anchor_b").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let gold_anchor_out = tensors.get("golden_anchor_out").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    // 1. SAM CPU & Auto
+    let (cpu_p, cpu_eps) = t13::step_sam_cpu(&param_sam, &grad_at_w, &grad_at_pert, 0.05, 0.01, 0.001, 1e-12);
+    let (auto_p, auto_eps) = t13::step_sam_auto(&kdev, &param_sam, &grad_at_w, &grad_at_pert, 0.05, 0.01, 0.001, 1e-12);
+    for j in 0..golden_param_sam.len() {
+        assert!((cpu_p[j] - golden_param_sam[j]).abs() < 1e-5);
+        assert!((auto_p[j] - golden_param_sam[j]).abs() < 1e-5);
+        assert!((cpu_eps[j] - golden_epsilon_sam[j]).abs() < 1e-5);
+        assert!((auto_eps[j] - golden_epsilon_sam[j]).abs() < 1e-5);
+    }
+
+    // 2. Lookahead CPU & Auto
+    let (cpu_slow, cpu_fast) = t13::step_lookahead_cpu(&slow_p, &fast_p, 0.5);
+    let (auto_slow, auto_fast) = t13::step_lookahead_auto(&kdev, &slow_p, &fast_p, 0.5);
+    for j in 0..golden_slow_p.len() {
+        assert!((cpu_slow[j] - golden_slow_p[j]).abs() < 1e-5);
+        assert!((auto_slow[j] - golden_slow_p[j]).abs() < 1e-5);
+        assert!((cpu_fast[j] - golden_fast_p[j]).abs() < 1e-5);
+        assert!((auto_fast[j] - golden_fast_p[j]).abs() < 1e-5);
+    }
+
+    // 3. SWA & EMA CPU & Auto
+    let (cpu_swa, cpu_ema) = t13::step_swa_ema_cpu(&swa_avg, &ema_avg, &curr_param, 4, 0.99);
+    let (auto_swa, auto_ema) = t13::step_swa_ema_auto(&kdev, &swa_avg, &ema_avg, &curr_param, 4, 0.99);
+    for j in 0..golden_swa.len() {
+        assert!((cpu_swa[j] - golden_swa[j]).abs() < 1e-5);
+        assert!((auto_swa[j] - golden_swa[j]).abs() < 1e-5);
+        assert!((cpu_ema[j] - golden_ema[j]).abs() < 1e-5);
+        assert!((auto_ema[j] - golden_ema[j]).abs() < 1e-5);
+    }
+
+    // 4. Model Soup CPU & Auto
+    let cpu_soup = t13::uniform_model_soup_cpu(&soup_models, 3, 4);
+    let auto_soup = t13::uniform_model_soup_auto(&kdev, &soup_models, 3, 4);
+    for j in 0..golden_soup.len() {
+        assert!((cpu_soup[j] - golden_soup[j]).abs() < 1e-5);
+        assert!((auto_soup[j] - golden_soup[j]).abs() < 1e-5);
+    }
+
+    // 5. Linear Anchor CPU
+    let cpu_anchor_out = t13::anchor_forward_cpu(&anchor_x, &anchor_w, &anchor_b, 2, 8, 4);
+    for j in 0..gold_anchor_out.len() {
+        assert!((cpu_anchor_out[j] - gold_anchor_out[j]).abs() < 1e-5);
+    }
+
+    Ok(())
+}
+
 
 

@@ -161,6 +161,9 @@ pub mod c04_training_methods_and_optimisers {
 
     #[path = "02_constrained_pareto_and_blackbox_optimisation/05_multi_fidelity_hyperparameter_optimisation_hyperband_asha_and_boed.rs"]
     pub mod t12_multi_fidelity_hyperparameter_optimisation_hyperband_asha_and_boed;
+
+    #[path = "02_constrained_pareto_and_blackbox_optimisation/06_sharpness_aware_swad_and_weight_averaging_dynamics.rs"]
+    pub mod t13_sharpness_aware_swad_and_weight_averaging_dynamics;
 }
 
 

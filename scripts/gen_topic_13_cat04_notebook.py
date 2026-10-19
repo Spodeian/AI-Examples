@@ -1,0 +1,242 @@
+"""Generate the 8-cell educational notebook for Category 04 Topic 13 (Subfolder 02 Topic 06):
+Sharpness-Aware Minimization (SAM), SWAD, and Weight Averaging Dynamics."""
+
+import json
+from pathlib import Path
+
+
+def build_notebook() -> dict:
+    cells = [
+        # Cell 0: Header Markdown
+        {
+            "id": "cell_0",
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "# Sharpness-Aware Minimization (SAM), SWAD, and Weight Averaging Dynamics (C04 Topic 13)\n",
+                "\n",
+                "**Citations:** Foret et al. (2021 SAM); Izmailov et al. (2018 SWA); Cha et al. (2021 SWAD); Zhang et al. (2019 Lookahead); Wortsman et al. (2022 Model Soups); Ainsworth et al. (2022 Git Re-Basin).\n",
+                "\n",
+                "### Purpose & Topic Bridges\n",
+                "Standard empirical risk minimization (SGD/Adam) seeks parameter coordinates that minimize training loss, often converging to sharp, narrow crevices in the loss landscape. Under domain shift, covariate noise, or test-time distribution shifts, sharp minima exhibit severe generalization degradation. **Sharpness-Aware Minimization (SAM)** explicitly penalizes loss landscape curvature by solving a minimax game: optimizing for parameters whose worst-case neighbor within an $\\ell_2$ ball of radius $\\rho$ retains minimal loss.\n",
+                "\n",
+                "Complementing SAM, **Weight Averaging Dynamics**—including **Stochastic Weight Averaging (SWA)**, **SWAD (Dense SWA)**, **Lookahead**, and **Model Soups**—navigate the non-convex geometry of deep networks by averaging multiple checkpoints in weight space. SWA moves iterates from the perimeter of a wide basin toward its Euclidean center; Lookahead synchronizes fast exploratory weights with slow stable weights; and Model Soups interpolates fine-tuned checkpoints sharing a pre-trained initialization without incurring extra inference latency.\n",
+                "\n",
+                "**Decision Boundary:** Use **SAM** when training from scratch or fine-tuning high-capacity vision/language models where out-of-distribution (OOD) robustness is critical. Use **SWA/SWAD** at the end of training runs for zero-compute generalization gains. Use **Model Soups** to ensemble multiple fine-tuned models at zero inference cost. When NOT to use: Never average model weights trained from independent random initializations without permutation alignment (Git Re-Basin); hidden neuron permutation symmetries create a massive loss barrier between independent modes."
+            ]
+        },
+        # Cell 1: Theory Markdown
+        {
+            "cell_type": "markdown",
+            "id": "cell_1",
+            "metadata": {},
+            "source": [
+                "## 2. Mathematical Foundations & Governing Equations\n",
+                "\n",
+                "1. **SAM Minimax Formulation:**\n",
+                "$$\\min_w \\max_{\\|\\epsilon\\|_2 \\le \\rho} L(w + \\epsilon) + \\lambda \\|w\\|_2^2$$\n",
+                "2. **First-Order Dual Ascent Perturbation:** By Taylor expansion, the worst-case perturbation is:\n",
+                "$$\\hat{\\epsilon}(w) = \\rho \\frac{\\nabla_w L(w)}{\\|\\nabla_w L(w)\\|_2 + \\varepsilon_{\\text{num}}}$$\n",
+                "3. **SAM Parameter Update:** Gradient evaluation at the perturbed point penalizes the spectral norm of the Hessian:\n",
+                "$$w_{t+1} = w_t - \\eta \\left( \\nabla_w L(w_t + \\hat{\\epsilon}(w_t)) + \\lambda w_t \\right)$$\n",
+                "4. **Lookahead Synchronization:** With fast weights $\\theta$ and slow weights $\\phi$:\n",
+                "$$\\phi_{t+1} = \\phi_t + \\alpha (\\theta_{t, k} - \\phi_t), \\quad \\theta_{t+1, 0} = \\phi_{t+1}$$\n",
+                "5. **SWA Online Accumulator:** For checkpoint $m$:\n",
+                "$$w_{\\text{SWA}}^{(m)} = \\frac{m \\cdot w_{\\text{SWA}}^{(m-1)} + w_m}{m + 1}, \\quad w_{\\text{EMA}}^{(t)} = \\beta w_{\\text{EMA}}^{(t-1)} + (1 - \\beta) w_t$$"
+            ]
+        },
+        # Cell 2: Imports & Environment Setup
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "id": "cell_2",
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "import sys\n",
+                "from pathlib import Path\n",
+                "import numpy as np, torch, torch.nn as nn\n",
+                "\n",
+                "repo_root = Path.cwd().resolve()\n",
+                "while not (repo_root / \"core\").exists() and repo_root.parent != repo_root:\n",
+                "    repo_root = repo_root.parent\n",
+                "if str(repo_root) not in sys.path:\n",
+                "    sys.path.insert(0, str(repo_root))\n",
+                "import core\n",
+                "core.setup_env(seed=42)\n",
+                "device = torch.device(\"cuda\" if torch.cuda.is_available() else \"cpu\")\n",
+                "\n",
+                "ckpt_path = repo_root / \"weights/04_training_methods_and_optimisers/02_constrained_pareto_and_blackbox_optimisation/06_sharpness_aware_swad_and_weight_averaging_dynamics.safetensors\"\n",
+                "weights, test_in, test_out, meta = core.parity.load_reference_checkpoint(ckpt_path, device=device)\n",
+                "print(f\"Device: {device} | Checkpoint: {ckpt_path.name} | Loaded {len(weights)} tensors\")"
+            ]
+        },
+        # Cell 3: Unified Module Definition
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "id": "cell_3",
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "def step_sam(param, grad_at_w, grad_at_pert, rho=0.05, lr=0.01, weight_decay=0.001, eps=1e-12):\n",
+                "    grad_norm = torch.norm(grad_at_w, p=2) + eps\n",
+                "    epsilon = rho * (grad_at_w / grad_norm)\n",
+                "    update = grad_at_pert + weight_decay * param\n",
+                "    param_next = param - lr * update\n",
+                "    return param_next, epsilon\n",
+                "\n",
+                "def step_lookahead(slow_param, fast_param, alpha=0.5):\n",
+                "    slow_next = slow_param + alpha * (fast_param - slow_param)\n",
+                "    fast_next = slow_next.clone()\n",
+                "    return slow_next, fast_next\n",
+                "\n",
+                "def step_swa_ema(swa_avg, ema_avg, current_param, n_models, decay=0.99):\n",
+                "    new_swa = (swa_avg * n_models + current_param) / (n_models + 1)\n",
+                "    new_ema = decay * ema_avg + (1.0 - decay) * current_param\n",
+                "    return new_swa, new_ema\n",
+                "\n",
+                "def uniform_model_soup(models):\n",
+                "    return torch.mean(models, dim=0)\n",
+                "\n",
+                "class LinearAnchor(nn.Module):\n",
+                "    def __init__(self, in_f, out_f):\n",
+                "        super().__init__()\n",
+                "        self.weight = nn.Parameter(torch.zeros(out_f, in_f))\n",
+                "        self.bias = nn.Parameter(torch.zeros(out_f))\n",
+                "    def forward(self, x):\n",
+                "        return torch.matmul(x, self.weight.T) + self.bias\n",
+                "\n",
+                "print('SharpnessAwareUnifiedModule routines defined successfully.')"
+            ]
+        },
+        # Cell 4: Live Verification & Invariant Checks
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "id": "cell_4",
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "# 1. SAM Invariant\n",
+                "p_sam, eps_sam = step_sam(weights['param_sam'], weights['grad_at_w'], weights['grad_at_pert'], rho=0.05, lr=0.01, weight_decay=0.001)\n",
+                "err_sam = max(float(torch.max(torch.abs(p_sam - weights['golden_param_sam']))), float(torch.max(torch.abs(eps_sam - weights['golden_epsilon_sam']))))\n",
+                "\n",
+                "# 2. Lookahead Invariant\n",
+                "slow_out, fast_out = step_lookahead(weights['slow_p'], weights['fast_p'], alpha=0.5)\n",
+                "err_lookahead = max(float(torch.max(torch.abs(slow_out - weights['golden_slow_p']))), float(torch.max(torch.abs(fast_out - weights['golden_fast_p']))))\n",
+                "\n",
+                "# 3. SWA & EMA Invariant\n",
+                "new_swa, new_ema = step_swa_ema(weights['swa_avg'], weights['ema_avg'], weights['curr_param'], n_models=4, decay=0.99)\n",
+                "err_swa_ema = max(float(torch.max(torch.abs(new_swa - weights['golden_swa']))), float(torch.max(torch.abs(new_ema - weights['golden_ema']))))\n",
+                "\n",
+                "# 4. Model Soup Invariant\n",
+                "soup_out = uniform_model_soup(weights['soup_models'])\n",
+                "err_soup = float(torch.max(torch.abs(soup_out - weights['golden_soup'])))\n",
+                "\n",
+                "# 5. Linear Anchor Invariant\n",
+                "anchor = LinearAnchor(8, 4)\n",
+                "anchor.weight.data.copy_(weights['anchor_w'].T)\n",
+                "anchor.bias.data.copy_(weights['anchor_b'])\n",
+                "anchor_out = anchor(weights['anchor_x']).detach()\n",
+                "err_anchor = float(torch.max(torch.abs(anchor_out - weights['golden_anchor_out'])))\n",
+                "\n",
+                "for name, err in [('SAM', err_sam), ('Lookahead', err_lookahead), ('SWA/EMA', err_swa_ema), ('Soup', err_soup), ('Anchor', err_anchor)]:\n",
+                "    assert err < 1e-5, f'{name} invariant failed: {err:.2e}'\n",
+                "print(f'All 5 invariants verified! SAM: {err_sam:.2e}, Lookahead: {err_lookahead:.2e}, SWA/EMA: {err_swa_ema:.2e}, Soup: {err_soup:.2e}, Anchor: {err_anchor:.2e}')"
+            ]
+        },
+        # Cell 5: Performance Profile & Roofline Benchmark
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "id": "cell_5",
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "track_fns = {\n",
+                "    'Linear Anchor': lambda: anchor(weights['anchor_x']),\n",
+                "    'SAM Dual Perturb & Step': lambda: step_sam(weights['param_sam'], weights['grad_at_w'], weights['grad_at_pert']),\n",
+                "    'Lookahead Sync': lambda: step_lookahead(weights['slow_p'], weights['fast_p']),\n",
+                "    'SWA/EMA Accumulator': lambda: step_swa_ema(weights['swa_avg'], weights['ema_avg'], weights['curr_param'], 4),\n",
+                "    'Uniform Model Soup': lambda: uniform_model_soup(weights['soup_models']),\n",
+                "}\n",
+                "bench_results = core.benchmark.compare_tracks(track_fns, warmup=3, iters=15, batch_size=8)\n",
+                "print(core.benchmark.format_benchmark_table(bench_results))"
+            ]
+        },
+        # Cell 6: Active Failure Mode Demonstration
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "id": "cell_6",
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "# Active Failure Mode: Naive Model Averaging across Independent Seeds (Permutation Barrier) vs SWA\n",
+                "# Target function: y = |x|. Two 1-layer MLPs trained with different seeds reach zero loss,\n",
+                "# but have permuted hidden neuron features (M1: [relu(x), relu(-x)], M2: [relu(-x), relu(x)]).\n",
+                "x_eval = torch.linspace(-1, 1, 100).unsqueeze(1)\n",
+                "y_true = torch.abs(x_eval)\n",
+                "w1_1, w2_1 = torch.tensor([[1.0, -1.0]]), torch.tensor([[1.0], [1.0]])\n",
+                "w1_2, w2_2 = torch.tensor([[-1.0, 1.0]]), torch.tensor([[1.0], [1.0]]) # permuted neurons\n",
+                "\n",
+                "def forward_net(x, w1, w2): return torch.relu(x @ w1) @ w2\n",
+                "loss_m1 = torch.mean((forward_net(x_eval, w1_1, w2_1) - y_true)**2).item()\n",
+                "loss_m2 = torch.mean((forward_net(x_eval, w1_2, w2_2) - y_true)**2).item()\n",
+                "\n",
+                "# Naive parameter-space average of unaligned models: (w1_1 + w1_2)/2 = [[0, 0]] collapses to zero!\n",
+                "w1_naive, w2_naive = 0.5 * (w1_1 + w1_2), 0.5 * (w2_1 + w2_2)\n",
+                "loss_naive_barrier = torch.mean((forward_net(x_eval, w1_naive, w2_naive) - y_true)**2).item()\n",
+                "\n",
+                "# SWA along single trajectory: checkpoints share the same basin (no permutation mismatch)\n",
+                "w1_swa, w2_swa = 0.5 * (w1_1 + w1_1 * 1.01), 0.5 * (w2_1 + w2_1 * 0.99)\n",
+                "loss_swa = torch.mean((forward_net(x_eval, w1_swa, w2_swa) - y_true)**2).item()\n",
+                "\n",
+                "print(f'[FAILURE DEMONSTRATED] Naive average collapsed to loss barrier: {loss_naive_barrier:.4f} vs individual models {loss_m1:.4f}!')\n",
+                "print(f'[CORRECT] SWA along trajectory maintains zero-barrier connectivity: {loss_swa:.6f}!')\n",
+                "assert loss_naive_barrier > 0.25 and loss_swa < 0.001, 'Permutation barrier failure not cleanly reproduced.'\n",
+                "print('[REMEDY] Use SWA/SWAD along single trajectories, or apply Git Re-Basin permutation alignment before averaging.')"
+            ]
+        },
+        # Cell 7: Summary Markdown
+        {
+            "cell_type": "markdown",
+            "id": "cell_7",
+            "metadata": {},
+            "source": [
+                "## 8. Algorithmic Takeaways & Cross-Domain Isomorphisms\n",
+                "\n",
+                "1. **Minimax Optimization Enforces Flatness:** SAM directly optimizes for flat loss basins by penalizing worst-case local perturbations, heavily reducing test error under distribution shift.\n",
+                "2. **Weight Averaging Finds Basin Centers:** SWA and SWAD navigate the loss surface by averaging noisy SGD iterates, discovering flatter solutions with zero inference cost.\n",
+                "3. **Permutation Symmetries Govern Model Merging:** Direct weight averaging requires linear mode connectivity; without permutation alignment (Git Re-Basin), independent models land on catastrophic loss barriers.\n",
+                "\n",
+                "---\n",
+                "**Curriculum Navigation:** [Master Index](file:///c:/Users/Liam/Code/AI-Examples/README.md) | [Previous: 05_multi_fidelity_hyperparameter_optimisation_hyperband_asha_and_boed](file:///c:/Users/Liam/Code/AI-Examples/notebooks/04_training_methods_and_optimisers/02_constrained_pareto_and_blackbox_optimisation/05_multi_fidelity_hyperparameter_optimisation_hyperband_asha_and_boed.ipynb) | [Next: 07_minimax_saddle_point_extragradient_ogda_sga_and_trust_region_bobyqa](file:///c:/Users/Liam/Code/AI-Examples/notebooks/04_training_methods_and_optimisers/02_constrained_pareto_and_blackbox_optimisation/07_minimax_saddle_point_extragradient_ogda_sga_and_trust_region_bobyqa.ipynb)"
+            ]
+        }
+    ]
+
+    nb = {
+        "cells": cells,
+        "metadata": {
+            "language_info": {"name": "python", "version": "3.10"}
+        },
+        "nbformat": 4,
+        "nbformat_minor": 5
+    }
+    return nb
+
+
+def main():
+    nb = build_notebook()
+    out_dir = Path("notebooks/04_training_methods_and_optimisers/02_constrained_pareto_and_blackbox_optimisation")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = out_dir / "06_sharpness_aware_swad_and_weight_averaging_dynamics.ipynb"
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(nb, f, indent=1)
+    print(f"Generated {out_path} with {len(nb['cells'])} cells.")
+
+
+if __name__ == "__main__":
+    main()
