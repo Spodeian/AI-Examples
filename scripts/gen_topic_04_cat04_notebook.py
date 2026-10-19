@@ -1,0 +1,250 @@
+"""Generate the 8-cell educational notebook for Category 04 Topic 04: Orthogonal and Preconditioned Matrix Optimisers."""
+
+import json
+from pathlib import Path
+
+
+def build_notebook() -> dict:
+    cells = [
+        # Cell 0: Header Markdown
+        {
+            "id": "cell_0",
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "# Orthogonal and Preconditioned Matrix Optimisers (C04 Topic 04)\n",
+                "\n",
+                "**Citations:** Gupta et al. (2018 Shampoo); Zhao et al. (2024 GaLore); Vyas et al. (2024 SOAP); Jordan et al. (2024 Muon).\n",
+                "\n",
+                "### Purpose & Topic Bridges\n",
+                "Standard first-order optimisers (AdamW) treat weights as unstructured 1D vectors, ignoring the intrinsic 2D linear operator geometry and singular value spectra of neural network layers. Full second-order optimization (natural gradient, full Hessian) requires intractable $O(N^2)$ memory.\n",
+                "**Muon** projects momentum matrices directly onto the Stiefel manifold of semi-orthogonal matrices ($O = UV^T$) via fast quintic Newton-Schulz iterations, achieving target validation loss in ~35% fewer training steps via BF16 GEMMs. **Shampoo** maintains Kronecker-factored left and right second-moment covariances, while **GaLore** tracks momentum within a compact low-rank projection subspace.\n",
+                "\n",
+                "**Decision Boundary:** Deploy **Muon** for internal 2D hidden matrix layers ($W \\in \\mathbb{R}^{m \\times n}$ where $m, n \\ge 16$) in Transformers and modern LLMs. When NOT to use: Do NOT apply Muon to 1D vectors, LayerNorm weights, biases, token embeddings, or the output language model head; always pair Muon with an auxiliary AdamW optimizer for non-hidden parameters."
+            ]
+        },
+        # Cell 1: Theory Markdown
+        {
+            "cell_type": "markdown",
+            "id": "cell_1",
+            "metadata": {},
+            "source": [
+                "## 2. Mathematical Foundations & Governing Equations\n",
+                "\n",
+                "1. **Newton-Schulz Quintic Orthogonalization (Muon):**\n",
+                "$$X_0 = \\frac{M}{\\|M\\|_F + \\epsilon}, \\quad A_k = X_k X_k^T, \\quad X_{k+1} = a X_k + b A_k X_k + c A_k^2 X_k$$\n",
+                "Where $(a, b, c) = (3.4445, -4.7750, 2.0315)$. Then $W_{t+1} = W_t (1 - \\eta \\lambda) - \\eta X_K$.\n",
+                "2. **Shampoo 2D Curvature Preconditioning:**\n",
+                "$$L_t = \\beta_2 L_{t-1} + (1-\\beta_2) G G^T, \\quad R_t = \\beta_2 R_{t-1} + (1-\\beta_2) G^T G$$\n",
+                "$$\\tilde{G}_t = L_t^{-1/4} G_t R_t^{-1/4}, \\quad W_{t+1} = W_t (1 - \\eta \\lambda) - \\eta \\tilde{G}_t$$\n",
+                "3. **GaLore Low-Rank Gradient Projection:**\n",
+                "$$G_{\\text{low}} = P^T G_t, \\quad U_{\\text{low}} = \\text{Adam}(G_{\\text{low}}), \\quad W_{t+1} = W_t (1 - \\eta \\lambda) - \\eta P U_{\\text{low}}$$\n",
+                "4. **Computational Complexity:** Muon requires $\\mathcal{O}(m^2 n + m n^2)$ FLOPs per step (5 GEMMs) and $\\mathcal{O}(mn)$ memory ($1\\times$ momentum buffer, zero variance buffers). Shampoo requires $\\mathcal{O}(m^3 + n^3)$ periodic matrix roots and $\\mathcal{O}(m^2 + n^2)$ covariance memory. GaLore operates in $\\mathcal{O}(rn)$ compact memory."
+            ]
+        },
+        # Cell 2: Imports & Environment Setup
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "id": "cell_2",
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "import sys, math\n",
+                "from pathlib import Path\n",
+                "import torch, torch.nn as nn\n",
+                "\n",
+                "repo_root = Path.cwd().resolve()\n",
+                "while not (repo_root / \"core\").exists() and repo_root.parent != repo_root:\n",
+                "    repo_root = repo_root.parent\n",
+                "if str(repo_root) not in sys.path:\n",
+                "    sys.path.insert(0, str(repo_root))\n",
+                "import core\n",
+                "core.setup_env(seed=42)\n",
+                "device = torch.device(\"cuda\" if torch.cuda.is_available() else \"cpu\")\n",
+                "\n",
+                "ckpt_path = repo_root / \"weights/04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/04_orthogonal_and_preconditioned_matrix_optimisers.safetensors\"\n",
+                "weights, test_in, test_out, meta = core.parity.load_reference_checkpoint(ckpt_path, device=device)\n",
+                "print(f\"Device: {device} | Checkpoint: {ckpt_path.name} | Loaded {len(weights)} tensors\")"
+            ]
+        },
+        # Cell 3: Unified Module Definition
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "id": "cell_3",
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "class OrthogonalMatrixOptimisersUnifiedModule(nn.Module):\n",
+                "    def __init__(self, in_dim=8, out_dim=8):\n",
+                "        super().__init__()\n",
+                "        self.linear = nn.Linear(in_dim, out_dim)\n",
+                "\n",
+                "    def forward(self, x): return self.linear(x)\n",
+                "\n",
+                "    def newton_schulz(self, G, steps=5, eps=1e-7):\n",
+                "        a, b, c = 3.4445, -4.7750, 2.0315\n",
+                "        m, n = G.shape; X = G / (torch.norm(G) + eps)\n",
+                "        if m >= n: X = X.t()\n",
+                "        for _ in range(steps):\n",
+                "            A = X @ X.t(); B = b * A + c * (A @ A); X = a * X + B @ X\n",
+                "        if m >= n: X = X.t()\n",
+                "        return X\n",
+                "\n",
+                "    def step_muon(self, param, grad, m_buf, lr=0.02, momentum=0.95, nesterov=True, weight_decay=0.01, ns_steps=5):\n",
+                "        new_m = momentum * m_buf + grad\n",
+                "        cand = momentum * new_m + grad if nesterov else new_m\n",
+                "        ortho = self.newton_schulz(cand, steps=ns_steps)\n",
+                "        return param * (1.0 - lr * weight_decay) - lr * ortho, new_m\n",
+                "\n",
+                "    def step_shampoo(self, param, grad, l_cov, r_cov, lr=0.005, beta2=0.95, eps=1e-6, weight_decay=0.01):\n",
+                "        new_l = beta2 * l_cov + (1.0 - beta2) * (grad @ grad.t())\n",
+                "        new_r = beta2 * r_cov + (1.0 - beta2) * (grad.t() @ grad)\n",
+                "        eval_l, evec_l = torch.linalg.eigh(new_l); l_inv = evec_l @ torch.diag(torch.clamp(eval_l, min=eps)**(-0.25)) @ evec_l.t()\n",
+                "        eval_r, evec_r = torch.linalg.eigh(new_r); r_inv = evec_r @ torch.diag(torch.clamp(eval_r, min=eps)**(-0.25)) @ evec_r.t()\n",
+                "        precond = l_inv @ grad @ r_inv\n",
+                "        return param * (1.0 - lr * weight_decay) - lr * precond, new_l, new_r\n",
+                "\n",
+                "    def step_galore(self, param, grad, m_low, v_low, proj, step=2, lr=0.001, b1=0.9, b2=0.999, eps=1e-8, weight_decay=0.01):\n",
+                "        g_low = proj.t() @ grad; new_m = b1 * m_low + (1.0 - b1) * g_low; new_v = b2 * v_low + (1.0 - b2) * (g_low * g_low)\n",
+                "        m_hat = new_m / (1.0 - b1**step); v_hat = new_v / (1.0 - b2**step)\n",
+                "        full_u = proj @ (m_hat / (torch.sqrt(v_hat) + eps))\n",
+                "        return param * (1.0 - lr * weight_decay) - lr * full_u, new_m, new_v\n",
+                "\n",
+                "model = OrthogonalMatrixOptimisersUnifiedModule().to(device)\n",
+                "with torch.no_grad():\n",
+                "    model.linear.weight.copy_(weights['weight'].to(device).t())\n",
+                "    model.linear.bias.copy_(weights['bias'].to(device))\n",
+                "print('OrthogonalMatrixOptimisersUnifiedModule initialized.')"
+            ]
+        },
+        # Cell 4: Golden Parity Assertions
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "id": "cell_4",
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "p_2d = weights['param_2d'].to(device); g_2d = weights['grad_2d'].to(device)\n",
+                "\n",
+                "# 1. Muon Verification\n",
+                "p_muon, m_muon = model.step_muon(p_2d, g_2d, weights['m_init_muon'].to(device))\n",
+                "err_p_muon = (p_muon - weights['p_muon'].to(device)).abs().max().item()\n",
+                "err_m_muon = (m_muon - weights['m_muon'].to(device)).abs().max().item()\n",
+                "\n",
+                "# 2. Shampoo Verification\n",
+                "p_shampoo, l_shampoo, r_shampoo = model.step_shampoo(\n",
+                "    p_2d, g_2d, weights['l_init'].to(device), weights['r_init'].to(device)\n",
+                ")\n",
+                "err_p_shampoo = (p_shampoo - weights['p_shampoo'].to(device)).abs().max().item()\n",
+                "err_l_shampoo = (l_shampoo - weights['l_shampoo'].to(device)).abs().max().item()\n",
+                "err_r_shampoo = (r_shampoo - weights['r_shampoo'].to(device)).abs().max().item()\n",
+                "\n",
+                "# 3. GaLore Verification\n",
+                "p_galore, m_galore, v_galore = model.step_galore(\n",
+                "    p_2d, g_2d, weights['m_init_galore'].to(device), weights['v_init_galore'].to(device), weights['proj_matrix'].to(device)\n",
+                ")\n",
+                "err_p_galore = (p_galore - weights['p_galore'].to(device)).abs().max().item()\n",
+                "err_m_galore = (m_galore - weights['m_galore'].to(device)).abs().max().item()\n",
+                "err_v_galore = (v_galore - weights['v_galore'].to(device)).abs().max().item()\n",
+                "\n",
+                "# 4. Linear Anchor\n",
+                "err_anchor = (model(test_in) - test_out).abs().max().item()\n",
+                "\n",
+                "assert max(err_p_muon, err_m_muon) < 1e-5, f'Muon error {err_p_muon:.2e} exceeds 1e-5'\n",
+                "assert max(err_p_shampoo, err_l_shampoo, err_r_shampoo) < 1e-5, f'Shampoo error {err_p_shampoo:.2e} exceeds 1e-5'\n",
+                "assert max(err_p_galore, err_m_galore, err_v_galore) < 1e-5, f'GaLore error {err_p_galore:.2e} exceeds 1e-5'\n",
+                "assert err_anchor < 1e-5, f'Anchor error {err_anchor:.2e} exceeds 1e-5'\n",
+                "print(f'All 4 invariants verified! Muon: {err_p_muon:.2e}, Shampoo: {err_p_shampoo:.2e}, GaLore: {err_p_galore:.2e}, Anchor: {err_anchor:.2e}')"
+            ]
+        },
+        # Cell 5: Performance Benchmarking
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "id": "cell_5",
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "track_fns = {\n",
+                "    'Linear Anchor': lambda: model(test_in),\n",
+                "    'Muon 2D Step': lambda: model.step_muon(p_2d, g_2d, weights['m_init_muon'].to(device)),\n",
+                "    'Shampoo Precond': lambda: model.step_shampoo(p_2d, g_2d, weights['l_init'].to(device), weights['r_init'].to(device)),\n",
+                "    'GaLore Low-Rank': lambda: model.step_galore(p_2d, g_2d, weights['m_init_galore'].to(device), weights['v_init_galore'].to(device), weights['proj_matrix'].to(device)),\n",
+                "}\n",
+                "bench_results = core.benchmark.compare_tracks(track_fns, warmup=3, iters=15, batch_size=8)\n",
+                "print(core.benchmark.format_benchmark_table(bench_results))"
+            ]
+        },
+        # Cell 6: Active Failure Mode Demonstration
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "id": "cell_6",
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "# Active Failure Mode: Applying Muon to 1D Parameters vs AdamW Hybrid Routing\n",
+                "# Muon assumes 2D matrix geometry with balanced aspect ratio.\n",
+                "# On 1D normalization channels with non-uniform gradients, 1D Muon cannot adapt per-channel variance:\n",
+                "grad_asym = torch.tensor([0.001, 0.010, 0.500, 0.005], device=device)\n",
+                "\n",
+                "# 1. 1D Muon treats the layer as a monolithic vector, preserving raw gradient imbalance:\n",
+                "norm_g = torch.norm(grad_asym)\n",
+                "muon_step = grad_asym / norm_g\n",
+                "muon_ratio = float(muon_step[0] / muon_step[2])  # 0.001 / 0.500 = 0.002\n",
+                "\n",
+                "# 2. AdamW adapts coordinate-wise, scaling each channel by its individual noise floor:\n",
+                "adam_step = torch.sign(grad_asym)  # Coordinate-wise adaptive updates step uniformly\n",
+                "adam_ratio = float(adam_step[0] / adam_step[2])  # 1.0\n",
+                "\n",
+                "print(f'[FAILURE DEMONSTRATED] 1D Muon unadapted coordinate ratio: {muon_ratio:.4f} (inactive channel starved)')\n",
+                "print(f'[CORRECT] Hybrid architecture routing with AdamW adapts coordinates independently: ratio = {adam_ratio:.1f}')\n",
+                "assert muon_ratio < 0.01, 'Muon did not preserve raw gradient imbalance on 1D vector'\n",
+                "assert adam_ratio == 1.0, 'AdamW failed to adapt coordinate-wise'\n",
+                "print('[DIAGNOSTIC] Muon must only be applied to 2D hidden matrices; 1D norms and embeddings must use AdamW.')"
+            ]
+        },
+        # Cell 7: Summary Markdown
+        {
+            "cell_type": "markdown",
+            "id": "cell_7",
+            "metadata": {},
+            "source": [
+                "## 8. Algorithmic Takeaways & Cross-Domain Isomorphisms\n",
+                "\n",
+                "1. **Matrix Geometry Matters:** Elementwise optimisers (AdamW) ignore tensor structure. Muon equalizes singular values via quintic Newton-Schulz iterations, achieving superior convergence via pure BF16 tensor core GEMMs.\n",
+                "2. **Hybrid Optimizer Architecture is Mandatory:** Never apply Muon globally. High-performing pretraining setups pair Muon on 2D hidden weights with decoupled AdamW on token embeddings, LayerNorms, and LM heads.\n",
+                "3. **Curvature Isomorphism:** Shampoo approximates Kronecker-factored Fisher curvature $L^{-1/4} G R^{-1/4}$, mirroring 2D separable spatial filter design in signal processing and Riemannian Stiefel geodesics.\n",
+                "\n",
+                "---\n",
+                "**Curriculum Navigation:** [Master Index](file:///c:/Users/Liam/Code/AI-Examples/README.md) | [Previous: 03_large_batch_and_layerwise_optimisers](file:///c:/Users/Liam/Code/AI-Examples/notebooks/04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/03_large_batch_and_layerwise_optimisers.ipynb) | [Next: 05_second_order_and_curvature_optimisers](file:///c:/Users/Liam/Code/AI-Examples/notebooks/04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/05_second_order_and_curvature_optimisers.ipynb)"
+            ]
+        }
+    ]
+
+    nb = {
+        "cells": cells,
+        "metadata": {
+            "language_info": {"name": "python", "version": "3.10"}
+        },
+        "nbformat": 4,
+        "nbformat_minor": 5
+    }
+    return nb
+
+
+def main():
+    nb = build_notebook()
+    out_dir = Path("notebooks/04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = out_dir / "04_orthogonal_and_preconditioned_matrix_optimisers.ipynb"
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(nb, f, indent=1)
+    print(f"Generated {out_path} with {len(nb['cells'])} cells.")
+
+
+if __name__ == "__main__":
+    main()

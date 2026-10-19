@@ -265,4 +265,163 @@ fn test_03_large_batch_and_layerwise_optimisers_cpu_and_auto() -> Result<()> {
     Ok(())
 }
 
+#[test]
+fn test_04_orthogonal_and_preconditioned_matrix_optimisers_cpu_and_auto() -> Result<()> {
+    use ai_kernel::c04_training_methods_and_optimisers::t04_orthogonal_and_preconditioned_matrix_optimisers as t04;
+
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/04_orthogonal_and_preconditioned_matrix_optimisers.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    let param_2d = tensors.get("param_2d").unwrap().to_vec2::<f32>()?;
+    let grad_2d = tensors.get("grad_2d").unwrap().to_vec2::<f32>()?;
+    let flat_p: Vec<f32> = param_2d.iter().flatten().copied().collect();
+    let flat_g: Vec<f32> = grad_2d.iter().flatten().copied().collect();
+
+    let m = 4;
+    let n = 4;
+    let len = m * n;
+
+    // 1. Muon CPU & Auto
+    let m_init_muon = tensors.get("m_init_muon").unwrap().to_vec2::<f32>()?;
+    let flat_m_muon: Vec<f32> = m_init_muon.iter().flatten().copied().collect();
+
+    let gold_p_muon = tensors.get("p_muon").unwrap().to_vec2::<f32>()?;
+    let gold_m_muon = tensors.get("m_muon").unwrap().to_vec2::<f32>()?;
+    let flat_gold_p_muon: Vec<f32> = gold_p_muon.iter().flatten().copied().collect();
+    let flat_gold_m_muon: Vec<f32> = gold_m_muon.iter().flatten().copied().collect();
+
+    let mut cpu_p_muon = vec![0.0f32; len];
+    let mut cpu_m_muon = vec![0.0f32; len];
+    t04::muon_cpu(
+        &flat_p,
+        &flat_g,
+        &flat_m_muon,
+        &mut cpu_p_muon,
+        &mut cpu_m_muon,
+        m,
+        n,
+        0.02,
+        0.95,
+        true,
+        0.01,
+        5,
+    );
+    for i in 0..len {
+        assert!((cpu_p_muon[i] - flat_gold_p_muon[i]).abs() < 1e-5);
+        assert!((cpu_m_muon[i] - flat_gold_m_muon[i]).abs() < 1e-5);
+    }
+
+    let kdev = KernelDevice::Cpu;
+    let (auto_p_muon, auto_m_muon) = t04::muon_auto(
+        &kdev,
+        &flat_p,
+        &flat_g,
+        &flat_m_muon,
+        m,
+        n,
+        0.02,
+        0.95,
+        true,
+        0.01,
+        5,
+    );
+    for i in 0..len {
+        assert!((auto_p_muon[i] - flat_gold_p_muon[i]).abs() < 1e-5);
+        assert!((auto_m_muon[i] - flat_gold_m_muon[i]).abs() < 1e-5);
+    }
+
+    // 2. Shampoo CPU
+    let l_init = tensors.get("l_init").unwrap().to_vec2::<f32>()?;
+    let r_init = tensors.get("r_init").unwrap().to_vec2::<f32>()?;
+    let flat_l_init: Vec<f32> = l_init.iter().flatten().copied().collect();
+    let flat_r_init: Vec<f32> = r_init.iter().flatten().copied().collect();
+
+    let gold_p_shampoo = tensors.get("p_shampoo").unwrap().to_vec2::<f32>()?;
+    let gold_l_shampoo = tensors.get("l_shampoo").unwrap().to_vec2::<f32>()?;
+    let gold_r_shampoo = tensors.get("r_shampoo").unwrap().to_vec2::<f32>()?;
+    let flat_gold_p_shampoo: Vec<f32> = gold_p_shampoo.iter().flatten().copied().collect();
+    let flat_gold_l_shampoo: Vec<f32> = gold_l_shampoo.iter().flatten().copied().collect();
+    let flat_gold_r_shampoo: Vec<f32> = gold_r_shampoo.iter().flatten().copied().collect();
+
+    let mut cpu_p_shampoo = vec![0.0f32; len];
+    let mut cpu_l_shampoo = vec![0.0f32; m * m];
+    let mut cpu_r_shampoo = vec![0.0f32; n * n];
+    t04::shampoo_cpu(
+        &flat_p,
+        &flat_g,
+        &flat_l_init,
+        &flat_r_init,
+        &mut cpu_p_shampoo,
+        &mut cpu_l_shampoo,
+        &mut cpu_r_shampoo,
+        m,
+        n,
+        0.005,
+        0.95,
+        1e-6,
+        0.01,
+    );
+    for i in 0..len {
+        assert!((cpu_p_shampoo[i] - flat_gold_p_shampoo[i]).abs() < 1e-5);
+    }
+    for i in 0..(m * m) {
+        assert!((cpu_l_shampoo[i] - flat_gold_l_shampoo[i]).abs() < 1e-5);
+    }
+    for i in 0..(n * n) {
+        assert!((cpu_r_shampoo[i] - flat_gold_r_shampoo[i]).abs() < 1e-5);
+    }
+
+    // 3. GaLore CPU
+    let r = 2;
+    let m_init_galore = tensors.get("m_init_galore").unwrap().to_vec2::<f32>()?;
+    let v_init_galore = tensors.get("v_init_galore").unwrap().to_vec2::<f32>()?;
+    let proj = tensors.get("proj_matrix").unwrap().to_vec2::<f32>()?;
+    let flat_m_galore: Vec<f32> = m_init_galore.iter().flatten().copied().collect();
+    let flat_v_galore: Vec<f32> = v_init_galore.iter().flatten().copied().collect();
+    let flat_proj: Vec<f32> = proj.iter().flatten().copied().collect();
+
+    let gold_p_galore = tensors.get("p_galore").unwrap().to_vec2::<f32>()?;
+    let gold_m_galore = tensors.get("m_galore").unwrap().to_vec2::<f32>()?;
+    let gold_v_galore = tensors.get("v_galore").unwrap().to_vec2::<f32>()?;
+    let flat_gold_p_galore: Vec<f32> = gold_p_galore.iter().flatten().copied().collect();
+    let flat_gold_m_galore: Vec<f32> = gold_m_galore.iter().flatten().copied().collect();
+    let flat_gold_v_galore: Vec<f32> = gold_v_galore.iter().flatten().copied().collect();
+
+    let mut cpu_p_galore = vec![0.0f32; len];
+    let mut cpu_m_galore = vec![0.0f32; r * n];
+    let mut cpu_v_galore = vec![0.0f32; r * n];
+    t04::galore_cpu(
+        &flat_p,
+        &flat_g,
+        &flat_m_galore,
+        &flat_v_galore,
+        &flat_proj,
+        &mut cpu_p_galore,
+        &mut cpu_m_galore,
+        &mut cpu_v_galore,
+        m,
+        n,
+        r,
+        2,
+        0.001,
+        0.9,
+        0.999,
+        1e-8,
+        0.01,
+    );
+    for i in 0..len {
+        assert!((cpu_p_galore[i] - flat_gold_p_galore[i]).abs() < 1e-5);
+    }
+    for i in 0..(r * n) {
+        assert!((cpu_m_galore[i] - flat_gold_m_galore[i]).abs() < 1e-5);
+        assert!((cpu_v_galore[i] - flat_gold_v_galore[i]).abs() < 1e-5);
+    }
+
+    Ok(())
+}
+
+
 
