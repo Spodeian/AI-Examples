@@ -91,6 +91,9 @@ pub mod c01_paradigms_and_dichotomies {
 pub mod c02_classical_and_probabilistic_ml {
     #[path = "01_generalized_linear_models_and_proximal_lasso.rs"]
     pub mod t01_generalized_linear_models_and_proximal_lasso;
+
+    #[path = "02_support_vector_machines_and_kernel_methods.rs"]
+    pub mod t02_support_vector_machines_and_kernel_methods;
 }
 
 #[path = "../../../kernels/03_building_blocks_and_losses"]

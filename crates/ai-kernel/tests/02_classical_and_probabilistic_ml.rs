@@ -1,6 +1,7 @@
 //! Category 02 Classical & Probabilistic ML Integration Test Suite for ai-kernel.
 
 use ai_kernel::c02_classical_and_probabilistic_ml::t01_generalized_linear_models_and_proximal_lasso as t01;
+use ai_kernel::c02_classical_and_probabilistic_ml::t02_support_vector_machines_and_kernel_methods as t02;
 use ai_kernel::KernelDevice;
 use candle_core::{safetensors::load, Device, Result};
 
@@ -91,6 +92,57 @@ fn test_01_generalized_linear_models_and_proximal_lasso_cpu_and_auto() -> Result
     let cpu_anchor_out = t01::anchor_forward_cpu(&anchor_x, &anchor_w, &anchor_b, 2, 4, 2);
     for j in 0..gold_anchor_out.len() {
         assert!((cpu_anchor_out[j] - gold_anchor_out[j]).abs() < 1e-5);
+    }
+
+    Ok(())
+}
+
+#[test]
+fn test_02_support_vector_machines_and_kernel_methods_cpu_and_auto() -> Result<()> {
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "02_classical_and_probabilistic_ml/02_support_vector_machines_and_kernel_methods.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    let x = tensors.get("X").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let y_cont = tensors.get("y_cont").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let landmarks = tensors.get("X_landmarks").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_k_rbf = tensors.get("K_rbf").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_k_poly = tensors.get("K_poly").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_c_ridge = tensors.get("c_ridge").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_k_nystrom = tensors.get("K_nystrom").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let n = 64;
+    let d = 8;
+    let m = 32;
+    let gamma = 0.125f32;
+
+    // 1. RBF Kernel CPU & Auto
+    let kdev = KernelDevice::Cpu;
+    let cpu_k_rbf = t02::rbf_kernel_cpu(&x, n, &x, n, d, gamma);
+    let auto_k_rbf = t02::compute_rbf_kernel_auto(&kdev, &x, n, &x, n, d, gamma);
+    for i in 0..(n * n) {
+        assert!((cpu_k_rbf[i] - golden_k_rbf[i]).abs() < 1e-5);
+        assert!((auto_k_rbf[i] - golden_k_rbf[i]).abs() < 1e-5);
+    }
+
+    // 2. Poly Kernel CPU
+    let cpu_k_poly = t02::poly_kernel_cpu(&x, n, &x, n, d, 2.0, 1.0);
+    for i in 0..(n * n) {
+        assert!((cpu_k_poly[i] - golden_k_poly[i]).abs() < 1e-5);
+    }
+
+    // 3. Kernel Ridge Regression Dual Coefficients
+    let cpu_c_ridge = t02::solve_kernel_ridge_cpu(&x, &y_cont, n, d, gamma, 0.1);
+    for i in 0..n {
+        assert!((cpu_c_ridge[i] - golden_c_ridge[i]).abs() < 1e-4);
+    }
+
+    // 4. Nyström Low-Rank Approximation
+    let cpu_k_nystrom = t02::nystrom_approximate_gram_cpu(&x, n, &landmarks, m, d, gamma, 1e-4);
+    for i in 0..(n * n) {
+        assert!((cpu_k_nystrom[i] - golden_k_nystrom[i]).abs() < 1e-4);
     }
 
     Ok(())
