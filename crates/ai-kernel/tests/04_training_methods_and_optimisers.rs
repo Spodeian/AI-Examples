@@ -765,5 +765,91 @@ fn test_08_constrained_proximal_frank_wolfe_admm_and_mirror_descent_cpu_and_auto
     Ok(())
 }
 
+#[test]
+fn test_09_multi_objective_pareto_mgda_tchebycheff_and_gradient_surgery_cpu_and_auto() -> Result<()> {
+    use ai_kernel::c04_training_methods_and_optimisers::t09_multi_objective_pareto_mgda_tchebycheff_and_gradient_surgery as t09;
+
+    let kdev = KernelDevice::Cpu;
+    let weights_path = common::get_weights_path(
+        "04_training_methods_and_optimisers/02_constrained_pareto_and_blackbox_optimisation/02_multi_objective_pareto_mgda_tchebycheff_and_gradient_surgery.safetensors",
+    );
+    let tensors = load(weights_path, &Device::Cpu)?;
+
+    let param = tensors.get("param").unwrap().to_vec1::<f32>()?;
+    let g1 = tensors.get("g1").unwrap().to_vec1::<f32>()?;
+    let g2 = tensors.get("g2").unwrap().to_vec1::<f32>()?;
+    let losses = tensors.get("L").unwrap().to_vec1::<f32>()?;
+    let z_star = tensors.get("z_star").unwrap().to_vec1::<f32>()?;
+    let weights_tch = tensors.get("weights_tch").unwrap().to_vec1::<f32>()?;
+    let weights_lin = tensors.get("weights_lin").unwrap().to_vec1::<f32>()?;
+
+    let gold_alpha = tensors.get("golden_alpha_mgda").unwrap().to_vec1::<f32>()?[0];
+    let gold_g_mgda = tensors.get("golden_g_mgda").unwrap().to_vec1::<f32>()?;
+    let gold_p_mgda = tensors.get("golden_param_mgda").unwrap().to_vec1::<f32>()?;
+    let gold_g_pc = tensors.get("golden_g_pc").unwrap().to_vec1::<f32>()?;
+    let gold_p_pc = tensors.get("golden_param_pc").unwrap().to_vec1::<f32>()?;
+    let gold_g_tch = tensors.get("golden_g_tch").unwrap().to_vec1::<f32>()?;
+    let gold_p_tch = tensors.get("golden_param_tch").unwrap().to_vec1::<f32>()?;
+    let gold_g_lin = tensors.get("golden_g_lin").unwrap().to_vec1::<f32>()?;
+    let gold_p_lin = tensors.get("golden_param_lin").unwrap().to_vec1::<f32>()?;
+
+    let anchor_x = tensors.get("anchor_x").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let anchor_w = tensors.get("anchor_w").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let anchor_b = tensors.get("anchor_b").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let gold_anchor_out = tensors.get("golden_anchor_out").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let d = param.len();
+
+    // 1. MGDA CPU & Auto
+    let (cpu_p_mgda, cpu_g_mgda, cpu_alpha) = t09::step_mgda_2task_cpu(&param, &g1, &g2, 0.01, 1e-12);
+    let (auto_p_mgda, auto_g_mgda, auto_alpha) = t09::step_mgda_2task_auto(&kdev, &param, &g1, &g2, 0.01, 1e-12);
+    assert!((cpu_alpha - gold_alpha).abs() < 1e-5);
+    assert!((auto_alpha - gold_alpha).abs() < 1e-5);
+    for j in 0..d {
+        assert!((cpu_g_mgda[j] - gold_g_mgda[j]).abs() < 1e-5);
+        assert!((auto_g_mgda[j] - gold_g_mgda[j]).abs() < 1e-5);
+        assert!((cpu_p_mgda[j] - gold_p_mgda[j]).abs() < 1e-5);
+        assert!((auto_p_mgda[j] - gold_p_mgda[j]).abs() < 1e-5);
+    }
+
+    // 2. PCGrad CPU & Auto
+    let (cpu_p_pc, cpu_g_pc) = t09::step_pcgrad_2task_cpu(&param, &g1, &g2, 0.01, 1e-12);
+    let (auto_p_pc, auto_g_pc) = t09::step_pcgrad_2task_auto(&kdev, &param, &g1, &g2, 0.01, 1e-12);
+    for j in 0..d {
+        assert!((cpu_g_pc[j] - gold_g_pc[j]).abs() < 1e-5);
+        assert!((auto_g_pc[j] - gold_g_pc[j]).abs() < 1e-5);
+        assert!((cpu_p_pc[j] - gold_p_pc[j]).abs() < 1e-5);
+        assert!((auto_p_pc[j] - gold_p_pc[j]).abs() < 1e-5);
+    }
+
+    // 3. Tchebycheff CPU & Auto
+    let (cpu_p_tch, cpu_g_tch) = t09::step_tchebycheff_cpu(&param, &g1, &g2, &losses, &z_star, &weights_tch, 0.05, 0.01);
+    let (auto_p_tch, auto_g_tch) = t09::step_tchebycheff_auto(&kdev, &param, &g1, &g2, &losses, &z_star, &weights_tch, 0.05, 0.01);
+    for j in 0..d {
+        assert!((cpu_g_tch[j] - gold_g_tch[j]).abs() < 1e-5);
+        assert!((auto_g_tch[j] - gold_g_tch[j]).abs() < 1e-5);
+        assert!((cpu_p_tch[j] - gold_p_tch[j]).abs() < 1e-5);
+        assert!((auto_p_tch[j] - gold_p_tch[j]).abs() < 1e-5);
+    }
+
+    // 4. Linear Scalarization CPU & Auto
+    let (cpu_p_lin, cpu_g_lin) = t09::step_linear_scalarization_cpu(&param, &g1, &g2, &weights_lin, 0.01);
+    let (auto_p_lin, auto_g_lin) = t09::step_linear_scalarization_auto(&kdev, &param, &g1, &g2, &weights_lin, 0.01);
+    for j in 0..d {
+        assert!((cpu_g_lin[j] - gold_g_lin[j]).abs() < 1e-5);
+        assert!((auto_g_lin[j] - gold_g_lin[j]).abs() < 1e-5);
+        assert!((cpu_p_lin[j] - gold_p_lin[j]).abs() < 1e-5);
+        assert!((auto_p_lin[j] - gold_p_lin[j]).abs() < 1e-5);
+    }
+
+    // 5. Linear Anchor CPU
+    let cpu_anchor_out = t09::anchor_forward_cpu(&anchor_x, &anchor_w, &anchor_b, 2, 8, 4);
+    for j in 0..gold_anchor_out.len() {
+        assert!((cpu_anchor_out[j] - gold_anchor_out[j]).abs() < 1e-5);
+    }
+
+    Ok(())
+}
+
 
 

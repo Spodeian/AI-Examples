@@ -22,3 +22,6 @@ pub mod test_07_learning_rate_schedulers_and_lr_finder;
 #[path = "04_training_methods_and_optimisers/test_08_constrained_proximal_frank_wolfe_admm_and_mirror_descent.rs"]
 pub mod test_08_constrained_proximal_frank_wolfe_admm_and_mirror_descent;
 
+#[path = "04_training_methods_and_optimisers/test_09_multi_objective_pareto_mgda_tchebycheff_and_gradient_surgery.rs"]
+pub mod test_09_multi_objective_pareto_mgda_tchebycheff_and_gradient_surgery;
+

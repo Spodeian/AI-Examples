@@ -154,5 +154,8 @@ pub mod c04_training_methods_and_optimisers {
 
     #[path = "02_constrained_pareto_and_blackbox_optimisation/01_constrained_proximal_frank_wolfe_admm_and_mirror_descent.rs"]
     pub mod t08_constrained_proximal_frank_wolfe_admm_and_mirror_descent;
+
+    #[path = "02_constrained_pareto_and_blackbox_optimisation/02_multi_objective_pareto_mgda_tchebycheff_and_gradient_surgery.rs"]
+    pub mod t09_multi_objective_pareto_mgda_tchebycheff_and_gradient_surgery;
 }
 
