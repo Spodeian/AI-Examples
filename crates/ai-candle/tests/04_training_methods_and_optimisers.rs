@@ -61,3 +61,6 @@ pub mod test_20_zeroth_order_mezo_synthetic_gradients_and_hsic_bottleneck;
 #[path = "04_training_methods_and_optimisers/test_21_scaling_laws_chinchilla_data_dedup_doremi_and_model_collapse.rs"]
 pub mod test_21_scaling_laws_chinchilla_data_dedup_doremi_and_model_collapse;
 
+#[path = "04_training_methods_and_optimisers/test_22_meta_parameter_sensitivity_fanova_sobol_meta_landscapes_and_effective_lr.rs"]
+pub mod test_22_meta_parameter_sensitivity_fanova_sobol_meta_landscapes_and_effective_lr;
+

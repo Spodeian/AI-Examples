@@ -1840,6 +1840,95 @@ fn test_21_scaling_laws_chinchilla_data_dedup_doremi_and_model_collapse_cpu_and_
     Ok(())
 }
 
+#[test]
+fn test_22_meta_parameter_sensitivity_fanova_sobol_meta_landscapes_and_effective_lr_cpu_and_auto() -> Result<()> {
+    use ai_kernel::c04_training_methods_and_optimisers::t22_meta_parameter_sensitivity_fanova_sobol_meta_landscapes_and_effective_lr as t22;
+
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "04_training_methods_and_optimisers/03_training_dynamics_self_optimising_non_backprop/08_meta_parameter_sensitivity_fanova_sobol_meta_landscapes_and_effective_lr.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    let y_grid = tensors.get("y_grid").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_total_var = tensors.get("golden_total_var").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+    let golden_v1 = tensors.get("golden_v1").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+    let golden_v2 = tensors.get("golden_v2").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+    let golden_s1 = tensors.get("golden_s1").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+    let golden_s2 = tensors.get("golden_s2").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+    let golden_st1 = tensors.get("golden_st1").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+    let golden_st2 = tensors.get("golden_st2").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+
+    let w = tensors.get("w").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let eta_nominal = tensors.get("eta_nominal").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+    let weight_decay = tensors.get("weight_decay").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+    let grad_norm = tensors.get("grad_norm").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+    let golden_effective_lr = tensors.get("golden_effective_lr").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+    let golden_eq_norm = tensors.get("golden_eq_norm").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+
+    let eig_max = tensors.get("eig_max").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+    let eta_meta = tensors.get("eta_meta").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+    let steps_t = tensors.get("steps_t").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+    let golden_spectral_multiplier = tensors.get("golden_spectral_multiplier").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+    let golden_accumulated_explosion = tensors.get("golden_accumulated_explosion").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+
+    let anchor_x = tensors.get("anchor_x").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let anchor_w = tensors.get("anchor_w").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let anchor_b = tensors.get("anchor_b").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let gold_anchor_out = tensors.get("golden_anchor_out").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let kdev = KernelDevice::Cpu;
+
+    // 1. fANOVA & Sobol' CPU & Auto
+    let (cpu_tot, cpu_v1, cpu_v2, cpu_s1, cpu_s2, cpu_st1, cpu_st2) =
+        t22::compute_fanova_sobol_indices_cpu(&y_grid, 4, 4);
+    let (auto_tot, auto_v1, auto_v2, auto_s1, auto_s2, auto_st1, auto_st2) =
+        t22::compute_fanova_sobol_indices_auto(&kdev, &y_grid, 4, 4);
+
+    assert!((cpu_tot - golden_total_var).abs() < 1e-5);
+    assert!((auto_tot - golden_total_var).abs() < 1e-5);
+    assert!((cpu_v1 - golden_v1).abs() < 1e-5);
+    assert!((auto_v1 - golden_v1).abs() < 1e-5);
+    assert!((cpu_v2 - golden_v2).abs() < 1e-5);
+    assert!((auto_v2 - golden_v2).abs() < 1e-5);
+    assert!((cpu_s1 - golden_s1).abs() < 1e-5);
+    assert!((auto_s1 - golden_s1).abs() < 1e-5);
+    assert!((cpu_s2 - golden_s2).abs() < 1e-5);
+    assert!((auto_s2 - golden_s2).abs() < 1e-5);
+    assert!((cpu_st1 - golden_st1).abs() < 1e-5);
+    assert!((auto_st1 - golden_st1).abs() < 1e-5);
+    assert!((cpu_st2 - golden_st2).abs() < 1e-5);
+    assert!((auto_st2 - golden_st2).abs() < 1e-5);
+
+    // 2. Effective LR & Equilibrium Norm CPU & Auto
+    let (cpu_eff_lr, cpu_eq_norm) =
+        t22::compute_effective_lr_and_eq_norm_cpu(&w, eta_nominal, weight_decay, grad_norm);
+    let (auto_eff_lr, auto_eq_norm) =
+        t22::compute_effective_lr_and_eq_norm_auto(&kdev, &w, eta_nominal, weight_decay, grad_norm);
+    assert!((cpu_eff_lr - golden_effective_lr).abs() < 1e-5);
+    assert!((auto_eff_lr - golden_effective_lr).abs() < 1e-5);
+    assert!((cpu_eq_norm - golden_eq_norm).abs() < 1e-5);
+    assert!((auto_eq_norm - golden_eq_norm).abs() < 1e-5);
+
+    // 3. Chaotic Meta-Gradient Explosion CPU & Auto
+    let (cpu_mult, cpu_accum) =
+        t22::compute_chaotic_meta_gradient_explosion_cpu(eig_max, eta_meta, steps_t);
+    let (auto_mult, auto_accum) =
+        t22::compute_chaotic_meta_gradient_explosion_auto(&kdev, eig_max, eta_meta, steps_t);
+    assert!((cpu_mult - golden_spectral_multiplier).abs() < 1e-5);
+    assert!((auto_mult - golden_spectral_multiplier).abs() < 1e-5);
+    assert!((cpu_accum - golden_accumulated_explosion).abs() < 1e-5);
+    assert!((auto_accum - golden_accumulated_explosion).abs() < 1e-5);
+
+    // 4. Linear Anchor Forward CPU
+    let cpu_anchor_out = t22::anchor_forward_cpu(&anchor_x, &anchor_w, &anchor_b, 2, 8, 4);
+    for j in 0..gold_anchor_out.len() {
+        assert!((cpu_anchor_out[j] - gold_anchor_out[j]).abs() < 1e-5);
+    }
+
+    Ok(())
+}
+
 
 
 

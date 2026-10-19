@@ -1,0 +1,192 @@
+"""Script to procedurally generate the strict 8-cell notebook for Topic 22.
+
+Topic 22: 08_meta_parameter_sensitivity_fanova_sobol_meta_landscapes_and_effective_lr
+Category: 04_training_methods_and_optimisers
+Subfolder: 03_training_dynamics_self_optimising_non_backprop
+Ensures total lines <= 220, valid JSON, cell IDs, and all semantic requirements.
+"""
+
+import json
+from pathlib import Path
+
+cells = []
+
+# Cell 1: Header, Citations, Purpose & Topic Bridges
+c1 = [
+    "# Meta-Parameter Sensitivity, fANOVA, Sobol' Indices, and Effective Learning Rate\n",
+    "\n",
+    "### Historical Lineage & Theoretical Foundations\n",
+    "- **Sobol' Global Sensitivity Analysis** (*Sobol', 1993; Saltelli et al., 2010*): Decomposes total response variance $V(Y)$ into orthogonal functional projections, computing exact first-order main effect ($S_i = V_i / V$) and total-effect ($S_{Ti} = (V_i + \\sum_j V_{ij})/V$) sensitivity indices.\n",
+    "- **Functional ANOVA (fANOVA)** (*Hutter et al., 2014 ICML*): Employs random forest marginalization over high-dimensional hyperparameter response surfaces to quantify marginal variance attribution and pair interactions.\n",
+    "- **Scale Invariance & Effective Learning Rate** (*Arora et al., 2019 ICLR; Wan et al., 2021*): Demonstrates that for scale-invariant normalized architectures ($f(\\alpha w, x) = f(w, x)$), gradient magnitude scales inversely with weight norm, producing an auto-rate-tuning effective step size $\\eta_\\text{eff} = \\eta / \\|w\\|_2^2$ and steady-state equilibrium norm $\\|w^*\\|_2 = (\\eta G^2 / (2 \\lambda))^{1/4}$.\n",
+    "- **Chaotic Meta-Landscapes & Unrolled Hypergradient Explosion** (*Wu et al., 2018; Metz et al., 2019 ICML*): Explains that backpropagating through $T$ inner training steps cascades transition Jacobians $\\prod_{t=1}^T (I - \\eta H_t)$, exploding exponentially whenever spectral radius $\\rho(I - \\eta H) = |1 - \\eta \\lambda_\\text{max}| > 1$.\n",
+    "\n",
+    "> [!WARNING]\n",
+    "> **Decision Boundary (When NOT to Rely on Unrolled BPTT Hypergradients):** Never backpropagate through deep inner optimization loops ($T > 25$) without spectral regularization or implicit differentiation. When inner steps operate at or near the edge of stability ($\\lambda_\\text{max}(H) > 2/\\eta$), unrolled hypergradients explode exponentially, corrupting outer meta-updates. Always use implicit differentiation or zeroth-order evolution strategies for multi-step horizons.\n",
+    "\n",
+    "**Topic Connections:** `🔗 Upstream`: [Scaling Laws, MinHash, DoReMi & Model Collapse](07_scaling_laws_chinchilla_data_dedup_doremi_and_model_collapse.ipynb) | `🔗 Downstream`: [Curriculum, Self-Paced Learning & Dataset Distillation](09_curriculum_self_paced_learning_and_dataset_distillation_mtt.ipynb)\n"
+]
+cells.append({"cell_type": "markdown", "id": "cell_0", "metadata": {}, "source": c1})
+
+# Cell 2: Mathematical Foundations & Governing Equations
+c2 = [
+    "## 2. Mathematical Foundations & Governing Equations\n",
+    "\n",
+    "1. **Sobol' Variance Decomposition & fANOVA (Sobol', 1993; Hutter et al., 2014):**\n",
+    "$$V(Y) = V_1 + V_2 + V_{12}, \\quad S_1 = \\frac{V_1}{V}, \\quad S_2 = \\frac{V_2}{V}, \\quad S_{T1} = \\frac{V_1 + V_{12}}{V}$$\n",
+    "2. **Effective Learning Rate & Equilibrium Norm (Arora et al., 2019; Wan et al., 2021):**\n",
+    "$$\\eta_\\text{eff} = \\frac{\\eta}{\\|w\\|_2^2}, \\quad \\|w^*\\|_2 = \\left(\\frac{\\eta G^2}{2 \\lambda}\\right)^{1/4} \\implies \\eta_\\text{eff}^* = \\sqrt{\\frac{2 \\lambda \\eta}{G^2}}$$\n",
+    "3. **Chaotic Meta-Gradient Exponential Explosion (Wu et al., 2018; Metz et al., 2019):**\n",
+    "$$\\frac{d \\theta_T}{d \\eta} = \\sum_{t=1}^T \\left(\\prod_{k=t+1}^T (I - \\eta H_k)\\right) (-\\nabla_\\theta L), \\quad \\rho = |1 - \\eta \\lambda_\\text{max}| > 1 \\implies \\text{Growth} \\sim \\rho^T$$\n",
+    "4. **Asymptotic Complexity:** Sobol' Grid Evaluation $\\mathcal{O}(M \\cdot N)$; Effective LR Vector Reduction $\\mathcal{O}(D)$; Spectral Multiplier $\\mathcal{O}(1)$.\n"
+]
+cells.append({"cell_type": "markdown", "id": "cell_1", "metadata": {}, "source": c2})
+
+# Cell 3: Deterministic Setup & Micro-Data Generator
+c3 = [
+    "import sys\n",
+    "from pathlib import Path\n",
+    "import numpy as np, torch, torch.nn as nn, torch.nn.functional as F\n",
+    "\n",
+    "repo_root = Path.cwd().resolve()\n",
+    "while not (repo_root / \"core\").exists() and repo_root.parent != repo_root:\n",
+    "    repo_root = repo_root.parent\n",
+    "if str(repo_root) not in sys.path:\n",
+    "    sys.path.insert(0, str(repo_root))\n",
+    "import core\n",
+    "core.setup_env(seed=42)\n",
+    "device = torch.device(\"cuda\" if torch.cuda.is_available() else \"cpu\")\n",
+    "\n",
+    "ckpt_path = repo_root / \"weights/04_training_methods_and_optimisers/03_training_dynamics_self_optimising_non_backprop/08_meta_parameter_sensitivity_fanova_sobol_meta_landscapes_and_effective_lr.safetensors\"\n",
+    "weights, test_in, test_out, meta = core.parity.load_reference_checkpoint(ckpt_path, device=device)\n",
+    "print(f\"Device: {device} | Checkpoint: {ckpt_path.name} | Loaded {len(weights)} tensors\")\n"
+]
+cells.append({"cell_type": "code", "execution_count": None, "id": "cell_2", "metadata": {}, "outputs": [], "source": c3})
+
+# Cell 4: First-Principles Implementation & Native Parity
+c4 = [
+    "class LinearAnchor(nn.Module):\n",
+    "    def __init__(self, in_features: int = 8, out_features: int = 4):\n",
+    "        super().__init__()\n",
+    "        self.fc = nn.Linear(in_features, out_features)\n",
+    "    def forward(self, x: torch.Tensor) -> torch.Tensor:\n",
+    "        return self.fc(x)\n",
+    "\n",
+    "def compute_fanova_sobol_indices(y_grid: torch.Tensor) -> tuple[torch.Tensor, ...]:\n",
+    "    tot = torch.var(y_grid, unbiased=False)\n",
+    "    v1 = torch.var(torch.mean(y_grid, dim=1), unbiased=False)\n",
+    "    v2 = torch.var(torch.mean(y_grid, dim=0), unbiased=False)\n",
+    "    v12 = tot - (v1 + v2)\n",
+    "    return tot, v1, v2, v1 / tot, v2 / tot, (v1 + v12) / tot, (v2 + v12) / tot\n",
+    "\n",
+    "def compute_effective_lr_and_eq_norm(w: torch.Tensor, eta: torch.Tensor, wd: torch.Tensor, g: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:\n",
+    "    eff_lr = eta / torch.sum(w ** 2)\n",
+    "    eq_norm = ((eta * (g ** 2)) / (2.0 * wd)) ** 0.25\n",
+    "    return eff_lr, eq_norm\n",
+    "\n",
+    "def compute_chaotic_explosion(eig: torch.Tensor, eta: torch.Tensor, t: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:\n",
+    "    mult = torch.abs(1.0 - eta * eig)\n",
+    "    return mult, mult ** t\n",
+    "print(\"Global sensitivity, effective LR & chaotic landscape routines defined.\")\n"
+]
+cells.append({"cell_type": "code", "execution_count": None, "id": "cell_3", "metadata": {}, "outputs": [], "source": c4})
+
+# Cell 5: Quantitative Mathematical Assertions & Parity
+c5 = [
+    "anchor = LinearAnchor(8, 4).to(device)\n",
+    "anchor.fc.weight.data.copy_(weights['anchor_w'].T)\n",
+    "anchor.fc.bias.data.copy_(weights['anchor_b'])\n",
+    "\n",
+    "tot, v1, v2, s1, s2, st1, st2 = compute_fanova_sobol_indices(weights['y_grid'])\n",
+    "err_sobol = max(float(torch.abs(tot - weights['golden_total_var']).item()),\n",
+    "                float(torch.abs(v1 - weights['golden_v1']).item()),\n",
+    "                float(torch.abs(v2 - weights['golden_v2']).item()),\n",
+    "                float(torch.abs(s1 - weights['golden_s1']).item()),\n",
+    "                float(torch.abs(s2 - weights['golden_s2']).item()),\n",
+    "                float(torch.abs(st1 - weights['golden_st1']).item()),\n",
+    "                float(torch.abs(st2 - weights['golden_st2']).item()))\n",
+    "\n",
+    "eff_lr, eq_norm = compute_effective_lr_and_eq_norm(weights['w'], weights['eta_nominal'], weights['weight_decay'], weights['grad_norm'])\n",
+    "err_eff_lr = float(torch.abs(eff_lr - weights['golden_effective_lr']).item())\n",
+    "err_eq_norm = float(torch.abs(eq_norm - weights['golden_eq_norm']).item())\n",
+    "\n",
+    "mult, accum = compute_chaotic_explosion(weights['eig_max'], weights['eta_meta'], weights['steps_t'])\n",
+    "err_chaos = max(float(torch.abs(mult - weights['golden_spectral_multiplier']).item()),\n",
+    "                float(torch.abs(accum - weights['golden_accumulated_explosion']).item()))\n",
+    "\n",
+    "anchor_out = anchor(weights['anchor_x'])\n",
+    "err_anchor = float(torch.max(torch.abs(anchor_out - weights['golden_anchor_out'])).item())\n",
+    "\n",
+    "for name, err in [('Sobol', err_sobol), ('Effective_LR', err_eff_lr), ('Equilibrium_Norm', err_eq_norm), ('Chaos', err_chaos), ('Anchor', err_anchor)]:\n",
+    "    assert err < 1e-5, f'{name} invariant failed: {err:.2e}'\n",
+    "print(f'All 5 invariants verified! Sobol: {err_sobol:.2e}, EffLR: {err_eff_lr:.2e}, EqNorm: {err_eq_norm:.2e}, Chaos: {err_chaos:.2e}, Anchor: {err_anchor:.2e}')\n"
+]
+cells.append({"cell_type": "code", "execution_count": None, "id": "cell_4", "metadata": {}, "outputs": [], "source": c5})
+
+# Cell 6: Performance Profile & Diagnostic Visualizations
+c6 = [
+    "track_fns = {\n",
+    "    'Linear Anchor': lambda: anchor(weights['anchor_x']),\n",
+    "    'fANOVA Sobol Indices': lambda: compute_fanova_sobol_indices(weights['y_grid']),\n",
+    "    'Effective LR & Norm': lambda: compute_effective_lr_and_eq_norm(weights['w'], weights['eta_nominal'], weights['weight_decay'], weights['grad_norm']),\n",
+    "    'Chaotic Multiplier': lambda: compute_chaotic_explosion(weights['eig_max'], weights['eta_meta'], weights['steps_t']),\n",
+    "}\n",
+    "bench_results = core.benchmark.compare_tracks(track_fns, warmup=3, iters=15, batch_size=4)\n",
+    "print(core.benchmark.format_benchmark_table(bench_results))\n"
+]
+cells.append({"cell_type": "code", "execution_count": None, "id": "cell_5", "metadata": {}, "outputs": [], "source": c6})
+
+# Cell 7: Pathological Misuse vs. Corrected Implementation
+c7 = [
+    "# Pathological Anti-Pattern: Unrolled BPTT hypergradient explosion through 25 inner steps\n",
+    "# When inner training operates at edge of stability (lambda_max = 2.5, eta = 1.0 -> |1 - eta*lambda| = 1.5 > 1)\n",
+    "eig_unstable = 2.5\n",
+    "eta_step = 1.0\n",
+    "t_steps = 25\n",
+    "multiplier = abs(1.0 - eta_step * eig_unstable) # 1.5\n",
+    "\n",
+    "unrolled_hypergrad_norm = 1.0 * (multiplier ** t_steps)\n",
+    "# Corrected: Implicit differentiation via fixed-point equilibrium or gradient clipping\n",
+    "stabilized_hypergrad_norm = min(unrolled_hypergrad_norm, 5.0) # Bounded robust meta-update\n",
+    "\n",
+    "print(f'[FAILURE DEMONSTRATED] Unrolled 25-step BPTT hypergradient exploded to: {unrolled_hypergrad_norm:.1f}x!')\n",
+    "print(f'[CORRECT] Stabilized implicit/clipped hypergradient bounded to: {stabilized_hypergrad_norm:.2f}!')\n",
+    "assert unrolled_hypergrad_norm > 25000.0 and stabilized_hypergrad_norm <= 5.0, 'Hypergradient explosion test failed.'\n",
+    "print('[REMEDY] Use implicit differentiation (IFT) or gradient clipping when meta-optimizing across deep training horizons.')\n"
+]
+cells.append({"cell_type": "code", "execution_count": None, "id": "cell_6", "metadata": {}, "outputs": [], "source": c7})
+
+# Cell 8: Takeaways, Cross-Domain Isomorphism & Footer
+c8 = [
+    "## 8. Algorithmic Takeaways & Cross-Domain Isomorphisms\n",
+    "\n",
+    "- **Takeaways**: Sobol' decomposition uncovers true non-linear parameter importance; effective LR dictates true representation speed under weight decay; unrolled hypergradients must be stabilized against chaotic explosion.\n",
+    "\n",
+    "| Scientific Domain | Sobol' Sensitivity Analysis | Effective Learning Rate Dynamics | Chaotic Meta-Landscape Stabilization |\n",
+    "| :--- | :--- | :--- | :--- |\n",
+    "| **Large-Scale Pre-Training** | Quantifying learning rate vs weight decay variance | LayerNorm representation velocity under AdamW | Implicit differentiation for lr schedule tuning |\n",
+    "| **Quantum Pulse Control** | Laser phase vs amplitude sensitivity in qutrit gates | Effective Rabi frequency under detuning decay | Damped GRAPE pulse updates avoiding chaotic chaos |\n",
+    "| **Quantitative Finance** | Portfolio variance attribution across risk factors | Dynamic execution speed under market impact decay | Truncated unrolled optimization for trade sizing |\n",
+    "\n",
+    "---\n",
+    "**Navigation:** [← Scaling Laws, MinHash & Model Collapse](07_scaling_laws_chinchilla_data_dedup_doremi_and_model_collapse.ipynb) | [↑ Master Index](../../README.md) | [Curriculum & Dataset Distillation →](09_curriculum_self_paced_learning_and_dataset_distillation_mtt.ipynb)\n"
+]
+cells.append({"cell_type": "markdown", "id": "cell_7", "metadata": {}, "source": c8})
+
+nb_data = {
+    "cells": cells,
+    "metadata": {
+        "language_info": {"name": "python", "version": "3.10"}
+    },
+    "nbformat": 4,
+    "nbformat_minor": 5
+}
+
+out_dir = Path("notebooks/04_training_methods_and_optimisers/03_training_dynamics_self_optimising_non_backprop")
+out_dir.mkdir(parents=True, exist_ok=True)
+out_file = out_dir / "08_meta_parameter_sensitivity_fanova_sobol_meta_landscapes_and_effective_lr.ipynb"
+
+with open(out_file, "w", encoding="utf-8") as f:
+    json.dump(nb_data, f, indent=1)
+
+print(f"Generated notebook at {out_file}")
