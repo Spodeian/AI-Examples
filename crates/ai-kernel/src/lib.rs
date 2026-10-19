@@ -112,6 +112,9 @@ pub mod c02_classical_and_probabilistic_ml {
 
     #[path = "08_matrix_factorization_als_nmf_bpr_and_fm.rs"]
     pub mod t08_matrix_factorization_als_nmf_bpr_and_fm;
+
+    #[path = "09_hidden_markov_models_kalman_ukf_and_particle_filters.rs"]
+    pub mod t09_hidden_markov_models_kalman_ukf_and_particle_filters;
 }
 
 #[path = "../../../kernels/03_building_blocks_and_losses"]

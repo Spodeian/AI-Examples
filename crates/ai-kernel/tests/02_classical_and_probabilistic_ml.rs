@@ -8,6 +8,7 @@ use ai_kernel::c02_classical_and_probabilistic_ml::t05_dimensionality_reduction_
 use ai_kernel::c02_classical_and_probabilistic_ml::t06_naive_bayes_bayesian_regression_and_gaussian_processes as t06;
 use ai_kernel::c02_classical_and_probabilistic_ml::t07_differentiable_trees_node_soft_gbdt_and_gam_nam as t07;
 use ai_kernel::c02_classical_and_probabilistic_ml::t08_matrix_factorization_als_nmf_bpr_and_fm as t08;
+use ai_kernel::c02_classical_and_probabilistic_ml::t09_hidden_markov_models_kalman_ukf_and_particle_filters as t09;
 use ai_kernel::KernelDevice;
 use candle_core::{safetensors::load, Device, Result};
 
@@ -444,6 +445,65 @@ fn test_08_matrix_factorization_als_nmf_bpr_and_fm_cpu_and_auto() -> Result<()> 
     let cpu_r_als = t08::matrix_factorization_predict_cpu(&p_als, &q_als, 8, 8, k);
     for i in 0..64 {
         assert!((cpu_r_als[i] - golden_r_als[i]).abs() < 1e-4);
+    }
+
+    Ok(())
+}
+
+#[test]
+fn test_09_hidden_markov_models_kalman_ukf_and_particle_filters_cpu_and_auto() -> Result<()> {
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "02_classical_and_probabilistic_ml/09_hidden_markov_models_kalman_ukf_and_particle_filters.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    // 1. Kalman Filter
+    let f = tensors.get("F").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let h = tensors.get("H").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let q = tensors.get("Q").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let r = tensors.get("R").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let y = tensors.get("Y").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_x_filt = tensors.get("x_filt").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_p_diag = tensors.get("P_filt_diag").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let x0 = vec![0.0f32, 0.0f32];
+    let p0 = vec![1.0f32, 0.0f32, 0.0f32, 1.0f32];
+
+    let (cpu_x_filt, cpu_p_diag) = t09::kalman_filter_forward_cpu(&y, 8, &f, &h, &q, &r, &x0, &p0, 2, 1);
+    for i in 0..16 {
+        assert!((cpu_x_filt[i] - golden_x_filt[i]).abs() < 1e-4);
+        assert!((cpu_p_diag[i] - golden_p_diag[i]).abs() < 1e-4);
+    }
+
+    // 2. HMM Forward & Viterbi
+    let log_pi = tensors.get("log_pi").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let log_a = tensors.get("log_A").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let log_b = tensors.get("log_B").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let obs_seq = tensors.get("obs_seq").unwrap().flatten_all()?.to_vec1::<i64>()?;
+    let golden_log_prob = tensors.get("hmm_log_prob").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+    let golden_viterbi = tensors.get("viterbi_path").unwrap().flatten_all()?.to_vec1::<i64>()?;
+
+    let cpu_ll = t09::hmm_forward_log_prob_cpu(&obs_seq, 8, &log_pi, &log_a, &log_b, 2, 3);
+    assert!((cpu_ll - golden_log_prob).abs() < 1e-4);
+
+    let cpu_viterbi = t09::hmm_viterbi_decode_cpu(&obs_seq, 8, &log_pi, &log_a, &log_b, 2, 3);
+    for i in 0..8 {
+        assert_eq!(cpu_viterbi[i], golden_viterbi[i]);
+    }
+
+    // 3. UKF Sigma Points CPU & Auto
+    let mu_ukf = tensors.get("mu_ukf").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let sigma_ukf = tensors.get("Sigma_ukf").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_sigma_pts = tensors.get("sigma_pts").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let kdev = KernelDevice::Cpu;
+    let cpu_sigma = t09::generate_ukf_sigma_points_cpu(&mu_ukf, &sigma_ukf, 2, 1e-3, 2.0, 0.0);
+    let auto_sigma = t09::generate_ukf_sigma_points_auto(Some(&kdev), &mu_ukf, &sigma_ukf, 2, 1e-3, 2.0, 0.0);
+
+    for i in 0..10 {
+        assert!((cpu_sigma[i] - golden_sigma_pts[i]).abs() < 1e-4);
+        assert!((auto_sigma[i] - golden_sigma_pts[i]).abs() < 1e-4);
     }
 
     Ok(())

@@ -24,5 +24,8 @@ pub mod test_07_differentiable_trees_node_soft_gbdt_and_gam_nam;
 #[path = "02_classical_and_probabilistic_ml/test_08_matrix_factorization_als_nmf_bpr_and_fm.rs"]
 pub mod test_08_matrix_factorization_als_nmf_bpr_and_fm;
 
+#[path = "02_classical_and_probabilistic_ml/test_09_hidden_markov_models_kalman_ukf_and_particle_filters.rs"]
+pub mod test_09_hidden_markov_models_kalman_ukf_and_particle_filters;
+
 
 
