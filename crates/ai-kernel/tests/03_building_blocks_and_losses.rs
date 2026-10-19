@@ -673,3 +673,71 @@ fn test_09_losses_divergences_information_bottleneck_and_coding_rate_cpu_and_aut
 
     Ok(())
 }
+
+use ai_kernel::c03_building_blocks_and_losses::t10_losses_optimal_transport_wasserstein_sinkhorn_and_mmd as t10;
+
+#[test]
+fn test_10_losses_optimal_transport_wasserstein_sinkhorn_and_mmd_cpu_and_auto() -> Result<()> {
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "03_building_blocks_and_losses/10_losses_optimal_transport_wasserstein_sinkhorn_and_mmd.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    let test_in = tensors.get("test_input").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let test_out = tensors.get("test_output").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let weight = tensors.get("weight").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let bias = tensors.get("bias").unwrap().to_vec1::<f32>()?;
+
+    let u_1d = tensors.get("u_1d").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let v_1d = tensors.get("v_1d").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let expected_w1 = tensors.get("expected_w1").unwrap().to_vec1::<f32>()?[0];
+
+    let swd_x = tensors.get("swd_x").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let swd_y = tensors.get("swd_y").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let projections = tensors.get("projections").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let expected_swd = tensors.get("expected_swd").unwrap().to_vec1::<f32>()?[0];
+
+    let cloud_p = tensors.get("cloud_p").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let cloud_q = tensors.get("cloud_q").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let expected_sink_raw = tensors.get("expected_sinkhorn_raw").unwrap().to_vec1::<f32>()?[0];
+    let expected_sink_deb = tensors.get("expected_sinkhorn_debiased").unwrap().to_vec1::<f32>()?[0];
+    let expected_mmd = tensors.get("expected_mmd").unwrap().to_vec1::<f32>()?[0];
+    let expected_energy = tensors.get("expected_energy").unwrap().to_vec1::<f32>()?[0];
+
+    // 1. Linear Anchor on CPU
+    let anchor_calc = t10::linear_anchor_forward_cpu(&test_in, &weight, &bias, 8, 4, 4);
+    for (i, (&calc, &gold)) in anchor_calc.iter().zip(test_out.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Linear anchor error at {i}: {calc} vs {gold}");
+    }
+
+    // 2. 1D Wasserstein on CPU
+    let w1_calc = t10::wasserstein_1d_cpu(&u_1d, &v_1d, 8, 16);
+    assert!((w1_calc - expected_w1).abs() < 1e-5, "1D Wasserstein error: {w1_calc} vs {expected_w1}");
+
+    // 3. Sliced Wasserstein on CPU
+    let swd_calc = t10::sliced_wasserstein_cpu(&swd_x, &swd_y, &projections, 8, 16, 4, 16);
+    assert!((swd_calc - expected_swd).abs() < 1e-5, "SWD error: {swd_calc} vs {expected_swd}");
+
+    // 4. Sinkhorn Raw on CPU
+    let sink_raw_calc = t10::sinkhorn_cpu(&cloud_p, &cloud_q, 8, 8, 4, 0.5, 20);
+    assert!((sink_raw_calc - expected_sink_raw).abs() < 1e-5, "Sinkhorn raw error: {sink_raw_calc} vs {expected_sink_raw}");
+
+    // 5. Debiased Sinkhorn on CPU
+    let sink_deb_calc = t10::debiased_sinkhorn_cpu(&cloud_p, &cloud_q, 8, 4, 0.5, 20);
+    assert!((sink_deb_calc - expected_sink_deb).abs() < 1e-5, "Debiased Sinkhorn error: {sink_deb_calc} vs {expected_sink_deb}");
+
+    // 6. MMD on CPU and Auto
+    let mmd_calc = t10::mmd_cpu(&cloud_p, &cloud_q, 8, 8, 4, &[0.5, 1.0, 2.0]);
+    assert!((mmd_calc - expected_mmd).abs() < 1e-5, "MMD CPU error: {mmd_calc} vs {expected_mmd}");
+
+    let mmd_auto_calc = t10::mmd_auto(None, &cloud_p, &cloud_q, 8, 8, 4, &[0.5, 1.0, 2.0]);
+    assert!((mmd_auto_calc - expected_mmd).abs() < 1e-5, "MMD Auto error: {mmd_auto_calc} vs {expected_mmd}");
+
+    // 7. Energy Distance on CPU
+    let energy_calc = t10::energy_distance_cpu(&cloud_p, &cloud_q, 8, 8, 4);
+    assert!((energy_calc - expected_energy).abs() < 1e-5, "Energy distance error: {energy_calc} vs {expected_energy}");
+
+    Ok(())
+}
+

@@ -26,3 +26,7 @@ mod test_08_losses_metric_contrastive_and_structured_vision;
 
 #[path = "03_building_blocks_and_losses/test_09_losses_divergences_information_bottleneck_and_coding_rate.rs"]
 mod test_09_losses_divergences_information_bottleneck_and_coding_rate;
+
+#[path = "03_building_blocks_and_losses/test_10_losses_optimal_transport_wasserstein_sinkhorn_and_mmd.rs"]
+mod test_10_losses_optimal_transport_wasserstein_sinkhorn_and_mmd;
+

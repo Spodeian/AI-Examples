@@ -115,5 +115,8 @@ pub mod c03_building_blocks_and_losses {
 
     #[path = "09_losses_divergences_information_bottleneck_and_coding_rate.rs"]
     pub mod t09_losses_divergences_information_bottleneck_and_coding_rate;
+
+    #[path = "10_losses_optimal_transport_wasserstein_sinkhorn_and_mmd.rs"]
+    pub mod t10_losses_optimal_transport_wasserstein_sinkhorn_and_mmd;
 }
 
