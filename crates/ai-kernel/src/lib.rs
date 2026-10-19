@@ -142,5 +142,8 @@ pub mod c04_training_methods_and_optimisers {
 
     #[path = "01_gradient_and_curvature_optimisers/04_orthogonal_and_preconditioned_matrix_optimisers.rs"]
     pub mod t04_orthogonal_and_preconditioned_matrix_optimisers;
+
+    #[path = "01_gradient_and_curvature_optimisers/05_second_order_and_curvature_optimisers.rs"]
+    pub mod t05_second_order_and_curvature_optimisers;
 }
 

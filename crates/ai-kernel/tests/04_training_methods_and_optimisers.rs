@@ -423,5 +423,97 @@ fn test_04_orthogonal_and_preconditioned_matrix_optimisers_cpu_and_auto() -> Res
     Ok(())
 }
 
+#[test]
+fn test_05_second_order_and_curvature_optimisers_cpu_and_auto() -> Result<()> {
+    use ai_kernel::c04_training_methods_and_optimisers::t05_second_order_and_curvature_optimisers as t05;
+
+    let kdev = KernelDevice::Cpu;
+    let weights_path = common::get_weights_path(
+        "04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/05_second_order_and_curvature_optimisers.safetensors",
+    );
+    let tensors = load(weights_path, &Device::Cpu)?;
+
+    let theta = tensors.get("theta").unwrap().to_vec1::<f32>()?;
+    let grad = tensors.get("grad").unwrap().to_vec1::<f32>()?;
+    let momentum = tensors.get("momentum").unwrap().to_vec1::<f32>()?;
+    let hess_diag = tensors.get("hess_diag").unwrap().to_vec1::<f32>()?;
+    let hess_diag_est = tensors.get("hess_diag_est").unwrap().to_vec1::<f32>()?;
+    let ada_v = tensors.get("ada_v").unwrap().to_vec1::<f32>()?;
+    let ada_d = tensors.get("ada_d").unwrap().to_vec1::<f32>()?;
+    let lbfgs_s = tensors.get("lbfgs_s").unwrap().to_vec2::<f32>()?;
+    let lbfgs_y = tensors.get("lbfgs_y").unwrap().to_vec2::<f32>()?;
+    let flat_s: Vec<f32> = lbfgs_s.iter().flatten().copied().collect();
+    let flat_y: Vec<f32> = lbfgs_y.iter().flatten().copied().collect();
+
+    let lm_jacobian = tensors.get("lm_jacobian").unwrap().to_vec2::<f32>()?;
+    let flat_j: Vec<f32> = lm_jacobian.iter().flatten().copied().collect();
+    let lm_residual = tensors.get("lm_residual").unwrap().to_vec1::<f32>()?;
+
+    let gold_lbfgs = tensors.get("golden_lbfgs_theta").unwrap().to_vec1::<f32>()?;
+    let gold_sophia_th = tensors.get("golden_sophia_theta").unwrap().to_vec1::<f32>()?;
+    let gold_sophia_m = tensors.get("golden_sophia_m").unwrap().to_vec1::<f32>()?;
+    let gold_sophia_h = tensors.get("golden_sophia_h").unwrap().to_vec1::<f32>()?;
+
+    let gold_ada_th = tensors.get("golden_adahessian_theta").unwrap().to_vec1::<f32>()?;
+    let gold_ada_m = tensors.get("golden_adahessian_m").unwrap().to_vec1::<f32>()?;
+    let gold_ada_v = tensors.get("golden_adahessian_v").unwrap().to_vec1::<f32>()?;
+
+    let gold_lm_th = tensors.get("golden_lm_theta").unwrap().to_vec1::<f32>()?;
+
+    let d = theta.len();
+    let m_hist = lbfgs_s.len();
+    let n_res = lm_jacobian.len();
+
+    // 1. L-BFGS CPU & Auto
+    let cpu_lbfgs = t05::step_lbfgs_cpu(&theta, &flat_s, &flat_y, &grad, 0.1, m_hist, d);
+    let auto_lbfgs = t05::step_lbfgs_auto(&kdev, &theta, &flat_s, &flat_y, &grad, 0.1, m_hist, d);
+    for j in 0..d {
+        assert!((cpu_lbfgs[j] - gold_lbfgs[j]).abs() < 1e-5);
+        assert!((auto_lbfgs[j] - gold_lbfgs[j]).abs() < 1e-5);
+    }
+
+    // 2. Sophia-G CPU & Auto
+    let (cpu_s_th, cpu_s_m, cpu_s_h) = t05::step_sophia_cpu(
+        &theta, &grad, &momentum, &hess_diag, &hess_diag_est, 0.01, 0.96, 0.99, 0.01, 0.04, 1e-6,
+    );
+    let (auto_s_th, auto_s_m, auto_s_h) = t05::step_sophia_auto(
+        &kdev, &theta, &grad, &momentum, &hess_diag, &hess_diag_est, 0.01, 0.96, 0.99, 0.01, 0.04, 1e-6,
+    );
+    for j in 0..d {
+        assert!((cpu_s_th[j] - gold_sophia_th[j]).abs() < 1e-5);
+        assert!((auto_s_th[j] - gold_sophia_th[j]).abs() < 1e-5);
+        assert!((cpu_s_m[j] - gold_sophia_m[j]).abs() < 1e-5);
+        assert!((auto_s_m[j] - gold_sophia_m[j]).abs() < 1e-5);
+        assert!((cpu_s_h[j] - gold_sophia_h[j]).abs() < 1e-5);
+        assert!((auto_s_h[j] - gold_sophia_h[j]).abs() < 1e-5);
+    }
+
+    // 3. AdaHessian CPU & Auto
+    let (cpu_a_th, cpu_a_m, cpu_a_v) = t05::step_adahessian_cpu(
+        &theta, &grad, &momentum, &ada_v, &ada_d, 0.01, 0.9, 0.999, 0.01, 1, 1e-4,
+    );
+    let (auto_a_th, auto_a_m, auto_a_v) = t05::step_adahessian_auto(
+        &kdev, &theta, &grad, &momentum, &ada_v, &ada_d, 0.01, 0.9, 0.999, 0.01, 1, 1e-4,
+    );
+    for j in 0..d {
+        assert!((cpu_a_th[j] - gold_ada_th[j]).abs() < 1e-5);
+        assert!((auto_a_th[j] - gold_ada_th[j]).abs() < 1e-5);
+        assert!((cpu_a_m[j] - gold_ada_m[j]).abs() < 1e-5);
+        assert!((auto_a_m[j] - gold_ada_m[j]).abs() < 1e-5);
+        assert!((cpu_a_v[j] - gold_ada_v[j]).abs() < 1e-5);
+        assert!((auto_a_v[j] - gold_ada_v[j]).abs() < 1e-5);
+    }
+
+    // 4. Levenberg-Marquardt CPU & Auto
+    let cpu_lm = t05::step_lm_cpu(&theta, &flat_j, &lm_residual, 0.1, n_res, d);
+    let auto_lm = t05::step_lm_auto(&kdev, &theta, &flat_j, &lm_residual, 0.1, n_res, d);
+    for j in 0..d {
+        assert!((cpu_lm[j] - gold_lm_th[j]).abs() < 1e-5);
+        assert!((auto_lm[j] - gold_lm_th[j]).abs() < 1e-5);
+    }
+
+    Ok(())
+}
+
 
 
