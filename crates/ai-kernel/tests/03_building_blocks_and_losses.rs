@@ -926,3 +926,82 @@ fn test_12_latent_decision_gates_highway_hard_concrete_entmax_and_ponder_halting
     Ok(())
 }
 
+use ai_kernel::c03_building_blocks_and_losses::t13_differentiable_sorting_ranking_topk_permutahedron_and_imle as t13;
+
+#[test]
+fn test_13_differentiable_sorting_ranking_topk_permutahedron_and_imle_cpu_and_auto() -> Result<()> {
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "03_building_blocks_and_losses/13_differentiable_sorting_ranking_topk_permutahedron_and_imle.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    let test_in = tensors.get("test_input").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let test_out = tensors.get("test_output").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let weight = tensors.get("weight").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let bias = tensors.get("bias").unwrap().to_vec1::<f32>()?;
+
+    let softsort_scores = tensors.get("softsort_scores").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let expected_p_soft = tensors.get("expected_p_soft").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let expected_sorted_approx = tensors.get("expected_sorted_approx").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let neuralsort_scores = tensors.get("neuralsort_scores").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let expected_p_neural = tensors.get("expected_p_neural").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let topk_scores = tensors.get("topk_scores").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let expected_topk_weights = tensors.get("expected_topk_weights").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let hist_x = tensors.get("hist_x").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let bin_centers = tensors.get("bin_centers").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let expected_histogram = tensors.get("expected_histogram").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let quantile_scores = tensors.get("quantile_scores").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let expected_median = tensors.get("expected_median").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    // 1. Linear Anchor on CPU
+    let anchor_calc = t13::linear_anchor_forward_cpu(&test_in, &weight, &bias, 8, 4, 4);
+    for (i, (&calc, &gold)) in anchor_calc.iter().zip(test_out.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Linear anchor error at {i}: {calc} vs {gold}");
+    }
+
+    // 2. SoftSort on CPU
+    let (p_soft_calc, sorted_calc) = t13::soft_sort_cpu(&softsort_scores, 8, 4, 0.2);
+    for (i, (&calc, &gold)) in p_soft_calc.iter().zip(expected_p_soft.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "SoftSort P error at {i}: {calc} vs {gold}");
+    }
+    for (i, (&calc, &gold)) in sorted_calc.iter().zip(expected_sorted_approx.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "SoftSort sorted error at {i}: {calc} vs {gold}");
+    }
+
+    // 3. NeuralSort on CPU
+    let p_neural_calc = t13::neural_sort_cpu(&neuralsort_scores, 8, 4, 0.5);
+    for (i, (&calc, &gold)) in p_neural_calc.iter().zip(expected_p_neural.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "NeuralSort P error at {i}: {calc} vs {gold}");
+    }
+
+    // 4. Diff Top-k on CPU
+    let topk_calc = t13::diff_topk_cpu(&topk_scores, 8, 4, 2, 0.2, 15);
+    for (i, (&calc, &gold)) in topk_calc.iter().zip(expected_topk_weights.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Diff Top-k error at {i}: {calc} vs {gold}");
+    }
+
+    // 5. Soft Histogram on CPU and Auto
+    let hist_calc = t13::soft_histogram_cpu(&hist_x, &bin_centers, 1.0, 0.1, 8, 16, 4);
+    for (i, (&calc, &gold)) in hist_calc.iter().zip(expected_histogram.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Soft histogram CPU error at {i}: {calc} vs {gold}");
+    }
+
+    let hist_auto_calc = t13::soft_histogram_auto(None, &hist_x, &bin_centers, 1.0, 0.1, 8, 16, 4);
+    for (i, (&calc, &gold)) in hist_auto_calc.iter().zip(expected_histogram.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Soft histogram Auto error at {i}: {calc} vs {gold}");
+    }
+
+    // 6. Soft Quantile on CPU
+    let median_calc = t13::soft_quantile_cpu(&quantile_scores, 0.5, 0.2, 8, 4);
+    for (i, (&calc, &gold)) in median_calc.iter().zip(expected_median.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Soft quantile error at {i}: {calc} vs {gold}");
+    }
+
+    Ok(())
+}
+

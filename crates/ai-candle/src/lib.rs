@@ -119,6 +119,9 @@ pub mod c03_building_blocks_and_losses {
 
     #[path = "12_latent_decision_gates_highway_hard_concrete_entmax_and_ponder_halting.rs"]
     pub mod t12_latent_decision_gates_highway_hard_concrete_entmax_and_ponder_halting;
+
+    #[path = "13_differentiable_sorting_ranking_topk_permutahedron_and_imle.rs"]
+    pub mod t13_differentiable_sorting_ranking_topk_permutahedron_and_imle;
 }
 
 

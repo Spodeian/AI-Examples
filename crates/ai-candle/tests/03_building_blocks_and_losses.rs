@@ -36,3 +36,6 @@ mod test_11_losses_proper_scoring_evidential_and_differentiable_ranking;
 #[path = "03_building_blocks_and_losses/test_12_latent_decision_gates_highway_hard_concrete_entmax_and_ponder_halting.rs"]
 mod test_12_latent_decision_gates_highway_hard_concrete_entmax_and_ponder_halting;
 
+#[path = "03_building_blocks_and_losses/test_13_differentiable_sorting_ranking_topk_permutahedron_and_imle.rs"]
+mod test_13_differentiable_sorting_ranking_topk_permutahedron_and_imle;
+
