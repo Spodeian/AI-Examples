@@ -94,6 +94,9 @@ pub mod c02_classical_and_probabilistic_ml {
 
     #[path = "02_support_vector_machines_and_kernel_methods.rs"]
     pub mod t02_support_vector_machines_and_kernel_methods;
+
+    #[path = "03_knn_prototype_and_locally_weighted_regression.rs"]
+    pub mod t03_knn_prototype_and_locally_weighted_regression;
 }
 
 #[path = "../../../kernels/03_building_blocks_and_losses"]

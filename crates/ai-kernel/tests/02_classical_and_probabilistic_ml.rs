@@ -2,6 +2,7 @@
 
 use ai_kernel::c02_classical_and_probabilistic_ml::t01_generalized_linear_models_and_proximal_lasso as t01;
 use ai_kernel::c02_classical_and_probabilistic_ml::t02_support_vector_machines_and_kernel_methods as t02;
+use ai_kernel::c02_classical_and_probabilistic_ml::t03_knn_prototype_and_locally_weighted_regression as t03;
 use ai_kernel::KernelDevice;
 use candle_core::{safetensors::load, Device, Result};
 
@@ -143,6 +144,49 @@ fn test_02_support_vector_machines_and_kernel_methods_cpu_and_auto() -> Result<(
     let cpu_k_nystrom = t02::nystrom_approximate_gram_cpu(&x, n, &landmarks, m, d, gamma, 1e-4);
     for i in 0..(n * n) {
         assert!((cpu_k_nystrom[i] - golden_k_nystrom[i]).abs() < 1e-4);
+    }
+
+    Ok(())
+}
+
+#[test]
+fn test_03_knn_prototype_and_locally_weighted_regression_cpu_and_auto() -> Result<()> {
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "02_classical_and_probabilistic_ml/03_knn_prototype_and_locally_weighted_regression.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    let x_train = tensors.get("X_train").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let y_train_cont = tensors.get("y_train_cont").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let x_test = tensors.get("X_test").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_dist_sq = tensors.get("dist_sq").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_knn_reg_pred = tensors.get("knn_reg_pred").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_nw_pred = tensors.get("nw_pred").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let n_train = 64;
+    let n_test = 16;
+    let d = 8;
+
+    // 1. Pairwise Dist Sq CPU & Auto
+    let kdev = KernelDevice::Cpu;
+    let cpu_dist_sq = t03::pairwise_sq_dist_cpu(&x_train, n_train, &x_test, n_test, d);
+    let auto_dist_sq = t03::compute_pairwise_sq_dist_auto(&kdev, &x_train, n_train, &x_test, n_test, d);
+    for i in 0..(n_train * n_test) {
+        assert!((cpu_dist_sq[i] - golden_dist_sq[i]).abs() < 1e-4);
+        assert!((auto_dist_sq[i] - golden_dist_sq[i]).abs() < 1e-4);
+    }
+
+    // 2. k-NN Continuous Regression
+    let cpu_knn_pred = t03::knn_regress_cpu(&x_train, &y_train_cont, n_train, &x_test, n_test, d, 5, 1e-5);
+    for j in 0..n_test {
+        assert!((cpu_knn_pred[j] - golden_knn_reg_pred[j]).abs() < 1e-4);
+    }
+
+    // 3. Nadaraya-Watson Regression
+    let cpu_nw_pred = t03::nadaraya_watson_regress_cpu(&x_train, &y_train_cont, n_train, &x_test, n_test, d, 1.0);
+    for j in 0..n_test {
+        assert!((cpu_nw_pred[j] - golden_nw_pred[j]).abs() < 1e-4);
     }
 
     Ok(())
