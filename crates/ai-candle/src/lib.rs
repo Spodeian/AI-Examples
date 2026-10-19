@@ -128,6 +128,9 @@ pub mod c03_building_blocks_and_losses {
 pub mod c04_training_methods_and_optimisers {
     #[path = "01_gradient_and_curvature_optimisers/01_first_order_and_adaptive_optimisers.rs"]
     pub mod t01_first_order_and_adaptive_optimisers;
+
+    #[path = "01_gradient_and_curvature_optimisers/02_modern_sign_and_factored_optimisers.rs"]
+    pub mod t02_modern_sign_and_factored_optimisers;
 }
 
 
