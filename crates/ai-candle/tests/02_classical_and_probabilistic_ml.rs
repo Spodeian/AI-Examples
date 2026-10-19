@@ -21,4 +21,8 @@ pub mod test_06_naive_bayes_bayesian_regression_and_gaussian_processes;
 #[path = "02_classical_and_probabilistic_ml/test_07_differentiable_trees_node_soft_gbdt_and_gam_nam.rs"]
 pub mod test_07_differentiable_trees_node_soft_gbdt_and_gam_nam;
 
+#[path = "02_classical_and_probabilistic_ml/test_08_matrix_factorization_als_nmf_bpr_and_fm.rs"]
+pub mod test_08_matrix_factorization_als_nmf_bpr_and_fm;
+
+
 

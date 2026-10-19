@@ -7,6 +7,7 @@ use ai_kernel::c02_classical_and_probabilistic_ml::t04_clustering_kmeans_spectra
 use ai_kernel::c02_classical_and_probabilistic_ml::t05_dimensionality_reduction_pca_lda_ica_tsne_umap as t05;
 use ai_kernel::c02_classical_and_probabilistic_ml::t06_naive_bayes_bayesian_regression_and_gaussian_processes as t06;
 use ai_kernel::c02_classical_and_probabilistic_ml::t07_differentiable_trees_node_soft_gbdt_and_gam_nam as t07;
+use ai_kernel::c02_classical_and_probabilistic_ml::t08_matrix_factorization_als_nmf_bpr_and_fm as t08;
 use ai_kernel::KernelDevice;
 use candle_core::{safetensors::load, Device, Result};
 
@@ -407,5 +408,46 @@ fn test_07_differentiable_trees_node_soft_gbdt_and_gam_nam_cpu_and_auto() -> Res
 
     Ok(())
 }
+
+#[test]
+fn test_08_matrix_factorization_als_nmf_bpr_and_fm_cpu_and_auto() -> Result<()> {
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "02_classical_and_probabilistic_ml/08_matrix_factorization_als_nmf_bpr_and_fm.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    let x = tensors.get("X").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let w0 = tensors.get("w0").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+    let w_fm = tensors.get("w_fm").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let v_fm = tensors.get("V_fm").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_fm_out = tensors.get("fm_out").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let p_als = tensors.get("P_als").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let q_als = tensors.get("Q_als").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_r_als = tensors.get("R_als_pred").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let n = 32;
+    let d = 4;
+    let k = 2;
+
+    // 1. FM Forward CPU & Auto
+    let kdev = KernelDevice::Cpu;
+    let cpu_fm = t08::factorization_machine_cpu(&x, n, d, k, w0, &w_fm, &v_fm);
+    let auto_fm = t08::factorization_machine_auto(Some(&kdev), &x, n, d, k, w0, &w_fm, &v_fm);
+    for i in 0..n {
+        assert!((cpu_fm[i] - golden_fm_out[i]).abs() < 1e-4);
+        assert!((auto_fm[i] - golden_fm_out[i]).abs() < 1e-4);
+    }
+
+    // 2. Low-rank Matrix Factorization Prediction CPU
+    let cpu_r_als = t08::matrix_factorization_predict_cpu(&p_als, &q_als, 8, 8, k);
+    for i in 0..64 {
+        assert!((cpu_r_als[i] - golden_r_als[i]).abs() < 1e-4);
+    }
+
+    Ok(())
+}
+
 
 

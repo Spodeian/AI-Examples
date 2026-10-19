@@ -104,6 +104,9 @@ pub mod c02_classical_and_probabilistic_ml {
 
     #[path = "07_differentiable_trees_node_soft_gbdt_and_gam_nam.rs"]
     pub mod t07_differentiable_trees_node_soft_gbdt_and_gam_nam;
+
+    #[path = "08_matrix_factorization_als_nmf_bpr_and_fm.rs"]
+    pub mod t08_matrix_factorization_als_nmf_bpr_and_fm;
 }
 
 #[path = "../../../candle/03_building_blocks_and_losses"]
