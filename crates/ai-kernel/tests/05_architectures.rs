@@ -240,4 +240,46 @@ fn test_05_kolmogorov_arnold_networks_kan_cpu_and_auto() -> Result<()> {
     Ok(())
 }
 
+use ai_kernel::c05_architectures::t06_lossless_deliberation_reversible_revnet_hyper_connections_and_looped_depth as t06;
+
+#[test]
+fn test_06_lossless_deliberation_reversible_revnet_hyper_connections_and_looped_depth_cpu_and_auto() -> Result<()> {
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "05_architectures/01_mlp_moe_soups_and_kan/06_lossless_deliberation_reversible_revnet_hyper_connections_and_looped_depth.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    // 1. Linear Anchor on CPU
+    let test_input = tensors.get("test_input").unwrap().to_vec2::<f32>()?;
+    let test_input_flat: Vec<f32> = test_input.into_iter().flatten().collect();
+    let weight = tensors.get("weight").unwrap().to_vec2::<f32>()?;
+    let weight_flat: Vec<f32> = weight.into_iter().flatten().collect();
+    let bias = tensors.get("bias").unwrap().to_vec1::<f32>()?;
+    let golden_out = tensors.get("test_output").unwrap().to_vec2::<f32>()?;
+    let golden_out_flat: Vec<f32> = golden_out.into_iter().flatten().collect();
+
+    let anchor_calc = t06::linear_anchor_auto(&test_input_flat, &weight_flat, &bias, 8, 4, 4);
+    for (i, (&calc, &gold)) in anchor_calc.iter().zip(golden_out_flat.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Linear anchor error at {i}: {calc} vs {gold}");
+    }
+
+    // 2. Hyper-Connections Multi-Lane Update Kernel Verification
+    let h1 = vec![1.0f32; 16];
+    let h2 = vec![0.5f32; 16];
+    let v = vec![0.2f32; 16];
+    let beta0 = 0.5f32;
+    let beta1 = 0.5f32;
+
+    let update_cpu = t06::hyper_connections_update_cpu(&h1, &h2, &v, beta0, beta1);
+    assert_eq!(update_cpu.len(), 16);
+
+    let update_auto = t06::hyper_connections_update_auto(None, &h1, &h2, &v, beta0, beta1);
+    for (i, (&c, &a)) in update_cpu.iter().zip(update_auto.iter()).enumerate() {
+        assert!((c - a).abs() < 1e-5, "HC update CPU vs Auto mismatch at {i}: {c} vs {a}");
+    }
+
+    Ok(())
+}
+
 

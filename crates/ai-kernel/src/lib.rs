@@ -259,6 +259,9 @@ pub mod c05_architectures {
 
     #[path = "01_mlp_moe_soups_and_kan/05_kolmogorov_arnold_networks_kan.rs"]
     pub mod t05_kolmogorov_arnold_networks_kan;
+
+    #[path = "01_mlp_moe_soups_and_kan/06_lossless_deliberation_reversible_revnet_hyper_connections_and_looped_depth.rs"]
+    pub mod t06_lossless_deliberation_reversible_revnet_hyper_connections_and_looped_depth;
 }
 
 

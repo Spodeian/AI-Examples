@@ -15,5 +15,8 @@ mod test_04_soup_of_experts_smear_rewarded_soups_btx_and_upcycling;
 #[path = "05_architectures/test_05_kolmogorov_arnold_networks_kan.rs"]
 mod test_05_kolmogorov_arnold_networks_kan;
 
+#[path = "05_architectures/test_06_lossless_deliberation_reversible_revnet_hyper_connections_and_looped_depth.rs"]
+mod test_06_lossless_deliberation_reversible_revnet_hyper_connections_and_looped_depth;
+
 
 
