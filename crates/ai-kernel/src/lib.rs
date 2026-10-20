@@ -121,6 +121,9 @@ pub mod c02_classical_and_probabilistic_ml {
 
     #[path = "11_probabilistic_graphical_models_factor_graphs_bp_and_cavi.rs"]
     pub mod t11_probabilistic_graphical_models_factor_graphs_bp_and_cavi;
+
+    #[path = "12_mcmc_hmc_sgld_and_stein_variational_gradient_descent_svgd.rs"]
+    pub mod t12_mcmc_hmc_sgld_and_stein_variational_gradient_descent_svgd;
 }
 
 #[path = "../../../kernels/03_building_blocks_and_losses"]

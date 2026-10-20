@@ -11,6 +11,7 @@ use ai_kernel::c02_classical_and_probabilistic_ml::t08_matrix_factorization_als_
 use ai_kernel::c02_classical_and_probabilistic_ml::t09_hidden_markov_models_kalman_ukf_and_particle_filters as t09;
 use ai_kernel::c02_classical_and_probabilistic_ml::t10_survival_analysis_and_contextual_bandits as t10;
 use ai_kernel::c02_classical_and_probabilistic_ml::t11_probabilistic_graphical_models_factor_graphs_bp_and_cavi as t11;
+use ai_kernel::c02_classical_and_probabilistic_ml::t12_mcmc_hmc_sgld_and_stein_variational_gradient_descent_svgd as t12;
 use ai_kernel::KernelDevice;
 use candle_core::{safetensors::load, Device, Result};
 
@@ -628,6 +629,65 @@ fn test_11_probabilistic_graphical_models_factor_graphs_bp_and_cavi_cpu_and_auto
     }
     assert!((cpu_elbo - golden_elbo).abs() < 1e-4);
     assert!((auto_elbo - golden_elbo).abs() < 1e-4);
+
+    Ok(())
+}
+
+#[test]
+fn test_12_mcmc_hmc_sgld_and_stein_variational_gradient_descent_svgd_cpu_and_auto() -> Result<()> {
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "02_classical_and_probabilistic_ml/12_mcmc_hmc_sgld_and_stein_variational_gradient_descent_svgd.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    // 1. HMC Leapfrog CPU
+    let theta_init = tensors.get("theta_init").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let p_init = tensors.get("p_init").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let sigma_inv = tensors.get("Sigma_inv").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_hmc_theta = tensors.get("hmc_theta_prop").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_hmc_p = tensors.get("hmc_p_prop").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_hmc_accept = tensors.get("hmc_accept_ratio").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+
+    let (cpu_theta, cpu_p, cpu_accept) = t12::hmc_leapfrog_cpu(&theta_init, &p_init, &sigma_inv, 0.1, 5, 2);
+    for i in 0..2 {
+        assert!((cpu_theta[i] - golden_hmc_theta[i]).abs() < 1e-4);
+        assert!((cpu_p[i] - golden_hmc_p[i]).abs() < 1e-4);
+    }
+    assert!((cpu_accept - golden_hmc_accept).abs() < 1e-4);
+
+    // 2. SGLD CPU
+    let theta_sgld = tensors.get("theta_sgld").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let grad_logp_sgld = tensors.get("grad_logp_sgld").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let noise_sgld = tensors.get("noise_sgld").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_sgld_next = tensors.get("theta_sgld_next").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let cpu_sgld_next = t12::sgld_step_cpu(&theta_sgld, &grad_logp_sgld, &noise_sgld, 0.05);
+    for i in 0..2 {
+        assert!((cpu_sgld_next[i] - golden_sgld_next[i]).abs() < 1e-4);
+    }
+
+    // 3. SVGD CPU & Auto
+    let particles_init = tensors.get("particles_init").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let grad_logp_svgd = tensors.get("grad_logp_svgd").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_vel = tensors.get("svgd_velocity").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_gram = tensors.get("svgd_kernel_gram").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let kdev = KernelDevice::Cpu;
+    let m = 8;
+    let d = 2;
+
+    let (cpu_vel, cpu_gram) = t12::svgd_velocity_field_cpu(&particles_init, &grad_logp_svgd, m, d, 1.0);
+    let (auto_vel, auto_gram) = t12::svgd_velocity_field_auto(Some(&kdev), &particles_init, &grad_logp_svgd, m, d, 1.0);
+
+    for i in 0..(m * d) {
+        assert!((cpu_vel[i] - golden_vel[i]).abs() < 1e-4);
+        assert!((auto_vel[i] - golden_vel[i]).abs() < 1e-4);
+    }
+    for i in 0..(m * m) {
+        assert!((cpu_gram[i] - golden_gram[i]).abs() < 1e-4);
+        assert!((auto_gram[i] - golden_gram[i]).abs() < 1e-4);
+    }
 
     Ok(())
 }
