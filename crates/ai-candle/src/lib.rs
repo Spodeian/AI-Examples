@@ -260,6 +260,9 @@ pub mod c05_architectures {
 
     #[path = "02_convolutional_and_spatiotemporal/01_classic_to_modern_cnns_resnet_densenet_convnext.rs"]
     pub mod t07_classic_to_modern_cnns_resnet_densenet_convnext;
+
+    #[path = "02_convolutional_and_spatiotemporal/02_specialized_convolutions_and_channel_attention.rs"]
+    pub mod t08_specialized_convolutions_and_channel_attention;
 }
 
 

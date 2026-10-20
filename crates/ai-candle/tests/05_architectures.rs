@@ -21,5 +21,8 @@ mod test_06_lossless_deliberation_reversible_revnet_hyper_connections_and_looped
 #[path = "05_architectures/test_07_classic_to_modern_cnns_resnet_densenet_convnext.rs"]
 mod test_07_classic_to_modern_cnns_resnet_densenet_convnext;
 
+#[path = "05_architectures/test_08_specialized_convolutions_and_channel_attention.rs"]
+mod test_08_specialized_convolutions_and_channel_attention;
+
 
 

@@ -328,4 +328,49 @@ fn test_07_classic_to_modern_cnns_resnet_densenet_convnext_cpu_and_auto() -> Res
     Ok(())
 }
 
+use ai_kernel::c05_architectures::t08_specialized_convolutions_and_channel_attention as t08;
+
+#[test]
+fn test_08_specialized_convolutions_and_channel_attention_cpu_and_auto() -> Result<()> {
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "05_architectures/02_convolutional_and_spatiotemporal/02_specialized_convolutions_and_channel_attention.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    // 1. Linear Anchor on CPU
+    let test_input = tensors.get("test_input").unwrap().to_vec2::<f32>()?;
+    let test_input_flat: Vec<f32> = test_input.into_iter().flatten().collect();
+    let weight = tensors.get("weight").unwrap().to_vec2::<f32>()?;
+    let weight_flat: Vec<f32> = weight.into_iter().flatten().collect();
+    let bias = tensors.get("bias").unwrap().to_vec1::<f32>()?;
+    let golden_out = tensors.get("test_output").unwrap().to_vec2::<f32>()?;
+    let golden_out_flat: Vec<f32> = golden_out.into_iter().flatten().collect();
+
+    let anchor_calc = t08::linear_anchor_auto(&test_input_flat, &weight_flat, &bias, 8, 4, 4);
+    for (i, (&calc, &gold)) in anchor_calc.iter().zip(golden_out_flat.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Linear anchor error at {i}: {calc} vs {gold}");
+    }
+
+    // 2. Channel Attention Recalibration Kernel Verification
+    let b_sz = 2;
+    let c_sz = 4;
+    let h_sz = 8;
+    let w_sz = 8;
+    let total = b_sz * c_sz * h_sz * w_sz;
+
+    let x = vec![0.5f32; total];
+    let scale = vec![0.8f32; b_sz * c_sz];
+
+    let att_cpu = t08::channel_attention_cpu(&x, &scale, b_sz, c_sz, h_sz, w_sz);
+    assert_eq!(att_cpu.len(), total);
+
+    let att_auto = t08::channel_attention_auto(None, &x, &scale, b_sz, c_sz, h_sz, w_sz);
+    for (i, (&c, &a)) in att_cpu.iter().zip(att_auto.iter()).enumerate() {
+        assert!((c - a).abs() < 1e-5, "Channel attention CPU vs Auto mismatch at {i}: {c} vs {a}");
+    }
+
+    Ok(())
+}
+
 
