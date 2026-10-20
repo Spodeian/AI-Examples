@@ -461,6 +461,53 @@ fn test_10_spatiotemporal_video_i3d_inflation_and_vivit_timesformer_cpu_and_auto
     Ok(())
 }
 
+use ai_kernel::c05_architectures::t11_wavelet_scattering_wtconv_steerable_and_morphological_networks as t11;
+
+#[test]
+fn test_11_wavelet_scattering_wtconv_steerable_and_morphological_networks_cpu_and_auto() -> Result<()> {
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "05_architectures/02_convolutional_and_spatiotemporal/05_wavelet_scattering_wtconv_steerable_and_morphological_networks.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    // 1. Linear Anchor on CPU
+    let test_input = tensors.get("test_input").unwrap().to_vec2::<f32>()?;
+    let test_input_flat: Vec<f32> = test_input.into_iter().flatten().collect();
+    let weight = tensors.get("weight").unwrap().to_vec2::<f32>()?;
+    let weight_flat: Vec<f32> = weight.into_iter().flatten().collect();
+    let bias = tensors.get("bias").unwrap().to_vec1::<f32>()?;
+    let golden_out = tensors.get("test_output").unwrap().to_vec2::<f32>()?;
+    let golden_out_flat: Vec<f32> = golden_out.into_iter().flatten().collect();
+
+    let anchor_calc = t11::linear_anchor_auto(&test_input_flat, &weight_flat, &bias, 8, 4, 4);
+    for (i, (&calc, &gold)) in anchor_calc.iter().zip(golden_out_flat.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Linear anchor error at {i}: {calc} vs {gold}");
+    }
+
+    // 2. Morphological Dilation Kernel Verification
+    let input_flat = tensors.get("input").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let se_flat = tensors.get("morph_se").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let expected_flat = tensors.get("morph_output").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let b = 2;
+    let c = 4;
+    let h = 8;
+    let w = 8;
+
+    let morph_cpu = t11::morphological_dilation_cpu(&input_flat, &se_flat, b, c, h, w);
+    assert_eq!(morph_cpu.len(), expected_flat.len());
+
+    let morph_auto = t11::morphological_dilation_auto(None, &input_flat, &se_flat, b, c, h, w);
+    for (i, (&cp, &au)) in morph_cpu.iter().zip(morph_auto.iter()).enumerate() {
+        assert!((cp - au).abs() < 1e-5, "Morphological CPU vs Auto mismatch at {i}: {cp} vs {au}");
+        assert!((cp - expected_flat[i]).abs() < 1e-5, "Morphological vs Golden mismatch at {i}: {cp} vs {}", expected_flat[i]);
+    }
+
+    Ok(())
+}
+
+
 
 
 

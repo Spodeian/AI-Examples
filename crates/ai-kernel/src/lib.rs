@@ -274,6 +274,9 @@ pub mod c05_architectures {
 
     #[path = "02_convolutional_and_spatiotemporal/04_spatiotemporal_video_i3d_inflation_and_vivit_timesformer.rs"]
     pub mod t10_spatiotemporal_video_i3d_inflation_and_vivit_timesformer;
+
+    #[path = "02_convolutional_and_spatiotemporal/05_wavelet_scattering_wtconv_steerable_and_morphological_networks.rs"]
+    pub mod t11_wavelet_scattering_wtconv_steerable_and_morphological_networks;
 }
 
 
