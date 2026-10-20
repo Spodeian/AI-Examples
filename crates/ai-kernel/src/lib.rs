@@ -124,6 +124,9 @@ pub mod c02_classical_and_probabilistic_ml {
 
     #[path = "12_mcmc_hmc_sgld_and_stein_variational_gradient_descent_svgd.rs"]
     pub mod t12_mcmc_hmc_sgld_and_stein_variational_gradient_descent_svgd;
+
+    #[path = "13_tractable_probabilistic_circuits_spn_copulas_evt_and_sbi.rs"]
+    pub mod t13_tractable_probabilistic_circuits_spn_copulas_evt_and_sbi;
 }
 
 #[path = "../../../kernels/03_building_blocks_and_losses"]

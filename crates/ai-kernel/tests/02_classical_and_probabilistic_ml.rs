@@ -12,6 +12,7 @@ use ai_kernel::c02_classical_and_probabilistic_ml::t09_hidden_markov_models_kalm
 use ai_kernel::c02_classical_and_probabilistic_ml::t10_survival_analysis_and_contextual_bandits as t10;
 use ai_kernel::c02_classical_and_probabilistic_ml::t11_probabilistic_graphical_models_factor_graphs_bp_and_cavi as t11;
 use ai_kernel::c02_classical_and_probabilistic_ml::t12_mcmc_hmc_sgld_and_stein_variational_gradient_descent_svgd as t12;
+use ai_kernel::c02_classical_and_probabilistic_ml::t13_tractable_probabilistic_circuits_spn_copulas_evt_and_sbi as t13;
 use ai_kernel::KernelDevice;
 use candle_core::{safetensors::load, Device, Result};
 
@@ -687,6 +688,67 @@ fn test_12_mcmc_hmc_sgld_and_stein_variational_gradient_descent_svgd_cpu_and_aut
     for i in 0..(m * m) {
         assert!((cpu_gram[i] - golden_gram[i]).abs() < 1e-4);
         assert!((auto_gram[i] - golden_gram[i]).abs() < 1e-4);
+    }
+
+    Ok(())
+}
+
+#[test]
+fn test_13_tractable_probabilistic_circuits_spn_copulas_evt_and_sbi_cpu_and_auto() -> Result<()> {
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "02_classical_and_probabilistic_ml/13_tractable_probabilistic_circuits_spn_copulas_evt_and_sbi.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    // 1. SPN Full and Marg CPU
+    let leaves_p = tensors.get("leaves_p").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let prod_weights = tensors.get("prod_weights").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let ev_full = tensors.get("ev_full").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let ev_marg = tensors.get("ev_marg").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_spn_full = tensors.get("spn_prob_full").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+    let golden_spn_marg = tensors.get("spn_prob_marg").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+
+    let cpu_spn_full = t13::evaluate_spn_cpu(&leaves_p, &ev_full, &prod_weights);
+    let cpu_spn_marg = t13::evaluate_spn_cpu(&leaves_p, &ev_marg, &prod_weights);
+    assert!((cpu_spn_full - golden_spn_full).abs() < 1e-4);
+    assert!((cpu_spn_marg - golden_spn_marg).abs() < 1e-4);
+
+    // 2. Clayton Copula & GPD CPU & Auto
+    let u_grid = tensors.get("u_grid").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let v_grid = tensors.get("v_grid").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let y_excesses = tensors.get("y_excesses").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_clayton = tensors.get("clayton_cdf").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_gpd = tensors.get("gpd_cdf").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let kdev = KernelDevice::Cpu;
+    let (cpu_copula, cpu_gpd) = (
+        t13::clayton_copula_cdf_cpu(&u_grid, &v_grid, 2.0),
+        t13::gpd_tail_cdf_cpu(&y_excesses, 0.25, 1.5),
+    );
+    let (auto_copula, auto_gpd) = t13::copula_gpd_auto(Some(&kdev), &u_grid, &v_grid, &y_excesses, 2.0, 0.25, 1.5);
+
+    for i in 0..u_grid.len() {
+        assert!((cpu_copula[i] - golden_clayton[i]).abs() < 1e-4);
+        assert!((auto_copula[i] - golden_clayton[i]).abs() < 1e-4);
+    }
+    for i in 0..y_excesses.len() {
+        assert!((cpu_gpd[i] - golden_gpd[i]).abs() < 1e-4);
+        assert!((auto_gpd[i] - golden_gpd[i]).abs() < 1e-4);
+    }
+
+    // 3. SBI Neural Ratio CPU
+    let x_sbi = tensors.get("x_sbi").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let theta_sbi = tensors.get("theta_sbi").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let w_sbi = tensors.get("w_sbi").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let b_sbi = tensors.get("b_sbi").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_ratio = tensors.get("sbi_ratio").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_logit = tensors.get("sbi_logit").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let (cpu_ratio, cpu_logit) = t13::sbi_neural_ratio_cpu(&x_sbi, &theta_sbi, &w_sbi, &b_sbi, 3, 2, 2);
+    for i in 0..3 {
+        assert!((cpu_ratio[i] - golden_ratio[i]).abs() < 1e-4);
+        assert!((cpu_logit[i] - golden_logit[i]).abs() < 1e-4);
     }
 
     Ok(())

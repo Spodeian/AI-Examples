@@ -36,5 +36,8 @@ pub mod test_11_probabilistic_graphical_models_factor_graphs_bp_and_cavi;
 #[path = "02_classical_and_probabilistic_ml/test_12_mcmc_hmc_sgld_and_stein_variational_gradient_descent_svgd.rs"]
 pub mod test_12_mcmc_hmc_sgld_and_stein_variational_gradient_descent_svgd;
 
+#[path = "02_classical_and_probabilistic_ml/test_13_tractable_probabilistic_circuits_spn_copulas_evt_and_sbi.rs"]
+pub mod test_13_tractable_probabilistic_circuits_spn_copulas_evt_and_sbi;
+
 
 
