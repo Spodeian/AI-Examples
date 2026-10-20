@@ -33,5 +33,8 @@ mod test_10_spatiotemporal_video_i3d_inflation_and_vivit_timesformer;
 #[path = "05_architectures/test_11_wavelet_scattering_wtconv_steerable_and_morphological_networks.rs"]
 mod test_11_wavelet_scattering_wtconv_steerable_and_morphological_networks;
 
+#[path = "05_architectures/test_12_rnn_lstm_gru_and_attention_seq2seq.rs"]
+mod test_12_rnn_lstm_gru_and_attention_seq2seq;
+
 
 

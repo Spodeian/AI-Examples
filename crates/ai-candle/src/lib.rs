@@ -272,6 +272,9 @@ pub mod c05_architectures {
 
     #[path = "02_convolutional_and_spatiotemporal/05_wavelet_scattering_wtconv_steerable_and_morphological_networks.rs"]
     pub mod t11_wavelet_scattering_wtconv_steerable_and_morphological_networks;
+
+    #[path = "03_recurrent_ssm_and_memory/01_rnn_lstm_gru_and_attention_seq2seq.rs"]
+    pub mod t12_rnn_lstm_gru_and_attention_seq2seq;
 }
 
 

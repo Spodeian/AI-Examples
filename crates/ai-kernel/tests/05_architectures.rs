@@ -507,6 +507,77 @@ fn test_11_wavelet_scattering_wtconv_steerable_and_morphological_networks_cpu_an
     Ok(())
 }
 
+use ai_kernel::c05_architectures::t12_rnn_lstm_gru_and_attention_seq2seq as t12;
+
+#[test]
+fn test_12_rnn_lstm_gru_and_attention_seq2seq_cpu_and_auto() -> Result<()> {
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "05_architectures/03_recurrent_ssm_and_memory/01_rnn_lstm_gru_and_attention_seq2seq.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    // 1. Linear Anchor on CPU
+    let test_input = tensors.get("test_input").unwrap().to_vec2::<f32>()?;
+    let test_input_flat: Vec<f32> = test_input.into_iter().flatten().collect();
+    let weight = tensors.get("weight").unwrap().to_vec2::<f32>()?;
+    let weight_flat: Vec<f32> = weight.into_iter().flatten().collect();
+    let bias = tensors.get("bias").unwrap().to_vec1::<f32>()?;
+    let golden_out = tensors.get("test_output").unwrap().to_vec2::<f32>()?;
+    let golden_out_flat: Vec<f32> = golden_out.into_iter().flatten().collect();
+
+    let anchor_calc = t12::linear_anchor_auto(&test_input_flat, &weight_flat, &bias, 8, 4, 4);
+    for (i, (&calc, &gold)) in anchor_calc.iter().zip(golden_out_flat.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Linear anchor error at {i}: {calc} vs {gold}");
+    }
+
+    // 2. Fused LSTM Step Kernel Verification on Step 0
+    let x_seq = tensors.get("x_seq").unwrap().to_vec3::<f32>()?;
+    let h0 = tensors.get("h0").unwrap().to_vec2::<f32>()?;
+    let c0_flat: Vec<f32> = tensors.get("c0").unwrap().to_vec2::<f32>()?.into_iter().flatten().collect();
+    let w_ih = tensors.get("lstm_w_ih").unwrap().to_vec2::<f32>()?;
+    let w_hh = tensors.get("lstm_w_hh").unwrap().to_vec2::<f32>()?;
+    let b_ih = tensors.get("lstm_b_ih").unwrap().to_vec1::<f32>()?;
+    let b_hh = tensors.get("lstm_b_hh").unwrap().to_vec1::<f32>()?;
+
+    let batch_size = 2;
+    let d_in = 4;
+    let d_hid = 4;
+    let total_gates = 4 * d_hid;
+
+    // Compute step 0 gates on CPU: x0 @ w_ih^T + b_ih + h0 @ w_hh^T + b_hh
+    let mut gates = vec![0.0f32; batch_size * total_gates];
+    for b in 0..batch_size {
+        for g in 0..total_gates {
+            let mut sum = b_ih[g] + b_hh[g];
+            for p in 0..d_in {
+                sum += x_seq[b][0][p] * w_ih[g][p];
+            }
+            for p in 0..d_hid {
+                sum += h0[b][p] * w_hh[g][p];
+            }
+            gates[b * total_gates + g] = sum;
+        }
+    }
+
+    let (h_cpu, c_cpu) = t12::fused_lstm_step_cpu(&gates, &c0_flat, batch_size, d_hid);
+    let (h_auto, c_auto) = t12::fused_lstm_step_auto(None, &gates, &c0_flat, batch_size, d_hid);
+
+    let lstm_seq_out = tensors.get("lstm_seq_out").unwrap().to_vec3::<f32>()?;
+    for b in 0..batch_size {
+        for d in 0..d_hid {
+            let idx = b * d_hid + d;
+            let gold_h = lstm_seq_out[b][0][d];
+            assert!((h_cpu[idx] - h_auto[idx]).abs() < 1e-5, "LSTM step CPU vs Auto mismatch");
+            assert!((c_cpu[idx] - c_auto[idx]).abs() < 1e-5, "LSTM step CPU vs Auto mismatch");
+            assert!((h_cpu[idx] - gold_h).abs() < 1e-5, "LSTM step vs Golden mismatch: {} vs {}", h_cpu[idx], gold_h);
+        }
+    }
+
+    Ok(())
+}
+
+
 
 
 
