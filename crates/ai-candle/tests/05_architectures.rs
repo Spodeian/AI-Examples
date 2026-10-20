@@ -2,3 +2,7 @@
 
 #[path = "05_architectures/test_01_residual_mlp_mlp_mixer_and_gmlp.rs"]
 mod test_01_residual_mlp_mlp_mixer_and_gmlp;
+
+#[path = "05_architectures/test_02_mixture_of_experts_top_k_expert_choice_and_soft_moe.rs"]
+mod test_02_mixture_of_experts_top_k_expert_choice_and_soft_moe;
+

@@ -55,3 +55,54 @@ fn test_01_residual_mlp_mlp_mixer_and_gmlp_cpu_and_auto() -> Result<()> {
 
     Ok(())
 }
+
+use ai_kernel::c05_architectures::t02_mixture_of_experts_top_k_expert_choice_and_soft_moe as t02;
+
+#[test]
+fn test_02_mixture_of_experts_top_k_expert_choice_and_soft_moe_cpu_and_auto() -> Result<()> {
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "05_architectures/01_mlp_moe_soups_and_kan/02_mixture_of_experts_top_k_expert_choice_and_soft_moe.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    // 1. Linear Anchor on CPU
+    let test_input = tensors.get("test_input").unwrap().to_vec2::<f32>()?;
+    let test_input_flat: Vec<f32> = test_input.into_iter().flatten().collect();
+    let weight = tensors.get("weight").unwrap().to_vec2::<f32>()?;
+    let weight_flat: Vec<f32> = weight.into_iter().flatten().collect();
+    let bias = tensors.get("bias").unwrap().to_vec1::<f32>()?;
+    let golden_out = tensors.get("test_output").unwrap().to_vec2::<f32>()?;
+    let golden_out_flat: Vec<f32> = golden_out.into_iter().flatten().collect();
+
+    let anchor_calc = t02::linear_anchor_auto(&test_input_flat, &weight_flat, &bias, 8, 4, 4);
+    for (i, (&calc, &gold)) in anchor_calc.iter().zip(golden_out_flat.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Linear anchor error at {i}: {calc} vs {gold}");
+    }
+
+    // 2. Soft MoE Dispatch Kernel Verification
+    let num_tokens = 8;
+    let d_model = 16;
+    let total_slots = 4;
+
+    let x = vec![0.25f32; num_tokens * d_model];
+    let phi = vec![0.125f32; num_tokens * total_slots];
+
+    let dispatch_cpu = t02::soft_moe_dispatch_cpu(&x, &phi, num_tokens, d_model, total_slots);
+    assert_eq!(dispatch_cpu.len(), total_slots * d_model);
+
+    let dispatch_auto = t02::soft_moe_dispatch_auto(None, &x, &phi, num_tokens, d_model, total_slots);
+    for (i, (&c, &a)) in dispatch_cpu.iter().zip(dispatch_auto.iter()).enumerate() {
+        assert!((c - a).abs() < 1e-5, "Dispatch CPU vs Auto mismatch at {i}: {c} vs {a}");
+    }
+
+    // 3. Soft MoE Combine Kernel Verification
+    let slot_outputs = vec![0.5f32; total_slots * d_model];
+    let psi = vec![0.25f32; num_tokens * total_slots];
+
+    let combine_cpu = t02::soft_moe_combine_cpu(&psi, &slot_outputs, num_tokens, d_model, total_slots);
+    assert_eq!(combine_cpu.len(), num_tokens * d_model);
+
+    Ok(())
+}
+
