@@ -27,5 +27,8 @@ pub mod test_08_matrix_factorization_als_nmf_bpr_and_fm;
 #[path = "02_classical_and_probabilistic_ml/test_09_hidden_markov_models_kalman_ukf_and_particle_filters.rs"]
 pub mod test_09_hidden_markov_models_kalman_ukf_and_particle_filters;
 
+#[path = "02_classical_and_probabilistic_ml/test_10_survival_analysis_and_contextual_bandits.rs"]
+pub mod test_10_survival_analysis_and_contextual_bandits;
+
 
 

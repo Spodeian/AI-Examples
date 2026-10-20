@@ -9,6 +9,7 @@ use ai_kernel::c02_classical_and_probabilistic_ml::t06_naive_bayes_bayesian_regr
 use ai_kernel::c02_classical_and_probabilistic_ml::t07_differentiable_trees_node_soft_gbdt_and_gam_nam as t07;
 use ai_kernel::c02_classical_and_probabilistic_ml::t08_matrix_factorization_als_nmf_bpr_and_fm as t08;
 use ai_kernel::c02_classical_and_probabilistic_ml::t09_hidden_markov_models_kalman_ukf_and_particle_filters as t09;
+use ai_kernel::c02_classical_and_probabilistic_ml::t10_survival_analysis_and_contextual_bandits as t10;
 use ai_kernel::KernelDevice;
 use candle_core::{safetensors::load, Device, Result};
 
@@ -504,6 +505,72 @@ fn test_09_hidden_markov_models_kalman_ukf_and_particle_filters_cpu_and_auto() -
     for i in 0..10 {
         assert!((cpu_sigma[i] - golden_sigma_pts[i]).abs() < 1e-4);
         assert!((auto_sigma[i] - golden_sigma_pts[i]).abs() < 1e-4);
+    }
+
+    Ok(())
+}
+
+#[test]
+fn test_10_survival_analysis_and_contextual_bandits_cpu_and_auto() -> Result<()> {
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "02_classical_and_probabilistic_ml/10_survival_analysis_and_contextual_bandits.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    // 1. Cox Partial Log-Likelihood
+    let risk = tensors.get("risk_scores").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let times = tensors.get("T_surv").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let events = tensors.get("E_surv").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_cox_loss = tensors.get("cox_loss").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+
+    let cpu_loss = t10::cox_ph_loss_cpu(&risk, &times, &events, 32);
+    assert!((cpu_loss - golden_cox_loss).abs() < 1e-4);
+
+    // 2. Kaplan-Meier Survival
+    let golden_km_times = tensors.get("km_times").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_km_surv = tensors.get("km_survival").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let (cpu_km_t, cpu_km_s) = t10::kaplan_meier_survival_cpu(&times, &events, 32);
+    assert_eq!(cpu_km_t.len(), golden_km_times.len());
+    for i in 0..cpu_km_t.len() {
+        assert!((cpu_km_t[i] - golden_km_times[i]).abs() < 1e-4);
+        assert!((cpu_km_s[i] - golden_km_surv[i]).abs() < 1e-4);
+    }
+
+    // 3. LinUCB Arm Scoring CPU & Auto
+    let a_arms = tensors.get("A_arms").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let b_arms = tensors.get("b_arms").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let x_ctx = tensors.get("x_context").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_scores = tensors.get("linucb_scores").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_arm = tensors.get("selected_arm").unwrap().flatten_all()?.to_vec1::<i64>()?[0] as usize;
+
+    let kdev = KernelDevice::Cpu;
+    let (cpu_scores, cpu_arm) = t10::linucb_score_arms_cpu(&x_ctx, &a_arms, &b_arms, 3, 4, 1.0);
+    let (auto_scores, auto_arm) = t10::linucb_score_arms_auto(Some(&kdev), &x_ctx, &a_arms, &b_arms, 3, 4, 1.0);
+
+    for a in 0..3 {
+        assert!((cpu_scores[a] - golden_scores[a]).abs() < 1e-4);
+        assert!((auto_scores[a] - golden_scores[a]).abs() < 1e-4);
+    }
+    assert_eq!(cpu_arm, golden_arm);
+    assert_eq!(auto_arm, golden_arm);
+
+    // 4. Sherman-Morrison Rank-1 Inverse Invariant
+    let a0 = &a_arms[0..16];
+    let a0_inv = t10::invert_matrix_cpu(a0, 4);
+    let a_inv_updated = t10::sherman_morrison_rank1_update_cpu(&a0_inv, &x_ctx, 4);
+
+    let mut a_exact = a0.to_vec();
+    for i in 0..4 {
+        for j in 0..4 {
+            a_exact[i * 4 + j] += x_ctx[i] * x_ctx[j];
+        }
+    }
+    let a_exact_inv = t10::invert_matrix_cpu(&a_exact, 4);
+
+    for i in 0..16 {
+        assert!((a_inv_updated[i] - a_exact_inv[i]).abs() < 1e-4);
     }
 
     Ok(())

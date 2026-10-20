@@ -115,6 +115,9 @@ pub mod c02_classical_and_probabilistic_ml {
 
     #[path = "09_hidden_markov_models_kalman_ukf_and_particle_filters.rs"]
     pub mod t09_hidden_markov_models_kalman_ukf_and_particle_filters;
+
+    #[path = "10_survival_analysis_and_contextual_bandits.rs"]
+    pub mod t10_survival_analysis_and_contextual_bandits;
 }
 
 #[path = "../../../kernels/03_building_blocks_and_losses"]
