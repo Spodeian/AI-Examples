@@ -9,4 +9,8 @@ mod test_02_mixture_of_experts_top_k_expert_choice_and_soft_moe;
 #[path = "05_architectures/test_03_deepseek_moe_aux_loss_free_and_mixture_of_depths.rs"]
 mod test_03_deepseek_moe_aux_loss_free_and_mixture_of_depths;
 
+#[path = "05_architectures/test_04_soup_of_experts_smear_rewarded_soups_btx_and_upcycling.rs"]
+mod test_04_soup_of_experts_smear_rewarded_soups_btx_and_upcycling;
+
+
 

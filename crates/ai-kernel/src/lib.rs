@@ -253,6 +253,9 @@ pub mod c05_architectures {
 
     #[path = "01_mlp_moe_soups_and_kan/03_deepseek_moe_aux_loss_free_and_mixture_of_depths.rs"]
     pub mod t03_deepseek_moe_aux_loss_free_and_mixture_of_depths;
+
+    #[path = "01_mlp_moe_soups_and_kan/04_soup_of_experts_smear_rewarded_soups_btx_and_upcycling.rs"]
+    pub mod t04_soup_of_experts_smear_rewarded_soups_btx_and_upcycling;
 }
 
 

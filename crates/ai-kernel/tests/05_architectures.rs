@@ -157,4 +157,48 @@ fn test_03_deepseek_moe_aux_loss_free_and_mixture_of_depths_cpu_and_auto() -> Re
     Ok(())
 }
 
+use ai_kernel::c05_architectures::t04_soup_of_experts_smear_rewarded_soups_btx_and_upcycling as t04;
+
+#[test]
+fn test_04_soup_of_experts_smear_rewarded_soups_btx_and_upcycling_cpu_and_auto() -> Result<()> {
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "05_architectures/01_mlp_moe_soups_and_kan/04_soup_of_experts_smear_rewarded_soups_btx_and_upcycling.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    // 1. Linear Anchor on CPU
+    let test_input = tensors.get("test_input").unwrap().to_vec2::<f32>()?;
+    let test_input_flat: Vec<f32> = test_input.into_iter().flatten().collect();
+    let weight = tensors.get("weight").unwrap().to_vec2::<f32>()?;
+    let weight_flat: Vec<f32> = weight.into_iter().flatten().collect();
+    let bias = tensors.get("bias").unwrap().to_vec1::<f32>()?;
+    let golden_out = tensors.get("test_output").unwrap().to_vec2::<f32>()?;
+    let golden_out_flat: Vec<f32> = golden_out.into_iter().flatten().collect();
+
+    let anchor_calc = t04::linear_anchor_auto(&test_input_flat, &weight_flat, &bias, 8, 4, 4);
+    for (i, (&calc, &gold)) in anchor_calc.iter().zip(golden_out_flat.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Linear anchor error at {i}: {calc} vs {gold}");
+    }
+
+    // 2. Dynamic Parameter Merging (SMEAR Kernel Verification)
+    let experts_w1 = tensors.get("experts_w1").unwrap().to_vec3::<f32>()?;
+    let experts_w1_flat: Vec<f32> = experts_w1.into_iter().flatten().flatten().collect();
+    let num_experts = 4;
+    let in_dim = 16;
+    let out_dim = 32;
+
+    let routing_weights = vec![0.25f32, 0.25, 0.25, 0.25];
+
+    let merged_cpu = t04::soup_weight_merge_cpu(&experts_w1_flat, &routing_weights, num_experts, in_dim, out_dim);
+    assert_eq!(merged_cpu.len(), in_dim * out_dim);
+
+    let merged_auto = t04::soup_weight_merge_auto(None, &experts_w1_flat, &routing_weights, num_experts, in_dim, out_dim);
+    for (i, (&c, &a)) in merged_cpu.iter().zip(merged_auto.iter()).enumerate() {
+        assert!((c - a).abs() < 1e-5, "Merged weights CPU vs Auto mismatch at {i}: {c} vs {a}");
+    }
+
+    Ok(())
+}
+
 
