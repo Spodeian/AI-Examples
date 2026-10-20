@@ -268,6 +268,9 @@ pub mod c05_architectures {
 
     #[path = "02_convolutional_and_spatiotemporal/02_specialized_convolutions_and_channel_attention.rs"]
     pub mod t08_specialized_convolutions_and_channel_attention;
+
+    #[path = "02_convolutional_and_spatiotemporal/03_unet_and_multiscale_feature_pyramids.rs"]
+    pub mod t09_unet_and_multiscale_feature_pyramids;
 }
 
 

@@ -24,5 +24,8 @@ mod test_07_classic_to_modern_cnns_resnet_densenet_convnext;
 #[path = "05_architectures/test_08_specialized_convolutions_and_channel_attention.rs"]
 mod test_08_specialized_convolutions_and_channel_attention;
 
+#[path = "05_architectures/test_09_unet_and_multiscale_feature_pyramids.rs"]
+mod test_09_unet_and_multiscale_feature_pyramids;
+
 
 

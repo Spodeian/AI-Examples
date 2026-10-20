@@ -373,4 +373,47 @@ fn test_08_specialized_convolutions_and_channel_attention_cpu_and_auto() -> Resu
     Ok(())
 }
 
+use ai_kernel::c05_architectures::t09_unet_and_multiscale_feature_pyramids as t09;
+
+#[test]
+fn test_09_unet_and_multiscale_feature_pyramids_cpu_and_auto() -> Result<()> {
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "05_architectures/02_convolutional_and_spatiotemporal/03_unet_and_multiscale_feature_pyramids.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    // 1. Linear Anchor on CPU
+    let test_input = tensors.get("test_input").unwrap().to_vec2::<f32>()?;
+    let test_input_flat: Vec<f32> = test_input.into_iter().flatten().collect();
+    let weight = tensors.get("weight").unwrap().to_vec2::<f32>()?;
+    let weight_flat: Vec<f32> = weight.into_iter().flatten().collect();
+    let bias = tensors.get("bias").unwrap().to_vec1::<f32>()?;
+    let golden_out = tensors.get("test_output").unwrap().to_vec2::<f32>()?;
+    let golden_out_flat: Vec<f32> = golden_out.into_iter().flatten().collect();
+
+    let anchor_calc = t09::linear_anchor_auto(&test_input_flat, &weight_flat, &bias, 8, 4, 4);
+    for (i, (&calc, &gold)) in anchor_calc.iter().zip(golden_out_flat.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Linear anchor error at {i}: {calc} vs {gold}");
+    }
+
+    // 2. BiFPN Fast Normalized Feature Fusion Verification
+    let total = 2 * 4 * 8 * 8;
+    let p1 = vec![1.0f32; total];
+    let p2 = vec![2.0f32; total];
+    let w1 = 1.2f32;
+    let w2 = 0.8f32;
+
+    let fusion_cpu = t09::bifpn_fusion_cpu(&p1, &p2, w1, w2, 1e-4);
+    assert_eq!(fusion_cpu.len(), total);
+
+    let fusion_auto = t09::bifpn_fusion_auto(None, &p1, &p2, w1, w2, 1e-4);
+    for (i, (&c, &a)) in fusion_cpu.iter().zip(fusion_auto.iter()).enumerate() {
+        assert!((c - a).abs() < 1e-5, "BiFPN fusion CPU vs Auto mismatch at {i}: {c} vs {a}");
+    }
+
+    Ok(())
+}
+
+
 
