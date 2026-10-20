@@ -27,5 +27,8 @@ mod test_08_specialized_convolutions_and_channel_attention;
 #[path = "05_architectures/test_09_unet_and_multiscale_feature_pyramids.rs"]
 mod test_09_unet_and_multiscale_feature_pyramids;
 
+#[path = "05_architectures/test_10_spatiotemporal_video_i3d_inflation_and_vivit_timesformer.rs"]
+mod test_10_spatiotemporal_video_i3d_inflation_and_vivit_timesformer;
+
 
 

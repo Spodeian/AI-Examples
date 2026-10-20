@@ -266,6 +266,9 @@ pub mod c05_architectures {
 
     #[path = "02_convolutional_and_spatiotemporal/03_unet_and_multiscale_feature_pyramids.rs"]
     pub mod t09_unet_and_multiscale_feature_pyramids;
+
+    #[path = "02_convolutional_and_spatiotemporal/04_spatiotemporal_video_i3d_inflation_and_vivit_timesformer.rs"]
+    pub mod t10_spatiotemporal_video_i3d_inflation_and_vivit_timesformer;
 }
 
 

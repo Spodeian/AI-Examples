@@ -415,5 +415,52 @@ fn test_09_unet_and_multiscale_feature_pyramids_cpu_and_auto() -> Result<()> {
     Ok(())
 }
 
+use ai_kernel::c05_architectures::t10_spatiotemporal_video_i3d_inflation_and_vivit_timesformer as t10;
+
+#[test]
+fn test_10_spatiotemporal_video_i3d_inflation_and_vivit_timesformer_cpu_and_auto() -> Result<()> {
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "05_architectures/02_convolutional_and_spatiotemporal/04_spatiotemporal_video_i3d_inflation_and_vivit_timesformer.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    // 1. Linear Anchor on CPU
+    let test_input = tensors.get("test_input").unwrap().to_vec2::<f32>()?;
+    let test_input_flat: Vec<f32> = test_input.into_iter().flatten().collect();
+    let weight = tensors.get("weight").unwrap().to_vec2::<f32>()?;
+    let weight_flat: Vec<f32> = weight.into_iter().flatten().collect();
+    let bias = tensors.get("bias").unwrap().to_vec1::<f32>()?;
+    let golden_out = tensors.get("test_output").unwrap().to_vec2::<f32>()?;
+    let golden_out_flat: Vec<f32> = golden_out.into_iter().flatten().collect();
+
+    let anchor_calc = t10::linear_anchor_auto(&test_input_flat, &weight_flat, &bias, 8, 4, 4);
+    for (i, (&calc, &gold)) in anchor_calc.iter().zip(golden_out_flat.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Linear anchor error at {i}: {calc} vs {gold}");
+    }
+
+    // 2. I3D Weight Inflation Kernel Verification
+    let conv2d_w_flat = tensors.get("conv2d_w").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let expected_flat = tensors.get("i3d_w").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let c_out = 4;
+    let c_in = 4;
+    let k_t = 3;
+    let kh = 3;
+    let kw = 3;
+
+    let inflated_cpu = t10::i3d_inflate_cpu(&conv2d_w_flat, c_out, c_in, k_t, kh, kw);
+    assert_eq!(inflated_cpu.len(), expected_flat.len());
+
+    let inflated_auto = t10::i3d_inflate_auto(None, &conv2d_w_flat, c_out, c_in, k_t, kh, kw);
+    for (i, (&c, &a)) in inflated_cpu.iter().zip(inflated_auto.iter()).enumerate() {
+        assert!((c - a).abs() < 1e-5, "I3D inflate CPU vs Auto mismatch at {i}: {c} vs {a}");
+        assert!((c - expected_flat[i]).abs() < 1e-5, "I3D inflate vs Golden mismatch at {i}: {c} vs {}", expected_flat[i]);
+    }
+
+    Ok(())
+}
+
+
 
 
