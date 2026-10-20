@@ -256,6 +256,9 @@ pub mod c05_architectures {
 
     #[path = "01_mlp_moe_soups_and_kan/04_soup_of_experts_smear_rewarded_soups_btx_and_upcycling.rs"]
     pub mod t04_soup_of_experts_smear_rewarded_soups_btx_and_upcycling;
+
+    #[path = "01_mlp_moe_soups_and_kan/05_kolmogorov_arnold_networks_kan.rs"]
+    pub mod t05_kolmogorov_arnold_networks_kan;
 }
 
 

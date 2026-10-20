@@ -201,4 +201,43 @@ fn test_04_soup_of_experts_smear_rewarded_soups_btx_and_upcycling_cpu_and_auto()
     Ok(())
 }
 
+use ai_kernel::c05_architectures::t05_kolmogorov_arnold_networks_kan as t05;
+
+#[test]
+fn test_05_kolmogorov_arnold_networks_kan_cpu_and_auto() -> Result<()> {
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "05_architectures/01_mlp_moe_soups_and_kan/05_kolmogorov_arnold_networks_kan.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    // 1. Linear Anchor on CPU
+    let test_input = tensors.get("test_input").unwrap().to_vec2::<f32>()?;
+    let test_input_flat: Vec<f32> = test_input.into_iter().flatten().collect();
+    let weight = tensors.get("weight").unwrap().to_vec2::<f32>()?;
+    let weight_flat: Vec<f32> = weight.into_iter().flatten().collect();
+    let bias = tensors.get("bias").unwrap().to_vec1::<f32>()?;
+    let golden_out = tensors.get("test_output").unwrap().to_vec2::<f32>()?;
+    let golden_out_flat: Vec<f32> = golden_out.into_iter().flatten().collect();
+
+    let anchor_calc = t05::linear_anchor_auto(&test_input_flat, &weight_flat, &bias, 8, 4, 4);
+    for (i, (&calc, &gold)) in anchor_calc.iter().zip(golden_out_flat.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Linear anchor error at {i}: {calc} vs {gold}");
+    }
+
+    // 2. Chebyshev Polynomial Basis Kernel Verification
+    let x = vec![-1.5f32, -0.5, 0.0, 0.5, 1.2, 2.0];
+    let degree = 4;
+
+    let basis_cpu = t05::chebyshev_basis_cpu(&x, degree);
+    assert_eq!(basis_cpu.len(), x.len() * (degree + 1));
+
+    let basis_auto = t05::chebyshev_basis_auto(None, &x, degree);
+    for (i, (&c, &a)) in basis_cpu.iter().zip(basis_auto.iter()).enumerate() {
+        assert!((c - a).abs() < 1e-5, "Chebyshev basis CPU vs Auto mismatch at {i}: {c} vs {a}");
+    }
+
+    Ok(())
+}
+
 
