@@ -250,5 +250,9 @@ pub mod c05_architectures {
 
     #[path = "01_mlp_moe_soups_and_kan/02_mixture_of_experts_top_k_expert_choice_and_soft_moe.rs"]
     pub mod t02_mixture_of_experts_top_k_expert_choice_and_soft_moe;
+
+    #[path = "01_mlp_moe_soups_and_kan/03_deepseek_moe_aux_loss_free_and_mixture_of_depths.rs"]
+    pub mod t03_deepseek_moe_aux_loss_free_and_mixture_of_depths;
 }
+
 

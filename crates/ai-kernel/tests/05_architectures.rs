@@ -106,3 +106,55 @@ fn test_02_mixture_of_experts_top_k_expert_choice_and_soft_moe_cpu_and_auto() ->
     Ok(())
 }
 
+use ai_kernel::c05_architectures::t03_deepseek_moe_aux_loss_free_and_mixture_of_depths as t03;
+
+#[test]
+fn test_03_deepseek_moe_aux_loss_free_and_mixture_of_depths_cpu_and_auto() -> Result<()> {
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "05_architectures/01_mlp_moe_soups_and_kan/03_deepseek_moe_aux_loss_free_and_mixture_of_depths.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    // 1. Linear Anchor on CPU
+    let test_input = tensors.get("test_input").unwrap().to_vec2::<f32>()?;
+    let test_input_flat: Vec<f32> = test_input.into_iter().flatten().collect();
+    let weight = tensors.get("weight").unwrap().to_vec2::<f32>()?;
+    let weight_flat: Vec<f32> = weight.into_iter().flatten().collect();
+    let bias = tensors.get("bias").unwrap().to_vec1::<f32>()?;
+    let golden_out = tensors.get("test_output").unwrap().to_vec2::<f32>()?;
+    let golden_out_flat: Vec<f32> = golden_out.into_iter().flatten().collect();
+
+    let anchor_calc = t03::linear_anchor_auto(&test_input_flat, &weight_flat, &bias, 8, 4, 4);
+    for (i, (&calc, &gold)) in anchor_calc.iter().zip(golden_out_flat.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Linear anchor error at {i}: {calc} vs {gold}");
+    }
+
+    // 2. MoD Selective Gating Kernel Verification
+    let num_tokens = 8;
+    let d_model = 16;
+    let total_elements = num_tokens * d_model;
+
+    let x = vec![0.5f32; total_elements];
+    let block_out = vec![1.2f32; total_elements];
+    let gate = vec![0.8f32; num_tokens];
+    let mask = vec![1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0]; // 50% capacity
+
+    let gating_cpu = t03::mod_selective_gating_cpu(&x, &block_out, &gate, &mask, num_tokens, d_model);
+    assert_eq!(gating_cpu.len(), total_elements);
+
+    let gating_auto = t03::mod_selective_gating_auto(None, &x, &block_out, &gate, &mask, num_tokens, d_model);
+    for (i, (&c, &a)) in gating_cpu.iter().zip(gating_auto.iter()).enumerate() {
+        assert!((c - a).abs() < 1e-5, "MoD Gating CPU vs Auto mismatch at {i}: {c} vs {a}");
+    }
+
+    // 3. Dynamic Bias Update Verification
+    let b_dyn = vec![0.1f32, -0.05, 0.05, -0.1];
+    let counts = vec![3.0f32, 5.0, 4.0, 4.0];
+    let b_new = t03::dynamic_bias_update_cpu(&b_dyn, &counts, 0.1);
+    assert_eq!(b_new.len(), 4);
+
+    Ok(())
+}
+
+
