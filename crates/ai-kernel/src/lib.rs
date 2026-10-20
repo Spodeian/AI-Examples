@@ -118,6 +118,9 @@ pub mod c02_classical_and_probabilistic_ml {
 
     #[path = "10_survival_analysis_and_contextual_bandits.rs"]
     pub mod t10_survival_analysis_and_contextual_bandits;
+
+    #[path = "11_probabilistic_graphical_models_factor_graphs_bp_and_cavi.rs"]
+    pub mod t11_probabilistic_graphical_models_factor_graphs_bp_and_cavi;
 }
 
 #[path = "../../../kernels/03_building_blocks_and_losses"]

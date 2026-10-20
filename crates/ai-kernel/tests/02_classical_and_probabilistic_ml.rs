@@ -10,6 +10,7 @@ use ai_kernel::c02_classical_and_probabilistic_ml::t07_differentiable_trees_node
 use ai_kernel::c02_classical_and_probabilistic_ml::t08_matrix_factorization_als_nmf_bpr_and_fm as t08;
 use ai_kernel::c02_classical_and_probabilistic_ml::t09_hidden_markov_models_kalman_ukf_and_particle_filters as t09;
 use ai_kernel::c02_classical_and_probabilistic_ml::t10_survival_analysis_and_contextual_bandits as t10;
+use ai_kernel::c02_classical_and_probabilistic_ml::t11_probabilistic_graphical_models_factor_graphs_bp_and_cavi as t11;
 use ai_kernel::KernelDevice;
 use candle_core::{safetensors::load, Device, Result};
 
@@ -572,6 +573,61 @@ fn test_10_survival_analysis_and_contextual_bandits_cpu_and_auto() -> Result<()>
     for i in 0..16 {
         assert!((a_inv_updated[i] - a_exact_inv[i]).abs() < 1e-4);
     }
+
+    Ok(())
+}
+
+#[test]
+fn test_11_probabilistic_graphical_models_factor_graphs_bp_and_cavi_cpu_and_auto() -> Result<()> {
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "02_classical_and_probabilistic_ml/11_probabilistic_graphical_models_factor_graphs_bp_and_cavi.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    // 1. Sum-Product Tree BP
+    let unary_tree = tensors.get("unary_tree").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let edge_tree = tensors.get("edge_tree").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_tree_marg = tensors.get("exact_marginals").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_map = tensors.get("map_config").unwrap().flatten_all()?.to_vec1::<i64>()?;
+
+    let cpu_marg = t11::sum_product_tree_bp_cpu(&unary_tree, &edge_tree);
+    for i in 0..8 {
+        assert!((cpu_marg[i] - golden_tree_marg[i]).abs() < 1e-4);
+    }
+
+    // 2. Max-Product Tree MAP
+    let cpu_map = t11::max_product_tree_map_cpu(&unary_tree, &edge_tree);
+    for i in 0..4 {
+        assert_eq!(cpu_map[i], golden_map[i]);
+    }
+
+    // 3. Damped Loopy BP Triangle
+    let unary_tri = tensors.get("unary_tri").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let edge_tri = tensors.get("edge_tri").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_loopy = tensors.get("loopy_marginals").unwrap().flatten_all()?.to_vec1::<f32>()?;
+
+    let cpu_loopy = t11::damped_loopy_bp_triangle_cpu(&unary_tri, &edge_tri, 0.5, 20);
+    for i in 0..6 {
+        assert!((cpu_loopy[i] - golden_loopy[i]).abs() < 1e-4);
+    }
+
+    // 4. CAVI CPU & Auto
+    let data_cavi = tensors.get("data_cavi").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let mu_cavi = tensors.get("mu_cavi").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_resp = tensors.get("responsibilities").unwrap().flatten_all()?.to_vec1::<f32>()?;
+    let golden_elbo = tensors.get("elbo_val").unwrap().flatten_all()?.to_vec1::<f32>()?[0];
+
+    let kdev = KernelDevice::Cpu;
+    let (cpu_resp, cpu_elbo) = t11::cavi_gmm_step_cpu(&data_cavi, &mu_cavi, 1.0);
+    let (auto_resp, auto_elbo) = t11::cavi_gmm_step_auto(Some(&kdev), &data_cavi, &mu_cavi, 1.0);
+
+    for i in 0..16 {
+        assert!((cpu_resp[i] - golden_resp[i]).abs() < 1e-4);
+        assert!((auto_resp[i] - golden_resp[i]).abs() < 1e-4);
+    }
+    assert!((cpu_elbo - golden_elbo).abs() < 1e-4);
+    assert!((auto_elbo - golden_elbo).abs() < 1e-4);
 
     Ok(())
 }

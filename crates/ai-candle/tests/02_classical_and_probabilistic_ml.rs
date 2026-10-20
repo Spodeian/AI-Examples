@@ -30,5 +30,8 @@ pub mod test_09_hidden_markov_models_kalman_ukf_and_particle_filters;
 #[path = "02_classical_and_probabilistic_ml/test_10_survival_analysis_and_contextual_bandits.rs"]
 pub mod test_10_survival_analysis_and_contextual_bandits;
 
+#[path = "02_classical_and_probabilistic_ml/test_11_probabilistic_graphical_models_factor_graphs_bp_and_cavi.rs"]
+pub mod test_11_probabilistic_graphical_models_factor_graphs_bp_and_cavi;
+
 
 
