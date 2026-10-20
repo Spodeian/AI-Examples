@@ -94,9 +94,9 @@ Dense Matrix V [R, C]:               Factored Rank-1 Representation:
 - **Reference Vectors:** Verified against `weights/04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/02_modern_sign_and_factored_optimisers.safetensors`.
 
 ## 8. Navigation & Synchronized Track Artifacts
-- [Interactive Concept Explorer Notebook](../../notebooks/04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/02_modern_sign_and_factored_optimisers.ipynb)
-- [Production PyTorch 2.x Module](../../pytorch2/04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/02_modern_sign_and_factored_optimisers.py)
-- [Functional JAX / Equinox Module](../../jax/04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/02_modern_sign_and_factored_optimisers.py)
-- [Native Rust Candle Module](../../candle/04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/02_modern_sign_and_factored_optimisers.rs)
-- [Hardware Kernel](../../kernels/04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/02_modern_sign_and_factored_optimisers.rs)
-- [Golden SafeTensors Weights](../../weights/04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/02_modern_sign_and_factored_optimisers.safetensors)
+- [Interactive Concept Explorer Notebook](../../../notebooks/04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/02_modern_sign_and_factored_optimisers.ipynb)
+- [Production PyTorch 2.x Module](../../../pytorch2/04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/02_modern_sign_and_factored_optimisers.py)
+- [Functional JAX / Equinox Module](../../../jax/04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/02_modern_sign_and_factored_optimisers.py)
+- [Native Rust Candle Module](../../../candle/04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/02_modern_sign_and_factored_optimisers.rs)
+- [Hardware Kernel](../../../kernels/04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/02_modern_sign_and_factored_optimisers.rs)
+- [Golden SafeTensors Weights](../../../weights/04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/02_modern_sign_and_factored_optimisers.safetensors)

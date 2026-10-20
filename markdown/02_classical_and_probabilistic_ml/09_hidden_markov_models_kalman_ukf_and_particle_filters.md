@@ -101,4 +101,4 @@ $$\|x_{\text{PyTorch}} - x_{\text{JAX}}\|_\infty < 10^{-5}, \quad \|x_{\text{Can
 - **Previous Topic:** [08_matrix_factorization_als_nmf_bpr_and_fm.md](08_matrix_factorization_als_nmf_bpr_and_fm.md)
 - **Current Topic:** 09_hidden_markov_models_kalman_ukf_and_particle_filters.md
 - **Next Topic:** [10_survival_analysis_and_contextual_bandits.md](10_survival_analysis_and_contextual_bandits.md)
-- **Category Index:** [02_classical_and_probabilistic_ml/README.md](README.md)
+- **Category Index:** [Master Curriculum Index](../../README.md)

@@ -111,5 +111,5 @@ $$\|Y_{\text{PyTorch}} - Y_{\text{JAX}}\|_\infty < 10^{-5}, \quad \|Y_{\text{Can
 
 - **Previous Topic:** [12_mcmc_hmc_sgld_and_stein_variational_gradient_descent_svgd.md](12_mcmc_hmc_sgld_and_stein_variational_gradient_descent_svgd.md)
 - **Current Topic:** 13_tractable_probabilistic_circuits_spn_copulas_evt_and_sbi.md
-- **Next Category:** [03_building_blocks_and_losses/README.md](../03_building_blocks_and_losses/README.md)
-- **Category Index:** [02_classical_and_probabilistic_ml/README.md](README.md)
+- **Next Category:** [03. Building Blocks & Losses](../03_building_blocks_and_losses/)
+- **Category Index:** [Master Curriculum Index](../../README.md)

@@ -90,4 +90,4 @@ $$\|Y_{\text{PyTorch}} - Y_{\text{JAX}}\|_\infty < 10^{-5}, \quad \|Y_{\text{Can
 - **Previous Topic:** [09_hidden_markov_models_kalman_ukf_and_particle_filters.md](09_hidden_markov_models_kalman_ukf_and_particle_filters.md)
 - **Current Topic:** 10_survival_analysis_and_contextual_bandits.md
 - **Next Topic:** [11_probabilistic_graphical_models_factor_graphs_bp_and_cavi.md](11_probabilistic_graphical_models_factor_graphs_bp_and_cavi.md)
-- **Category Index:** [02_classical_and_probabilistic_ml/README.md](README.md)
+- **Category Index:** [Master Curriculum Index](../../README.md)

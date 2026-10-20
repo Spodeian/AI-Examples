@@ -91,9 +91,9 @@ V_buf  │     v_0      │     v_1      │     v_2      │    ...    │
 - **Reference Vectors:** Verified against `weights/04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/01_first_order_and_adaptive_optimisers.safetensors`.
 
 ## 8. Navigation & Synchronized Track Artifacts
-- [Interactive Concept Explorer Notebook](../../notebooks/04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/01_first_order_and_adaptive_optimisers.ipynb)
-- [Production PyTorch 2.x Module](../../pytorch2/04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/01_first_order_and_adaptive_optimisers.py)
-- [Functional JAX / Equinox Module](../../jax/04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/01_first_order_and_adaptive_optimisers.py)
-- [Native Rust Candle Module](../../candle/04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/01_first_order_and_adaptive_optimisers.rs)
-- [Hardware Kernel](../../kernels/04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/01_first_order_and_adaptive_optimisers.rs)
-- [Golden SafeTensors Weights](../../weights/04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/01_first_order_and_adaptive_optimisers.safetensors)
+- [Interactive Concept Explorer Notebook](../../../notebooks/04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/01_first_order_and_adaptive_optimisers.ipynb)
+- [Production PyTorch 2.x Module](../../../pytorch2/04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/01_first_order_and_adaptive_optimisers.py)
+- [Functional JAX / Equinox Module](../../../jax/04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/01_first_order_and_adaptive_optimisers.py)
+- [Native Rust Candle Module](../../../candle/04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/01_first_order_and_adaptive_optimisers.rs)
+- [Hardware Kernel](../../../kernels/04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/01_first_order_and_adaptive_optimisers.rs)
+- [Golden SafeTensors Weights](../../../weights/04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/01_first_order_and_adaptive_optimisers.safetensors)

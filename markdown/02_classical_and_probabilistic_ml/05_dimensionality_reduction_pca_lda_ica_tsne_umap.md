@@ -87,4 +87,4 @@ $$\|Y_{\text{PyTorch}} - Y_{\text{JAX}}\|_\infty < 10^{-5}, \quad \|Y_{\text{Can
 - **Previous Topic:** [04_clustering_kmeans_spectral_and_gmm_em.md](04_clustering_kmeans_spectral_and_gmm_em.md)
 - **Current Topic:** 05_dimensionality_reduction_pca_lda_ica_tsne_umap.md
 - **Next Topic:** [06_naive_bayes_bayesian_regression_and_gaussian_processes.md](06_naive_bayes_bayesian_regression_and_gaussian_processes.md)
-- **Category Index:** [02_classical_and_probabilistic_ml/README.md](README.md)
+- **Category Index:** [Master Curriculum Index](../../README.md)

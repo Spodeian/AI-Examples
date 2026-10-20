@@ -102,4 +102,4 @@ $$\|Y_{\text{PyTorch}} - Y_{\text{JAX}}\|_\infty < 10^{-5}, \quad \|Y_{\text{Can
 - **Previous Topic:** [11_probabilistic_graphical_models_factor_graphs_bp_and_cavi.md](11_probabilistic_graphical_models_factor_graphs_bp_and_cavi.md)
 - **Current Topic:** 12_mcmc_hmc_sgld_and_stein_variational_gradient_descent_svgd.md
 - **Next Topic:** [13_tractable_probabilistic_circuits_spn_copulas_evt_and_sbi.md](13_tractable_probabilistic_circuits_spn_copulas_evt_and_sbi.md)
-- **Category Index:** [02_classical_and_probabilistic_ml/README.md](README.md)
+- **Category Index:** [Master Curriculum Index](../../README.md)

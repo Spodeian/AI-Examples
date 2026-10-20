@@ -81,4 +81,4 @@ $$\|Y_{\text{PyTorch}} - Y_{\text{JAX}}\|_\infty < 10^{-5}, \quad \|Y_{\text{Can
 - **Previous Topic:** [07_differentiable_trees_node_soft_gbdt_and_gam_nam.md](07_differentiable_trees_node_soft_gbdt_and_gam_nam.md)
 - **Current Topic:** 08_matrix_factorization_als_nmf_bpr_and_fm.md
 - **Next Topic:** [09_hidden_markov_models_kalman_ukf_and_particle_filters.md](09_hidden_markov_models_kalman_ukf_and_particle_filters.md)
-- **Category Index:** [02_classical_and_probabilistic_ml/README.md](README.md)
+- **Category Index:** [Master Curriculum Index](../../README.md)

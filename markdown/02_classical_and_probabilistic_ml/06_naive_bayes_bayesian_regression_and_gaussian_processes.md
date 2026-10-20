@@ -93,4 +93,4 @@ $$\|Y_{\text{PyTorch}} - Y_{\text{JAX}}\|_\infty < 10^{-5}, \quad \|Y_{\text{Can
 - **Previous Topic:** [05_dimensionality_reduction_pca_lda_ica_tsne_umap.md](05_dimensionality_reduction_pca_lda_ica_tsne_umap.md)
 - **Current Topic:** 06_naive_bayes_bayesian_regression_and_gaussian_processes.md
 - **Next Topic:** [07_differentiable_trees_node_soft_gbdt_and_gam_nam.md](07_differentiable_trees_node_soft_gbdt_and_gam_nam.md)
-- **Category Index:** [02_classical_and_probabilistic_ml/README.md](README.md)
+- **Category Index:** [Master Curriculum Index](../../README.md)

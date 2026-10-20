@@ -98,8 +98,8 @@ Elementwise Adam Step:                  Layerwise Trust Scaling:
   4. Gradient Noise Scale $B_{\text{simple}}$ matches reference within $10^{-5}$.
 
 ## 8. Navigation & Synchronized Track Artifacts
-- [Interactive Concept Explorer Notebook](../../notebooks/04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/03_large_batch_and_layerwise_optimisers.ipynb)
-- [Production PyTorch 2.x Module](../../pytorch2/04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/03_large_batch_and_layerwise_optimisers.py)
-- [Functional JAX / Equinox Module](../../jax/04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/03_large_batch_and_layerwise_optimisers.py)
-- [Native Rust Candle Module](../../candle/04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/03_large_batch_and_layerwise_optimisers.rs)
-- [Hardware Kernels (WGSL + Native Fallback)](../../kernels/04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/03_large_batch_and_layerwise_optimisers.rs)
+- [Interactive Concept Explorer Notebook](../../../notebooks/04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/03_large_batch_and_layerwise_optimisers.ipynb)
+- [Production PyTorch 2.x Module](../../../pytorch2/04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/03_large_batch_and_layerwise_optimisers.py)
+- [Functional JAX / Equinox Module](../../../jax/04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/03_large_batch_and_layerwise_optimisers.py)
+- [Native Rust Candle Module](../../../candle/04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/03_large_batch_and_layerwise_optimisers.rs)
+- [Hardware Kernels (WGSL + Native Fallback)](../../../kernels/04_training_methods_and_optimisers/01_gradient_and_curvature_optimisers/03_large_batch_and_layerwise_optimisers.rs)

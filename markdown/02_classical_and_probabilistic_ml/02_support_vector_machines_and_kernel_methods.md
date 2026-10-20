@@ -98,4 +98,4 @@ $$\|Y_{\text{PyTorch}} - Y_{\text{JAX}}\|_\infty < 10^{-7}, \quad \|Y_{\text{Can
 - **Previous Topic:** [01_generalized_linear_models_and_proximal_lasso.md](01_generalized_linear_models_and_proximal_lasso.md)
 - **Current Topic:** 02_support_vector_machines_and_kernel_methods.md
 - **Next Topic:** [03_knn_prototype_and_locally_weighted_regression.md](03_knn_prototype_and_locally_weighted_regression.md)
-- **Category Index:** [02_classical_and_probabilistic_ml/README.md](README.md)
+- **Category Index:** [Master Curriculum Index](../../README.md)

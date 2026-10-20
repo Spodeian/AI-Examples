@@ -90,4 +90,4 @@ $$\|Y_{\text{PyTorch}} - Y_{\text{JAX}}\|_\infty < 10^{-6}, \quad \|Y_{\text{Can
 - **Previous Topic:** [02_support_vector_machines_and_kernel_methods.md](02_support_vector_machines_and_kernel_methods.md)
 - **Current Topic:** 03_knn_prototype_and_locally_weighted_regression.md
 - **Next Topic:** [04_clustering_kmeans_spectral_and_gmm_em.md](04_clustering_kmeans_spectral_and_gmm_em.md)
-- **Category Index:** [02_classical_and_probabilistic_ml/README.md](README.md)
+- **Category Index:** [Master Curriculum Index](../../README.md)

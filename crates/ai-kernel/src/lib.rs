@@ -243,3 +243,8 @@ pub mod c04_training_methods_and_optimisers {
     pub mod t23_curriculum_self_paced_learning_and_dataset_distillation_mtt;
 }
 
+#[path = "../../../kernels/05_architectures"]
+pub mod c05_architectures {
+    #[path = "01_mlp_moe_soups_and_kan/01_residual_mlp_mlp_mixer_and_gmlp.rs"]
+    pub mod t01_residual_mlp_mlp_mixer_and_gmlp;
+}
