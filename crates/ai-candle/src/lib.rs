@@ -257,6 +257,9 @@ pub mod c05_architectures {
 
     #[path = "01_mlp_moe_soups_and_kan/06_lossless_deliberation_reversible_revnet_hyper_connections_and_looped_depth.rs"]
     pub mod t06_lossless_deliberation_reversible_revnet_hyper_connections_and_looped_depth;
+
+    #[path = "02_convolutional_and_spatiotemporal/01_classic_to_modern_cnns_resnet_densenet_convnext.rs"]
+    pub mod t07_classic_to_modern_cnns_resnet_densenet_convnext;
 }
 
 

@@ -18,5 +18,8 @@ mod test_05_kolmogorov_arnold_networks_kan;
 #[path = "05_architectures/test_06_lossless_deliberation_reversible_revnet_hyper_connections_and_looped_depth.rs"]
 mod test_06_lossless_deliberation_reversible_revnet_hyper_connections_and_looped_depth;
 
+#[path = "05_architectures/test_07_classic_to_modern_cnns_resnet_densenet_convnext.rs"]
+mod test_07_classic_to_modern_cnns_resnet_densenet_convnext;
+
 
 

@@ -282,4 +282,50 @@ fn test_06_lossless_deliberation_reversible_revnet_hyper_connections_and_looped_
     Ok(())
 }
 
+use ai_kernel::c05_architectures::t07_classic_to_modern_cnns_resnet_densenet_convnext as t07;
+
+#[test]
+fn test_07_classic_to_modern_cnns_resnet_densenet_convnext_cpu_and_auto() -> Result<()> {
+    let device = Device::Cpu;
+    let weights_path = common::get_weights_path(
+        "05_architectures/02_convolutional_and_spatiotemporal/01_classic_to_modern_cnns_resnet_densenet_convnext.safetensors",
+    );
+    let tensors = load(weights_path, &device)?;
+
+    // 1. Linear Anchor on CPU
+    let test_input = tensors.get("test_input").unwrap().to_vec2::<f32>()?;
+    let test_input_flat: Vec<f32> = test_input.into_iter().flatten().collect();
+    let weight = tensors.get("weight").unwrap().to_vec2::<f32>()?;
+    let weight_flat: Vec<f32> = weight.into_iter().flatten().collect();
+    let bias = tensors.get("bias").unwrap().to_vec1::<f32>()?;
+    let golden_out = tensors.get("test_output").unwrap().to_vec2::<f32>()?;
+    let golden_out_flat: Vec<f32> = golden_out.into_iter().flatten().collect();
+
+    let anchor_calc = t07::linear_anchor_auto(&test_input_flat, &weight_flat, &bias, 8, 4, 4);
+    for (i, (&calc, &gold)) in anchor_calc.iter().zip(golden_out_flat.iter()).enumerate() {
+        assert!((calc - gold).abs() < 1e-5, "Linear anchor error at {i}: {calc} vs {gold}");
+    }
+
+    // 2. Global Response Normalization (GRN) Kernel Verification
+    let b_sz = 2;
+    let c_sz = 4;
+    let h_sz = 4;
+    let w_sz = 4;
+    let total = b_sz * c_sz * h_sz * w_sz;
+
+    let x = vec![0.5f32; total];
+    let gamma = vec![1.2f32; c_sz];
+    let beta = vec![0.1f32; c_sz];
+
+    let grn_cpu = t07::global_response_norm_cpu(&x, &gamma, &beta, b_sz, c_sz, h_sz, w_sz, 1e-6);
+    assert_eq!(grn_cpu.len(), total);
+
+    let grn_auto = t07::global_response_norm_auto(None, &x, &gamma, &beta, b_sz, c_sz, h_sz, w_sz, 1e-6);
+    for (i, (&c, &a)) in grn_cpu.iter().zip(grn_auto.iter()).enumerate() {
+        assert!((c - a).abs() < 1e-5, "GRN CPU vs Auto mismatch at {i}: {c} vs {a}");
+    }
+
+    Ok(())
+}
+
 
