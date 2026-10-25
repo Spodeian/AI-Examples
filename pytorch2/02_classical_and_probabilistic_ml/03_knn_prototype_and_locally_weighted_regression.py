@@ -87,5 +87,27 @@ def run_verification() -> bool:
     return True
 
 
+def export_golden() -> None:
+    """Regenerates golden reference weights deterministically (seed 42)."""
+    from pathlib import Path
+    from safetensors.torch import load_file, save_file
+    torch.manual_seed(42)
+    ckpt = Path("weights/02_classical_and_probabilistic_ml/03_knn_prototype_and_locally_weighted_regression.safetensors")
+    ckpt.parent.mkdir(parents=True, exist_ok=True)
+    tensors = load_file(str(ckpt)) if ckpt.is_file() else {}
+    if "test_input" not in tensors:
+        tensors["test_input"] = torch.randn(4, 4, dtype=torch.float32)
+        tensors["weight"] = torch.randn(4, 4, dtype=torch.float32)
+        tensors["bias"] = torch.randn(4, dtype=torch.float32)
+        tensors["test_output"] = tensors["test_input"] @ tensors["weight"] + tensors["bias"]
+    tensors = {k: v.detach().contiguous().cpu() for k, v in tensors.items()}
+    save_file(tensors, str(ckpt), metadata={"format": "ai-examples-v1", "seed": "42", "topic": "02_classical_and_probabilistic_ml/03_knn_prototype_and_locally_weighted_regression"})
+    print(f"Exported golden checkpoint to {ckpt}")
+
 if __name__ == "__main__":
+    import sys
+
+    if "--export-golden" in sys.argv[1:]:
+        export_golden()
+
     run_verification()

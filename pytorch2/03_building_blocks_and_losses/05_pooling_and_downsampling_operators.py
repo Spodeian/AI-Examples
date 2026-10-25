@@ -172,5 +172,27 @@ def main() -> None:
     )
 
 
+def export_golden() -> None:
+    """Regenerates golden reference weights deterministically (seed 42)."""
+    from pathlib import Path
+    from safetensors.torch import load_file, save_file
+    torch.manual_seed(42)
+    ckpt = Path("weights/03_building_blocks_and_losses/05_pooling_and_downsampling_operators.safetensors")
+    ckpt.parent.mkdir(parents=True, exist_ok=True)
+    tensors = load_file(str(ckpt)) if ckpt.is_file() else {}
+    if "test_input" not in tensors:
+        tensors["test_input"] = torch.randn(4, 4, dtype=torch.float32)
+        tensors["weight"] = torch.randn(4, 4, dtype=torch.float32)
+        tensors["bias"] = torch.randn(4, dtype=torch.float32)
+        tensors["test_output"] = tensors["test_input"] @ tensors["weight"] + tensors["bias"]
+    tensors = {k: v.detach().contiguous().cpu() for k, v in tensors.items()}
+    save_file(tensors, str(ckpt), metadata={"format": "ai-examples-v1", "seed": "42", "topic": "03_building_blocks_and_losses/05_pooling_and_downsampling_operators"})
+    print(f"Exported golden checkpoint to {ckpt}")
+
 if __name__ == "__main__":
+    import sys
+
+    if "--export-golden" in sys.argv[1:]:
+        export_golden()
+
     main()

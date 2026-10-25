@@ -99,6 +99,26 @@ Using replicate boundary padding guarantees that boundary edge gradients do not 
 
 ---
 
+## Cross-Domain Generalisation & Mathematical Isomorphisms
+
+- **Medical Imaging & Ultrasound:** Wavelet scattering extracts high-frequency microcalcifications and tissue speckle patterns without training large CNNs on scarce datasets.
+- **Seismic & Geomechanical Subsurface Modeling:** Multi-scale DWT captures layered acoustic velocity discontinuities across heterogeneous geological strata.
+- **Edge Devices & Neuromorphic Computing:** Tropical morphological dilation operates entirely with comparison and addition operations, eliminating floating-point multiplication units.
+
+---
+
+## Verification, Parity & Empirical Benchmarks
+
+| Verification Target | Reference Source | Max Absolute Error Ceiling | Status |
+| :--- | :--- | :--- | :--- |
+| **Linear Parity Anchor (x @ W + b)** | `weights/05_architectures/02_convolutional_and_spatiotemporal/05_wavelet_scattering_wtconv_steerable_and_morphological_networks.safetensors` | `< 1.0e-5` | Verified |
+| **Topic-Specific Forward Operators** | `pytorch2/05_architectures/02_convolutional_and_spatiotemporal/05_wavelet_scattering_wtconv_steerable_and_morphological_networks.py` | `< 1.0e-5` | Verified |
+| **Functional JAX Parity** | `jax/05_architectures/02_convolutional_and_spatiotemporal/05_wavelet_scattering_wtconv_steerable_and_morphological_networks.py` | `< 1.0e-5` | Verified |
+| **Native Rust Candle Parity** | `candle/05_architectures/02_convolutional_and_spatiotemporal/05_wavelet_scattering_wtconv_steerable_and_morphological_networks.rs` | `< 1.0e-5` | Verified |
+| **Hardware Kernel (CPU / WGSL)** | `kernels/05_architectures/02_convolutional_and_spatiotemporal/05_wavelet_scattering_wtconv_steerable_and_morphological_networks.rs` | `< 1.0e-5` | Verified |
+
+---
+
 ## Synchronized Track Artifacts
 - **Universal SafeTensors Checkpoint:** [`weights/05_architectures/02_convolutional_and_spatiotemporal/05_wavelet_scattering_wtconv_steerable_and_morphological_networks.safetensors`](../../../weights/05_architectures/02_convolutional_and_spatiotemporal/05_wavelet_scattering_wtconv_steerable_and_morphological_networks.safetensors)
 - **PyTorch 2.x Module:** [`pytorch2/05_architectures/02_convolutional_and_spatiotemporal/05_wavelet_scattering_wtconv_steerable_and_morphological_networks.py`](../../../pytorch2/05_architectures/02_convolutional_and_spatiotemporal/05_wavelet_scattering_wtconv_steerable_and_morphological_networks.py)

@@ -40,9 +40,10 @@ jobs:
         run: |
           mypy core
 
-      - name: Verify Multi-Track Symmetry, Links, and Notebook Execution
+      - name: Verify Multi-Track Symmetry, Contracts, Links, and Notebook Execution
         run: |
-          python scripts/verify_repo.py --check-symmetry --check-links --run
+          python scripts/verify_repo.py check --semantics --format github
+          python scripts/verify_repo.py --run
 
       - name: Run Test Suite
         run: |
@@ -66,10 +67,11 @@ jobs:
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
 
-      - name: Check Rust Workspace
+      - name: Build aix Release Binary & Verify Repository Contracts
         run: |
-          cargo check --workspace
+          cargo build --release -p aix
+          cargo aix check --semantics --format github
 
-      - name: Run Rust Crate Tests
+      - name: Run Rust Workspace Crate Tests (aix, schema, ai-candle, ai-kernel)
         run: |
-          cargo test -p ai-architect-schema
+          cargo test --workspace --tests

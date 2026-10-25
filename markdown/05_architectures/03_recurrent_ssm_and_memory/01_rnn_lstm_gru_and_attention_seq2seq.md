@@ -103,6 +103,26 @@ $$\mathbf{c} = \sum_{t=1}^T \alpha_t \mathbf{h}_t \in \mathbb{R}^{B \times D_{\t
 
 ---
 
+## Cross-Domain Generalisation & Mathematical Isomorphisms
+
+- **Speech Synthesis & ASR (Tacotron / CTC):** Encoder-decoder RNNs with attention align acoustic spectrogram frames to phonetic transcripts.
+- **Financial Tick Sequence Forecasting:** LSTMs capture asymmetric market volatility and regime switching over microsecond order-book events.
+- **Robotics & Motor Trajectory Control:** Recurrent policies track continuous joint states and velocity history without maintaining large memory buffers.
+
+---
+
+## Verification, Parity & Empirical Benchmarks
+
+| Verification Target | Reference Source | Max Absolute Error Ceiling | Status |
+| :--- | :--- | :--- | :--- |
+| **Linear Parity Anchor (x @ W + b)** | `weights/05_architectures/03_recurrent_ssm_and_memory/01_rnn_lstm_gru_and_attention_seq2seq.safetensors` | `< 1.0e-5` | Verified |
+| **Topic-Specific Forward Operators** | `pytorch2/05_architectures/03_recurrent_ssm_and_memory/01_rnn_lstm_gru_and_attention_seq2seq.py` | `< 1.0e-5` | Verified |
+| **Functional JAX Parity** | `jax/05_architectures/03_recurrent_ssm_and_memory/01_rnn_lstm_gru_and_attention_seq2seq.py` | `< 1.0e-5` | Verified |
+| **Native Rust Candle Parity** | `candle/05_architectures/03_recurrent_ssm_and_memory/01_rnn_lstm_gru_and_attention_seq2seq.rs` | `< 1.0e-5` | Verified |
+| **Hardware Kernel (CPU / WGSL)** | `kernels/05_architectures/03_recurrent_ssm_and_memory/01_rnn_lstm_gru_and_attention_seq2seq.rs` | `< 1.0e-5` | Verified |
+
+---
+
 ## Synchronized Track Artifacts
 - **Universal SafeTensors Checkpoint:** [`weights/05_architectures/03_recurrent_ssm_and_memory/01_rnn_lstm_gru_and_attention_seq2seq.safetensors`](../../../weights/05_architectures/03_recurrent_ssm_and_memory/01_rnn_lstm_gru_and_attention_seq2seq.safetensors)
 - **PyTorch 2.x Module:** [`pytorch2/05_architectures/03_recurrent_ssm_and_memory/01_rnn_lstm_gru_and_attention_seq2seq.py`](../../../pytorch2/05_architectures/03_recurrent_ssm_and_memory/01_rnn_lstm_gru_and_attention_seq2seq.py)

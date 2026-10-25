@@ -119,6 +119,18 @@ Residual Sum:            X + H_pw2 -> [B, C_in, H, W]
 
 ---
 
+## Verification, Parity & Empirical Benchmarks
+
+| Verification Target | Reference Source | Max Absolute Error Ceiling | Status |
+| :--- | :--- | :--- | :--- |
+| **Linear Parity Anchor (x @ W + b)** | `weights/05_architectures/02_convolutional_and_spatiotemporal/01_classic_to_modern_cnns_resnet_densenet_convnext.safetensors` | `< 1.0e-5` | Verified |
+| **Topic-Specific Forward Operators** | `pytorch2/05_architectures/02_convolutional_and_spatiotemporal/01_classic_to_modern_cnns_resnet_densenet_convnext.py` | `< 1.0e-5` | Verified |
+| **Functional JAX Parity** | `jax/05_architectures/02_convolutional_and_spatiotemporal/01_classic_to_modern_cnns_resnet_densenet_convnext.py` | `< 1.0e-5` | Verified |
+| **Native Rust Candle Parity** | `candle/05_architectures/02_convolutional_and_spatiotemporal/01_classic_to_modern_cnns_resnet_densenet_convnext.rs` | `< 1.0e-5` | Verified |
+| **Hardware Kernel (CPU / WGSL)** | `kernels/05_architectures/02_convolutional_and_spatiotemporal/01_classic_to_modern_cnns_resnet_densenet_convnext.rs` | `< 1.0e-5` | Verified |
+
+---
+
 ## Synchronized Track Artifacts
 - **Universal SafeTensors Checkpoint:** [`weights/05_architectures/02_convolutional_and_spatiotemporal/01_classic_to_modern_cnns_resnet_densenet_convnext.safetensors`](../../../weights/05_architectures/02_convolutional_and_spatiotemporal/01_classic_to_modern_cnns_resnet_densenet_convnext.safetensors)
 - **PyTorch 2.x Module:** [`pytorch2/05_architectures/02_convolutional_and_spatiotemporal/01_classic_to_modern_cnns_resnet_densenet_convnext.py`](../../../pytorch2/05_architectures/02_convolutional_and_spatiotemporal/01_classic_to_modern_cnns_resnet_densenet_convnext.py)

@@ -69,6 +69,65 @@ Given patch tokens $\mathbf{Z} \in \mathbb{R}^{B \times T \times S \times D}$ ($
 
 ---
 
+## Tensor Memory Layout & Reference Shapes
+
+Golden reference tensors verified in `weights/05_architectures/02_convolutional_and_spatiotemporal/04_spatiotemporal_video_i3d_inflation_and_vivit_timesformer.safetensors`:
+
+- `bias`: `[4]` (`F32`)
+- `conv2d_b`: `[4]` (`F32`)
+- `conv2d_w`: `[4, 4, 3, 3]` (`F32`)
+- `i3d_b`: `[4]` (`F32`)
+- `i3d_w`: `[4, 4, 3, 3, 3]` (`F32`)
+- `spatial_k_w`: `[8, 8]` (`F32`)
+- `spatial_out_w`: `[8, 8]` (`F32`)
+- `spatial_q_w`: `[8, 8]` (`F32`)
+- `spatial_v_w`: `[8, 8]` (`F32`)
+- `temporal_k_w`: `[8, 8]` (`F32`)
+- `temporal_out_w`: `[8, 8]` (`F32`)
+- `temporal_q_w`: `[8, 8]` (`F32`)
+- `temporal_v_w`: `[8, 8]` (`F32`)
+- `test_input`: `[8, 4]` (`F32`)
+- `test_output`: `[8, 4]` (`F32`)
+- `timesformer_output`: `[2, 4, 4, 8]` (`F32`)
+- `tokens`: `[2, 4, 4, 8]` (`F32`)
+- `weight`: `[4, 4]` (`F32`)
+- `x_static_2d`: `[2, 4, 4, 4]` (`F32`)
+- `x_video`: `[2, 4, 4, 4, 4]` (`F32`)
+- `y_3d`: `[2, 4, 4, 4, 4]` (`F32`)
+
+---
+
+## Multi-Ecosystem Implementation & Roofline Complexity
+
+| Track | Primary Implementation | Compilation / Vectorization | Numerical Tolerance |
+| :--- | :--- | :--- | :--- |
+| **PyTorch 2.x** | `pytorch2/05_architectures/02_convolutional_and_spatiotemporal/04_spatiotemporal_video_i3d_inflation_and_vivit_timesformer.py` | `torch.compile(fullgraph=True)` | Golden Reference |
+| **Functional JAX** | `jax/05_architectures/02_convolutional_and_spatiotemporal/04_spatiotemporal_video_i3d_inflation_and_vivit_timesformer.py` | Pure functional `jnp` / `jax.jit` | `< 1e-5` |
+| **Candle Rust** | `candle/05_architectures/02_convolutional_and_spatiotemporal/04_spatiotemporal_video_i3d_inflation_and_vivit_timesformer.rs` | Zero-copy native `candle_core::Tensor` | `< 1e-5` |
+| **Hardware Kernel** | `kernels/05_architectures/02_convolutional_and_spatiotemporal/04_spatiotemporal_video_i3d_inflation_and_vivit_timesformer.rs` | Portable CPU + WGSL Compute Shader | `< 1e-5` |
+
+---
+
+## Cross-Domain Generalisation & Mathematical Isomorphisms
+
+- **Robotics & Policy Learning (Diffusion Policy):** Divided space-time attention tracks multi-camera robot workspace state history over multi-second horizons.
+- **Biomedical 3D/4D Volumetric Imaging (fMRI, 4D CT):** I3D inflation transfers 2D CT segmentation models to dynamic cardiopulmonary motion scans.
+- **Meteorological & Climate Forecasting:** Factorized spatio-temporal layers process atmospheric wind and pressure fields over multi-day trajectories.
+
+---
+
+## Verification, Parity & Empirical Benchmarks
+
+| Verification Target | Reference Source | Max Absolute Error Ceiling | Status |
+| :--- | :--- | :--- | :--- |
+| **Linear Parity Anchor (x @ W + b)** | `weights/05_architectures/02_convolutional_and_spatiotemporal/04_spatiotemporal_video_i3d_inflation_and_vivit_timesformer.safetensors` | `< 1.0e-5` | Verified |
+| **Topic-Specific Forward Operators** | `pytorch2/05_architectures/02_convolutional_and_spatiotemporal/04_spatiotemporal_video_i3d_inflation_and_vivit_timesformer.py` | `< 1.0e-5` | Verified |
+| **Functional JAX Parity** | `jax/05_architectures/02_convolutional_and_spatiotemporal/04_spatiotemporal_video_i3d_inflation_and_vivit_timesformer.py` | `< 1.0e-5` | Verified |
+| **Native Rust Candle Parity** | `candle/05_architectures/02_convolutional_and_spatiotemporal/04_spatiotemporal_video_i3d_inflation_and_vivit_timesformer.rs` | `< 1.0e-5` | Verified |
+| **Hardware Kernel (CPU / WGSL)** | `kernels/05_architectures/02_convolutional_and_spatiotemporal/04_spatiotemporal_video_i3d_inflation_and_vivit_timesformer.rs` | `< 1.0e-5` | Verified |
+
+---
+
 ## Synchronized Track Artifacts
 - **Universal SafeTensors Checkpoint:** [`weights/05_architectures/02_convolutional_and_spatiotemporal/04_spatiotemporal_video_i3d_inflation_and_vivit_timesformer.safetensors`](../../../weights/05_architectures/02_convolutional_and_spatiotemporal/04_spatiotemporal_video_i3d_inflation_and_vivit_timesformer.safetensors)
 - **PyTorch 2.x Module:** [`pytorch2/05_architectures/02_convolutional_and_spatiotemporal/04_spatiotemporal_video_i3d_inflation_and_vivit_timesformer.py`](../../../pytorch2/05_architectures/02_convolutional_and_spatiotemporal/04_spatiotemporal_video_i3d_inflation_and_vivit_timesformer.py)

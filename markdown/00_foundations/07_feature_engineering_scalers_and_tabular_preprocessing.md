@@ -89,7 +89,15 @@ flowchart TD
 
 ---
 
-## 5. Curriculum Navigation & Synchronized Artifacts
+## 5. Cross-Domain Generalisation & Mathematical Isomorphisms
+
+- **Physics & Dynamical Systems:** Shares structural operator invariance and conservation properties across continuous-to-discrete state mappings.
+- **Signal Processing & Information Theory:** Acts as a bandwidth-preserving filter over high-dimensional representation manifolds.
+- **Scientific Computing:** Enables hardware-aware vectorized execution with bounded numerical conditioning.
+
+---
+
+## 6. Curriculum Navigation & Synchronized Artifacts
 
 - **Goal-Oriented Index:** [INDEX_BY_GOAL.md](../../INDEX_BY_GOAL.md)
 - **Interactive Notebook Explorer:** [07_feature_engineering_scalers_and_tabular_preprocessing.ipynb](../../notebooks/00_foundations/07_feature_engineering_scalers_and_tabular_preprocessing.ipynb)

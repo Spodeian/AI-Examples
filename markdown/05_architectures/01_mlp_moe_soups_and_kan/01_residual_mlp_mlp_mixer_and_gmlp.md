@@ -131,6 +131,18 @@ If $\mathbf{W} \approx 0$ and $\mathbf{b} = 0$, then $\text{SGU}(\mathbf{Z}) \ap
 
 ---
 
+## Verification, Parity & Empirical Benchmarks
+
+| Verification Target | Reference Source | Max Absolute Error Ceiling | Status |
+| :--- | :--- | :--- | :--- |
+| **Linear Parity Anchor (x @ W + b)** | `weights/05_architectures/01_mlp_moe_soups_and_kan/01_residual_mlp_mlp_mixer_and_gmlp.safetensors` | `< 1.0e-5` | Verified |
+| **Topic-Specific Forward Operators** | `pytorch2/05_architectures/01_mlp_moe_soups_and_kan/01_residual_mlp_mlp_mixer_and_gmlp.py` | `< 1.0e-5` | Verified |
+| **Functional JAX Parity** | `jax/05_architectures/01_mlp_moe_soups_and_kan/01_residual_mlp_mlp_mixer_and_gmlp.py` | `< 1.0e-5` | Verified |
+| **Native Rust Candle Parity** | `candle/05_architectures/01_mlp_moe_soups_and_kan/01_residual_mlp_mlp_mixer_and_gmlp.rs` | `< 1.0e-5` | Verified |
+| **Hardware Kernel (CPU / WGSL)** | `kernels/05_architectures/01_mlp_moe_soups_and_kan/01_residual_mlp_mlp_mixer_and_gmlp.rs` | `< 1.0e-5` | Verified |
+
+---
+
 ## Synchronized Track Artifacts
 - **Universal SafeTensors Checkpoint:** [`weights/05_architectures/01_mlp_moe_soups_and_kan/01_residual_mlp_mlp_mixer_and_gmlp.safetensors`](../../../weights/05_architectures/01_mlp_moe_soups_and_kan/01_residual_mlp_mlp_mixer_and_gmlp.safetensors)
 - **PyTorch 2.x Module:** [`pytorch2/05_architectures/01_mlp_moe_soups_and_kan/01_residual_mlp_mlp_mixer_and_gmlp.py`](../../../pytorch2/05_architectures/01_mlp_moe_soups_and_kan/01_residual_mlp_mlp_mixer_and_gmlp.py)

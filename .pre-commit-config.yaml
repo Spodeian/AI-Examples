@@ -25,6 +25,11 @@ repos:
 
   - repo: local
     hooks:
+      - id: aix-check
+        name: aix static repository verification
+        entry: python scripts/verify_repo.py check --semantics
+        language: system
+        pass_filenames: false
       - id: cargo-check
         name: cargo check workspace
         entry: cargo check --workspace
@@ -33,7 +38,7 @@ repos:
         pass_filenames: false
       - id: pytest-fast
         name: pytest fast invariants
-        entry: .venv/Scripts/pytest
+        entry: python -m pytest
         language: system
         files: '\.py$'
         pass_filenames: false

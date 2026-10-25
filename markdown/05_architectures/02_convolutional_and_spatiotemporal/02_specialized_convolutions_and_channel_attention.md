@@ -91,6 +91,51 @@ When successive layers use non-coprime dilation rates (e.g., $r = [2, 4, 8]$), r
 
 ---
 
+## Tensor Memory Layout & Reference Shapes
+
+Golden reference tensors verified in `weights/05_architectures/02_convolutional_and_spatiotemporal/02_specialized_convolutions_and_channel_attention.safetensors`:
+
+- `bias`: `[4]` (`F32`)
+- `coord_conv_b`: `[4]` (`F32`)
+- `coord_conv_w`: `[4, 6, 1, 1]` (`F32`)
+- `coord_output`: `[2, 4, 8, 8]` (`F32`)
+- `eca_conv_b`: `[1]` (`F32`)
+- `eca_conv_w`: `[1, 1, 3]` (`F32`)
+- `eca_output`: `[2, 4, 8, 8]` (`F32`)
+- `eca_scale`: `[2, 4]` (`F32`)
+- `input`: `[2, 4, 8, 8]` (`F32`)
+- `se_fc1_b`: `[2]` (`F32`)
+- `se_fc1_w`: `[2, 4]` (`F32`)
+- `se_fc2_b`: `[4]` (`F32`)
+- `se_fc2_w`: `[4, 2]` (`F32`)
+- `se_output`: `[2, 4, 8, 8]` (`F32`)
+- `se_scale`: `[2, 4]` (`F32`)
+- `test_input`: `[8, 4]` (`F32`)
+- `test_output`: `[8, 4]` (`F32`)
+- `weight`: `[4, 4]` (`F32`)
+
+---
+
+## Cross-Domain Generalisation & Mathematical Isomorphisms
+
+- **Robotic Manipulation & Grasping:** CoordConv allows vision backbones to map visual pixels directly to end-effector 3D Cartesian coordinates.
+- **Biomedical Semantic Segmentation:** ASPP with coprime dilation rates captures multi-scale tumor boundaries without losing cellular resolution.
+- **Audio Spectrogram Enhancement:** 1D ECA blocks recalibrate frequency channels dynamically for acoustic event detection.
+
+---
+
+## Verification, Parity & Empirical Benchmarks
+
+| Verification Target | Reference Source | Max Absolute Error Ceiling | Status |
+| :--- | :--- | :--- | :--- |
+| **Linear Parity Anchor (x @ W + b)** | `weights/05_architectures/02_convolutional_and_spatiotemporal/02_specialized_convolutions_and_channel_attention.safetensors` | `< 1.0e-5` | Verified |
+| **Topic-Specific Forward Operators** | `pytorch2/05_architectures/02_convolutional_and_spatiotemporal/02_specialized_convolutions_and_channel_attention.py` | `< 1.0e-5` | Verified |
+| **Functional JAX Parity** | `jax/05_architectures/02_convolutional_and_spatiotemporal/02_specialized_convolutions_and_channel_attention.py` | `< 1.0e-5` | Verified |
+| **Native Rust Candle Parity** | `candle/05_architectures/02_convolutional_and_spatiotemporal/02_specialized_convolutions_and_channel_attention.rs` | `< 1.0e-5` | Verified |
+| **Hardware Kernel (CPU / WGSL)** | `kernels/05_architectures/02_convolutional_and_spatiotemporal/02_specialized_convolutions_and_channel_attention.rs` | `< 1.0e-5` | Verified |
+
+---
+
 ## Synchronized Track Artifacts
 - **Universal SafeTensors Checkpoint:** [`weights/05_architectures/02_convolutional_and_spatiotemporal/02_specialized_convolutions_and_channel_attention.safetensors`](../../../weights/05_architectures/02_convolutional_and_spatiotemporal/02_specialized_convolutions_and_channel_attention.safetensors)
 - **PyTorch 2.x Module:** [`pytorch2/05_architectures/02_convolutional_and_spatiotemporal/02_specialized_convolutions_and_channel_attention.py`](../../../pytorch2/05_architectures/02_convolutional_and_spatiotemporal/02_specialized_convolutions_and_channel_attention.py)

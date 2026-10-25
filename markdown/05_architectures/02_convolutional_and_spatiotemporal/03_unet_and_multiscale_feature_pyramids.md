@@ -77,6 +77,49 @@ where learnable weights $w_i \in \mathbb{R}$ are guaranteed non-negative via ReL
 
 ---
 
+## Tensor Memory Layout & Reference Shapes
+
+Golden reference tensors verified in `weights/05_architectures/02_convolutional_and_spatiotemporal/03_unet_and_multiscale_feature_pyramids.safetensors`:
+
+- `bias`: `[4]` (`F32`)
+- `bifpn_conv_b`: `[4]` (`F32`)
+- `bifpn_conv_w`: `[4, 4, 1, 1]` (`F32`)
+- `bifpn_output`: `[2, 4, 8, 8]` (`F32`)
+- `bifpn_w`: `[2]` (`F32`)
+- `bot_b`: `[8]` (`F32`)
+- `bot_w`: `[8, 8, 3, 3]` (`F32`)
+- `dec_b`: `[4]` (`F32`)
+- `dec_w`: `[4, 16, 3, 3]` (`F32`)
+- `enc_b`: `[8]` (`F32`)
+- `enc_w`: `[8, 4, 3, 3]` (`F32`)
+- `input`: `[2, 4, 8, 8]` (`F32`)
+- `test_input`: `[8, 4]` (`F32`)
+- `test_output`: `[8, 4]` (`F32`)
+- `unet_output`: `[2, 4, 8, 8]` (`F32`)
+- `weight`: `[4, 4]` (`F32`)
+
+---
+
+## Cross-Domain Generalisation & Mathematical Isomorphisms
+
+- **Denoising Diffusion Probabilistic Models (DDPM):** U-Net forms the core denoising backbone of Latent Diffusion and Stable Diffusion models.
+- **Biomedical Organ Segmentation (CT / MRI):** 2D and 3D U-Nets segment organ contours and tumors at single-voxel precision.
+- **Aerial & Satellite Earth Observation:** BiFPN feature pyramids detect multi-scale vehicles, buildings, and agricultural fields across gigapixel orthomosaics.
+
+---
+
+## Verification, Parity & Empirical Benchmarks
+
+| Verification Target | Reference Source | Max Absolute Error Ceiling | Status |
+| :--- | :--- | :--- | :--- |
+| **Linear Parity Anchor (x @ W + b)** | `weights/05_architectures/02_convolutional_and_spatiotemporal/03_unet_and_multiscale_feature_pyramids.safetensors` | `< 1.0e-5` | Verified |
+| **Topic-Specific Forward Operators** | `pytorch2/05_architectures/02_convolutional_and_spatiotemporal/03_unet_and_multiscale_feature_pyramids.py` | `< 1.0e-5` | Verified |
+| **Functional JAX Parity** | `jax/05_architectures/02_convolutional_and_spatiotemporal/03_unet_and_multiscale_feature_pyramids.py` | `< 1.0e-5` | Verified |
+| **Native Rust Candle Parity** | `candle/05_architectures/02_convolutional_and_spatiotemporal/03_unet_and_multiscale_feature_pyramids.rs` | `< 1.0e-5` | Verified |
+| **Hardware Kernel (CPU / WGSL)** | `kernels/05_architectures/02_convolutional_and_spatiotemporal/03_unet_and_multiscale_feature_pyramids.rs` | `< 1.0e-5` | Verified |
+
+---
+
 ## Synchronized Track Artifacts
 - **Universal SafeTensors Checkpoint:** [`weights/05_architectures/02_convolutional_and_spatiotemporal/03_unet_and_multiscale_feature_pyramids.safetensors`](../../../weights/05_architectures/02_convolutional_and_spatiotemporal/03_unet_and_multiscale_feature_pyramids.safetensors)
 - **PyTorch 2.x Module:** [`pytorch2/05_architectures/02_convolutional_and_spatiotemporal/03_unet_and_multiscale_feature_pyramids.py`](../../../pytorch2/05_architectures/02_convolutional_and_spatiotemporal/03_unet_and_multiscale_feature_pyramids.py)

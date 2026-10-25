@@ -7,3 +7,7 @@ rustc-wrapper = ""
 [target.x86_64-pc-windows-msvc]
 # Use rust-lld for fast linking on Windows
 linker = "rust-lld"
+
+[alias]
+aix = "run --release -p aix --"
+

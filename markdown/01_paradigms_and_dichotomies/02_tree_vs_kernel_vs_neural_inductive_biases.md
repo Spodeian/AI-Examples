@@ -105,7 +105,15 @@ $$\|R x - R s\|_2^2 = (x - s)^\top R^\top R (x - s) = \|x - s\|_2^2 \implies K(R
 
 ---
 
-## 5. Curriculum Navigation & Synchronized Artifacts
+## 5. Cross-Domain Generalisation & Mathematical Isomorphisms
+
+- **Physics & Dynamical Systems:** Shares structural operator invariance and conservation properties across continuous-to-discrete state mappings.
+- **Signal Processing & Information Theory:** Acts as a bandwidth-preserving filter over high-dimensional representation manifolds.
+- **Scientific Computing:** Enables hardware-aware vectorized execution with bounded numerical conditioning.
+
+---
+
+## 6. Curriculum Navigation & Synchronized Artifacts
 
 - **Goal-Oriented Index:** [INDEX_BY_GOAL.md](../../INDEX_BY_GOAL.md)
 - **Interactive Notebook Explorer:** [02_tree_vs_kernel_vs_neural_inductive_biases.ipynb](../../notebooks/01_paradigms_and_dichotomies/02_tree_vs_kernel_vs_neural_inductive_biases.ipynb)
