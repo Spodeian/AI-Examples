@@ -1,0 +1,116 @@
+aid_version: "1.0.0"
+metadata:
+  model_id: "hybrid_jamba_mla_verifier"
+  display_name: "Hybrid Jamba-2 MLA Sparse MoE Reasoning Verifier"
+  domain: "NaturalLanguageProcessing"
+  author: "Custom AI Designer Studio"
+  license: "Apache-2.0"
+  target_hardware:
+    profile_name: "DatacenterGPU_H100"
+    max_vram_bytes: 85899345920
+    peak_fp16_tflops: 989.0
+    peak_fp8_tflops: 1978.0
+    memory_bandwidth_gbs: 3350.0
+  tags: ["nlp", "jamba", "mamba-2", "mla", "deepseek-moe", "grpo", "reasoning-verifier"]
+
+inputs:
+  - id: "reasoning_tokens"
+    name: "Causal Chain-of-Thought Reasoning Trajectory"
+    space:
+      kind: "discrete_tokens"
+      vocab_size: 128256
+      is_causal: true
+    symbolic_shape: ["B", "T"]
+    coordinate_encoding:
+      kind: "decoupled_ro_pe"
+
+outputs:
+  - id: "step_verifier_reward"
+    name: "Outcome Process Reward & Mathematical Correctness Score"
+    space:
+      kind: "continuous_vector"
+      dimension: 1
+    symbolic_shape: ["B", 1]
+    loss: "grpo_outcome_reward"
+
+graph:
+  topology:
+    kind: "residual_stream"
+    norm_placement: "pre_ln"
+    layer_scale_init: 0.0
+  nodes:
+    - id: "token_embedding"
+      name: "Token Vocabulary Embedding"
+      operator:
+        type: "embedding"
+        num_embeddings: 128256
+        embedding_dim: 2048
+      precision: "bf16"
+    - id: "mamba2_backbone"
+      name: "Mamba-2 State Space Duality (SSD) Linear Core"
+      operator:
+        type: "mamba2_ssd"
+        d_model: 2048
+        d_state: 128
+        d_conv: 4
+        expand: 2
+      precision: "bf16"
+    - id: "mla_attention"
+      name: "Multi-Head Latent Attention (MLA KV-Compression)"
+      operator:
+        type: "mla"
+        num_heads: 16
+        d_latent_kv: 512
+        d_rope: 64
+        d_v: 128
+      precision: "fp8_e4m3"
+    - id: "deepseek_moe_ffn"
+      name: "DeepSeek Fine-Grained Sparse Mixture-of-Experts"
+      operator:
+        type: "deep_seek_mo_e"
+        total_experts: 64
+        routed_k: 8
+        shared_experts: 2
+        d_model: 2048
+        d_ffn: 1408
+      precision: "fp8_e4m3"
+    - id: "verifier_reward_head"
+      name: "Outcome Reward Scalar Projection Head"
+      operator:
+        type: "linear"
+        in_features: 2048
+        out_features: 1
+        bias: false
+      precision: "fp32"
+
+training:
+  auto_partition_parameters: true
+  muon:
+    lr: 0.02
+    momentum: 0.95
+    newton_schulz_steps: 5
+    weight_decay: 0.0
+  adamw:
+    lr: 0.0003
+    betas: [0.9, 0.95]
+    eps: 0.00000001
+    weight_decay: 0.01
+  scheduler:
+    kind: "cosine"
+    warmup_steps: 2000
+    total_steps: 100000
+    min_lr: 0.00001
+  hygiene:
+    auto_clip: true
+    clip_percentile: 90.0
+    max_norm: 1.0
+    ema_decay: 0.999
+    grokfast: true
+    activation_checkpointing: true
+  loss_balancing: "fixed_weights"
+
+precision:
+  default_weight_precision: "fp8_e4m3"
+  default_activation_precision: "bf16"
+  reduction_precision: "fp32"
+  master_weight_precision: "fp32"

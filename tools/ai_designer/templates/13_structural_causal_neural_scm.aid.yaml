@@ -1,0 +1,129 @@
+aid_version: "1.0.0"
+
+metadata:
+  model_id: "structural_causal_neural_scm"
+  display_name: "Invertible Neural Structural Causal Model"
+  domain: "09_causal_ai_and_evolutionary_search"
+  author: "AI Designer Studio"
+  license: "Apache-2.0"
+  target_hardware:
+    profile_name: "ConsumerGPU_RTX4090"
+    max_vram_bytes: 25769803776
+    peak_fp16_tflops: 330.0
+    peak_fp8_tflops: 660.0
+    memory_bandwidth_gbs: 1008.0
+  tags: ["causal_ai", "structural_causal_models", "do_calculus", "counterfactuals", "invertible"]
+
+inputs:
+  - id: "exogenous_noise"
+    name: "Independent Exogenous Latents U"
+    space:
+      kind: "continuous_vector"
+      dimension: 64
+    symbolic_shape: ["B", 1, 64]
+    normalizer:
+      kind: "standardize"
+      mean_fill: 0.0
+    coordinate_encoding:
+      kind: "none"
+
+outputs:
+  - id: "endogenous_observations"
+    name: "Endogenous Variables X = f(PA_i, U_i)"
+    space:
+      kind: "continuous_vector"
+      dimension: 64
+    symbolic_shape: ["B", 1, 64]
+    constraint:
+      kind: "monotonic"
+      positive_weights: true
+    loss: "mse"
+
+graph:
+  topology:
+    kind: "reversible_split_stream"
+  nodes:
+    - id: "causal_flow_f1"
+      name: "Causal Mechanism Block F1"
+      operator:
+        type: "linear"
+        in_features: 64
+        out_features: 128
+        bias: true
+      precision: "bf16"
+      metadata: {}
+
+    - id: "causal_norm_1"
+      name: "Mechanism Normalization"
+      operator:
+        type: "rms_norm"
+        dim: 128
+        eps: 0.00001
+      precision: "bf16"
+      metadata: {}
+
+    - id: "causal_swiglu"
+      name: "Non-Linear Interaction Gate"
+      operator:
+        type: "swiglu"
+        in_features: 128
+        hidden_features: 256
+      precision: "bf16"
+      metadata: {}
+
+    - id: "causal_proj_out"
+      name: "Causal DAG Recombination"
+      operator:
+        type: "linear"
+        in_features: 128
+        out_features: 64
+        bias: false
+      precision: "bf16"
+      metadata: {}
+
+  connections:
+    - from_node: "causal_flow_f1"
+      from_port: 0
+      to_node: "causal_norm_1"
+      to_port: 0
+    - from_node: "causal_norm_1"
+      from_port: 0
+      to_node: "causal_swiglu"
+      to_port: 0
+    - from_node: "causal_swiglu"
+      from_port: 0
+      to_node: "causal_proj_out"
+      to_port: 0
+
+training:
+  auto_partition_parameters: true
+  muon:
+    lr: 0.02
+    momentum: 0.95
+    newton_schulz_steps: 5
+    weight_decay: 0.01
+  adamw:
+    lr: 0.001
+    betas: [0.9, 0.95]
+    eps: 0.00000001
+    weight_decay: 0.01
+  scheduler:
+    kind: "warmup_stable_decay"
+    warmup_ratio: 0.05
+    stable_ratio: 0.75
+    decay_ratio: 0.20
+    min_lr_ratio: 0.01
+  hygiene:
+    auto_clip: true
+    clip_percentile: 90.0
+    max_norm: 1.0
+    ema_decay: 0.999
+    grokfast: true
+    activation_checkpointing: false
+  loss_balancing: "fixed_weights"
+
+precision:
+  default_weight_precision: "bf16"
+  default_activation_precision: "bf16"
+  reduction_precision: "fp32"
+  master_weight_precision: "fp32"

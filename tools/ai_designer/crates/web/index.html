@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Designer Studio</title>
+
+    <!-- Primary SEO Metadata -->
+    <meta name="title" content="AI Designer Studio">
+    <meta name="description" content="Interactive AI Architecture Workbench, Roofline Profiler, and Multi-Backend Code Generator in Rust & egui.">
+    <meta name="keywords" content="rust, wasm, egui, eframe, ai designer, neural architecture, pytorch, jax, candle, roofline">
+    <meta name="author" content="AI-Examples Contributors">
+    <meta name="robots" content="index, follow">
+
+    <!-- Open Graph / Facebook Social Metadata -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="AI Designer Studio">
+    <meta property="og:description" content="Interactive AI Architecture Workbench, Roofline Profiler, and Multi-Backend Code Generator.">
+
+    <!-- Twitter Social Metadata -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:title" content="AI Designer Studio">
+    <meta property="twitter:description" content="Interactive AI Architecture Workbench, Roofline Profiler, and Multi-Backend Code Generator.">
+
+    <!-- Bootstrap Icons v1.13.2 CDN -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.2/font/bootstrap-icons.min.css">
+
+    <!-- Progressive Web App & Offline Capabilities -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="alternate icon" href="favicon.ico">
+    <meta name="theme-color" content="#121212">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <!-- Trunk Rust WebAssembly link & Offline assets -->
+    <link
+      data-trunk
+      rel="rust"
+      href="Cargo.toml"
+      data-type="main"
+      data-wasm-opt="z"
+      data-wasm-opt-params="--enable-simd --enable-bulk-memory --enable-mutable-globals --enable-nontrapping-float-to-int --enable-sign-ext --converge --directize --duplicate-function-elimination --coalesce-locals --vacuum --strip-debug --strip-producers"
+      data-integrity="none"
+    >
+    <link data-trunk rel="copy-file" href="_headers">
+    <link data-trunk rel="copy-file" href="sw.js">
+    <link data-trunk rel="copy-file" href="manifest.json">
+    <link data-trunk rel="copy-file" href="favicon.svg">
+    <link data-trunk rel="copy-file" href="favicon.ico">
+    <link data-trunk rel="copy-file" href="icon-192.png">
+    <link data-trunk rel="copy-file" href="icon-512.png">
+
+    <!-- CSS and JavaScript Assets Managed by Trunk -->
+    <link data-trunk rel="scss" href="index.scss" data-integrity="none">
+    <script data-trunk rel="inline" src="index.js" defer data-integrity="none"></script>
+  </head>
+  <body>
+    <canvas id="egui_canvas"></canvas>
+  </body>
+</html>

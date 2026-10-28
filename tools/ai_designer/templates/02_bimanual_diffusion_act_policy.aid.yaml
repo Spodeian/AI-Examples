@@ -1,0 +1,127 @@
+aid_version: "1.0.0"
+metadata:
+  model_id: "bimanual_diffusion_act_policy"
+  display_name: "Bimanual Action-Chunking Diffusion Policy"
+  domain: "RoboticsAndEmbodiedControl"
+  author: "Custom AI Designer Studio"
+  license: "Apache-2.0"
+  target_hardware:
+    profile_name: "EdgeRobotics_JetsonOrin"
+    max_vram_bytes: 8589934592
+    peak_fp16_tflops: 275.0
+    peak_fp8_tflops: 550.0
+    memory_bandwidth_gbs: 204.8
+  tags: ["robotics", "diffusion-policy", "act", "cbf-safety", "so3-rotation"]
+
+inputs:
+  - id: "joint_states"
+    name: "Proprioceptive Arm & Gripper Joint Angles"
+    space:
+      kind: "continuous_vector"
+      dimension: 14
+      range: [-3.1415, 3.1415]
+    symbolic_shape: ["B", 14]
+    normalizer:
+      kind: "standardize"
+      mean_fill: 0.0
+  - id: "rgb_wrist_camera"
+    name: "Wrist RGB Observation"
+    space:
+      kind: "image_rgb"
+      resolution: [224, 224]
+      channels: 3
+    symbolic_shape: ["B", 3, 224, 224]
+    normalizer:
+      kind: "image_net_normalize"
+    coordinate_encoding:
+      kind: "ro_pe2_d_dynamic"
+      base: 10000.0
+    patching:
+      patch_size: [16, 16]
+      flatten_channels: true
+
+outputs:
+  - id: "action_chunks"
+    name: "Continuous Action Trajectory Chunks (16 Steps)"
+    space:
+      kind: "rigid_body_trajectory"
+      horizon_steps: 16
+      dof_per_step: 7
+    symbolic_shape: ["B", 16, 7]
+    constraint:
+      kind: "cbf_qp"
+      safe_distance: 0.05
+      max_velocity: 0.5
+    loss: "optimal_transport_conditional_flow_matching"
+
+graph:
+  topology:
+    kind: "hyper_connections"
+    num_lanes: 4
+  nodes:
+    - id: "visual_encoder"
+      name: "ConvNeXt-V2 Visual Backbone"
+      operator:
+        type: "conv_ne_xt_v2_block"
+        dim: 256
+        kernel_size: 7
+        mlp_ratio: 4.0
+      precision: "bf16"
+    - id: "state_proj"
+      name: "Proprioception Linear Projection"
+      operator:
+        type: "linear"
+        in_features: 14
+        out_features: 256
+        bias: true
+      precision: "bf16"
+    - id: "mamba_deliberation"
+      name: "Mamba-2 SSD Trajectory Stream"
+      operator:
+        type: "mamba2_ssd"
+        d_model: 256
+        d_state: 64
+        d_conv: 4
+        expand: 2
+      precision: "bf16"
+    - id: "action_readout"
+      name: "Action Chunk Readout Head"
+      operator:
+        type: "linear"
+        in_features: 256
+        out_features: 112 # 16 steps * 7 dof
+        bias: true
+      precision: "fp32"
+
+training:
+  auto_partition_parameters: true
+  muon:
+    lr: 0.02
+    momentum: 0.95
+    newton_schulz_steps: 5
+    weight_decay: 0.01
+  adamw:
+    lr: 0.001
+    betas: [0.9, 0.95]
+    eps: 0.00000001
+    weight_decay: 0.01
+  scheduler:
+    kind: "warmup_stable_decay"
+    warmup_ratio: 0.05
+    stable_ratio: 0.80
+    decay_ratio: 0.15
+    min_lr_ratio: 0.01
+  hygiene:
+    auto_clip: true
+    clip_percentile: 90.0
+    max_norm: 1.0
+    ema_decay: 0.999
+    grokfast: false
+    activation_checkpointing: false
+  loss_balancing: "fixed_weights"
+
+precision:
+  default_weight_precision: "bf16"
+  default_activation_precision: "bf16"
+  reduction_precision: "fp32"
+  master_weight_precision: "fp32"

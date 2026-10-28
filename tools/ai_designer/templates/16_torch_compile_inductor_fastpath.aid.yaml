@@ -1,0 +1,133 @@
+aid_version: "1.0.0"
+
+metadata:
+  model_id: "torch_compile_inductor_fastpath"
+  display_name: "AOT Fused Inductor Fastpath Backbone"
+  domain: "12_compilation_and_performance"
+  author: "AI Designer Studio"
+  license: "Apache-2.0"
+  target_hardware:
+    profile_name: "ConsumerGPU_RTX4090"
+    max_vram_bytes: 25769803776
+    peak_fp16_tflops: 330.0
+    peak_fp8_tflops: 660.0
+    memory_bandwidth_gbs: 1008.0
+  tags: ["compilation", "torch_compile", "inductor", "cuda_graphs", "zero_overhead"]
+
+inputs:
+  - id: "batch_vectors"
+    name: "Batched Compute Stream"
+    space:
+      kind: "continuous_vector"
+      dimension: 1024
+    symbolic_shape: ["B", "T", 1024]
+    normalizer:
+      kind: "standardize"
+      mean_fill: 0.0
+    coordinate_encoding:
+      kind: "none"
+
+outputs:
+  - id: "fused_projection"
+    name: "Fused Kernel Output"
+    space:
+      kind: "continuous_vector"
+      dimension: 1024
+    symbolic_shape: ["B", "T", 1024]
+    constraint:
+      kind: "direct_linear"
+    loss: "mse"
+
+graph:
+  topology:
+    kind: "residual_stream"
+    norm_placement: "pre_ln"
+    layer_scale_init: 0.01
+  nodes:
+    - id: "fused_pre_norm"
+      name: "Pointwise Fused RMSNorm"
+      operator:
+        type: "rms_norm"
+        dim: 1024
+        eps: 0.00001
+      precision: "bf16"
+      metadata:
+        inductor_fuse: "true"
+
+    - id: "fast_qkv_gemm"
+      name: "Triton-Fused Flash Attention"
+      operator:
+        type: "mha"
+        num_heads: 16
+        d_k: 64
+        d_v: 64
+        dropout: 0.0
+      precision: "bf16"
+      metadata:
+        inductor_fuse: "true"
+
+    - id: "fused_post_norm"
+      name: "Post-Attention Norm"
+      operator:
+        type: "rms_norm"
+        dim: 1024
+        eps: 0.00001
+      precision: "bf16"
+      metadata: {}
+
+    - id: "fast_swiglu"
+      name: "Fused SwiGLU Kernel"
+      operator:
+        type: "swiglu"
+        in_features: 1024
+        hidden_features: 4096
+      precision: "bf16"
+      metadata:
+        inductor_fuse: "true"
+
+  connections:
+    - from_node: "fused_pre_norm"
+      from_port: 0
+      to_node: "fast_qkv_gemm"
+      to_port: 0
+    - from_node: "fast_qkv_gemm"
+      from_port: 0
+      to_node: "fused_post_norm"
+      to_port: 0
+    - from_node: "fused_post_norm"
+      from_port: 0
+      to_node: "fast_swiglu"
+      to_port: 0
+
+training:
+  auto_partition_parameters: true
+  muon:
+    lr: 0.02
+    momentum: 0.95
+    newton_schulz_steps: 5
+    weight_decay: 0.01
+  adamw:
+    lr: 0.001
+    betas: [0.9, 0.95]
+    eps: 0.00000001
+    weight_decay: 0.01
+  scheduler:
+    kind: "warmup_stable_decay"
+    warmup_ratio: 0.05
+    stable_ratio: 0.75
+    decay_ratio: 0.20
+    min_lr_ratio: 0.01
+  hygiene:
+    auto_clip: true
+    clip_percentile: 90.0
+    max_norm: 1.0
+    ema_decay: 0.999
+    grokfast: true
+    activation_checkpointing: false
+  loss_balancing: "fixed_weights"
+
+precision:
+  default_weight_precision: "bf16"
+  default_activation_precision: "bf16"
+  reduction_precision: "fp32"
+  master_weight_precision: "fp32"

@@ -1,0 +1,110 @@
+aid_version: "1.0.0"
+metadata:
+  model_id: "monotonic_ple_tabpfn"
+  display_name: "Monotonic TabPFN In-Context Clinical Predictor"
+  domain: "MedicalAndHealthcare"
+  author: "Custom AI Designer Studio"
+  license: "Apache-2.0"
+  target_hardware:
+    profile_name: "ConsumerGPU_RTX4090"
+    max_vram_bytes: 25769803776
+    peak_fp16_tflops: 330.0
+    peak_fp8_tflops: 660.0
+    memory_bandwidth_gbs: 1008.0
+  tags: ["tabular", "tabpfn", "ple", "monotonic", "entmax", "clinical-risk"]
+
+inputs:
+  - id: "clinical_biomarkers"
+    name: "Continuous Biomarkers and Categorical Vitals"
+    space:
+      kind: "tabular_features"
+      num_continuous: 32
+      num_categorical: 8
+      skewness: 2.4
+    symbolic_shape: ["B", 40]
+    normalizer:
+      kind: "ple"
+      num_bins: 16
+
+outputs:
+  - id: "mortality_risk_prob"
+    name: "Calibrated Disease Severity & Mortality Risk"
+    space:
+      kind: "continuous_vector"
+      dimension: 1
+      range: [0.0, 1.0]
+    symbolic_shape: ["B", 1]
+    constraint:
+      kind: "monotonic"
+      positive_weights: true
+    loss: "cross_entropy"
+
+graph:
+  topology:
+    kind: "residual_stream"
+    norm_placement: "pre_ln"
+    layer_scale_init: 0.1
+  nodes:
+    - id: "ple_dense_projection"
+      name: "Piecewise Linear Feature Dense Projection"
+      operator:
+        type: "linear"
+        in_features: 520 # 32 continuous * 16 bins + 8 categoricals
+        out_features: 256
+        bias: true
+      precision: "fp32"
+    - id: "sparse_entmax_gate"
+      name: "Exact-Zero Sparse Feature Selector"
+      operator:
+        type: "entmax15_gate"
+      precision: "fp32"
+    - id: "tabpfn_prior_attention"
+      name: "In-Context Prior-Fitted Attention Core"
+      operator:
+        type: "mha"
+        num_heads: 8
+        d_k: 32
+        d_v: 32
+        dropout: 0.05
+      precision: "fp32"
+    - id: "monotonic_risk_head"
+      name: "Monotonic Non-Negative Convex Readout Head"
+      operator:
+        type: "linear"
+        in_features: 256
+        out_features: 1
+        bias: true
+      precision: "fp32"
+
+training:
+  auto_partition_parameters: true
+  muon:
+    lr: 0.02
+    momentum: 0.95
+    newton_schulz_steps: 5
+    weight_decay: 0.0001
+  adamw:
+    lr: 0.0005
+    betas: [0.9, 0.999]
+    eps: 0.00000001
+    weight_decay: 0.0001
+  scheduler:
+    kind: "warmup_stable_decay"
+    warmup_ratio: 0.05
+    stable_ratio: 0.65
+    decay_ratio: 0.30
+    min_lr_ratio: 0.01
+  hygiene:
+    auto_clip: true
+    clip_percentile: 95.0
+    max_norm: 1.0
+    ema_decay: 0.999
+    grokfast: true
+    activation_checkpointing: false
+  loss_balancing: "fixed_weights"
+
+precision:
+  default_weight_precision: "fp32"
+  default_activation_precision: "fp32"
+  reduction_precision: "fp32"
+  master_weight_precision: "fp32"

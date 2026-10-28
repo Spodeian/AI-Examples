@@ -1,0 +1,30 @@
+# Rust Build Artifacts
+/target/
+/build_output/
+**/*.rs.bk
+
+# Cargo Logs & Core Files
+Cargo.lock.log
+*.log
+
+# Trunk Web & WASM Bundler Artifacts
+/dist/
+/crates/web/dist/
+.stage/
+
+# Wrangler / Cloudflare Local State Caches
+.wrangler/
+
+# Operating System Specific
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local IDE Configurations (Optional Local Overrides)
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp

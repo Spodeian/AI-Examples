@@ -1,0 +1,116 @@
+aid_version: "1.0.0"
+
+metadata:
+  model_id: "awq_activation_aware_quantizer"
+  display_name: "AWQ Activation-Aware Salient Channel Quantizer"
+  domain: "14_quantisation"
+  author: "AI Designer Studio"
+  license: "Apache-2.0"
+  target_hardware:
+    profile_name: "ConsumerGPU_RTX4090"
+    max_vram_bytes: 25769803776
+    peak_fp16_tflops: 330.0
+    peak_fp8_tflops: 660.0
+    memory_bandwidth_gbs: 1008.0
+  tags: ["awq", "quantization", "activation_aware", "fp4_e2m1", "salient_weights"]
+
+inputs:
+  - id: "dense_input"
+    name: "Calibration Activation Stream"
+    space:
+      kind: "continuous_vector"
+      dimension: 1024
+    symbolic_shape: ["B", "T", 1024]
+    normalizer:
+      kind: "standardize"
+      mean_fill: 0.0
+    coordinate_encoding:
+      kind: "none"
+
+outputs:
+  - id: "quantized_projection"
+    name: "De-quantized Linear Output"
+    space:
+      kind: "continuous_vector"
+      dimension: 1024
+    symbolic_shape: ["B", "T", 1024]
+    constraint:
+      kind: "direct_linear"
+    loss: "mse"
+
+graph:
+  topology:
+    kind: "serial_stack"
+  nodes:
+    - id: "awq_scale_norm"
+      name: "Per-Channel Scale Search Norm"
+      operator:
+        type: "rms_norm"
+        dim: 1024
+        eps: 0.00001
+      precision: "fp16"
+      metadata: {}
+
+    - id: "awq_linear_proj"
+      name: "AWQ Salient Protected Linear"
+      operator:
+        type: "linear"
+        in_features: 1024
+        out_features: 4096
+        bias: false
+      precision: "fp8_e4m3fn"
+      metadata:
+        salient_percentage: "1%"
+
+    - id: "awq_reconstruct"
+      name: "Dequantized Readout Projection"
+      operator:
+        type: "linear"
+        in_features: 4096
+        out_features: 1024
+        bias: true
+      precision: "fp8_e4m3fn"
+      metadata: {}
+
+  connections:
+    - from_node: "awq_scale_norm"
+      from_port: 0
+      to_node: "awq_linear_proj"
+      to_port: 0
+    - from_node: "awq_linear_proj"
+      from_port: 0
+      to_node: "awq_reconstruct"
+      to_port: 0
+
+training:
+  auto_partition_parameters: true
+  muon:
+    lr: 0.02
+    momentum: 0.95
+    newton_schulz_steps: 5
+    weight_decay: 0.01
+  adamw:
+    lr: 0.001
+    betas: [0.9, 0.95]
+    eps: 0.00000001
+    weight_decay: 0.01
+  scheduler:
+    kind: "warmup_stable_decay"
+    warmup_ratio: 0.05
+    stable_ratio: 0.75
+    decay_ratio: 0.20
+    min_lr_ratio: 0.01
+  hygiene:
+    auto_clip: true
+    clip_percentile: 90.0
+    max_norm: 1.0
+    ema_decay: 0.999
+    grokfast: true
+    activation_checkpointing: false
+  loss_balancing: "fixed_weights"
+
+precision:
+  default_weight_precision: "fp8_e4m3"
+  default_activation_precision: "fp16"
+  reduction_precision: "fp32"
+  master_weight_precision: "fp32"
