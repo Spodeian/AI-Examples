@@ -3,7 +3,7 @@
 [![Catalog Progress](https://img.shields.io/badge/Progress-85%2F263%20Topics%20Complete-blue.svg)](#live-curriculum-progress)
 [![Parity Invariant](https://img.shields.io/badge/Parity-5--Way%20Transitive%20%3C1e--5-success.svg)](tests/test_cross_track_parity.py)
 [![Rust Toolchain](https://img.shields.io/badge/Toolchain-cargo%20aix%20%7C%20ai--candle%20%7C%20ai--kernel-success.svg)](crates/aix/src/main.rs)
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-green.svg)](pyproject.toml)
+[![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg)](LICENSE)
 
 > [!IMPORTANT]
 > **Shared Multi-Agent Planning & Authoritative Specification Document (`v26`):**
