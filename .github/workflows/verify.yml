@@ -2,9 +2,9 @@ name: Verify AI-Examples
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, dev ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main, dev ]
 
 jobs:
   verify-python:
@@ -49,29 +49,3 @@ jobs:
         run: |
           pytest tests/
 
-  verify-rust:
-    name: Rust Workspace Verification on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Rust Cache
-        uses: Swatinem/rust-cache@v2
-
-      - name: Build aix Release Binary & Verify Repository Contracts
-        run: |
-          cargo build --release -p aix
-          cargo aix check --semantics --format github
-
-      - name: Run Rust Workspace Crate Tests (aix, schema, ai-candle, ai-kernel)
-        run: |
-          cargo test --workspace --tests

@@ -9,6 +9,9 @@
 > **Shared Multi-Agent Planning & Authoritative Specification Document (`v26`):**
 > This `README.md` is the **single source of truth**, master architectural specification, and shared coordination document for all human contributors and autonomous coding agents working on `AI-Examples` until all 263 topics are complete:
 > - **263 Topics across 18 Categories**, mirrored 1-to-1 across **7 synchronized tracks**: `markdown/`, `notebooks/`, `pytorch2/`, `jax/`, `candle/` (`crates/ai-candle`), `kernels/` (`crates/ai-kernel`), and `weights/` (`.safetensors`).
+> - **Powered by Spodeian ML Ecosystem**:
+>   - Systems Rust & Candle implementation tracks (`ai-candle`, `ai-kernel`, `aix`) are aligned with and powered by the `sml-*` crates in [`spodeian-core`](https://github.com/Spodeian/spodeian-core) (`sml-runtime`, `sml-candle`, `sml-kernel`, `sml-tools`): runtime, continuous flow solvers, and tooling catalog.
+>   - Python PyTorch and JAX reference architectures share parity models, canonicalization, and training routines with the `spodeian_ml` package in [`spodeian-core/python`](https://github.com/Spodeian/spodeian-core/tree/main/python).
 > - **Machine-Enforced by `crates/aix` (`cargo aix` / `python scripts/verify_repo.py`):** The live progress table (`<!-- aix:progress:begin -->`), the 263-topic curriculum (`<!-- aix:curriculum:begin -->`), and the repository structural/semantic contract (`<!-- aix:contract:begin -->`) in this file are parsed and enforced directly by the `aix` Rust toolchain.
 > - **Complementary Navigation Indexes:** See [INDEX_BY_GOAL.md](INDEX_BY_GOAL.md) (12 Problem-Driven Decision Matrices & 55+ Symptom Troubleshooting Guide) and [GLOSSARY_AND_NOTATION.md](GLOSSARY_AND_NOTATION.md) (Unified mathematical notation, 27 number formats & asymptotic complexity reference).
 
