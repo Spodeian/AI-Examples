@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Deterministic, zero-overhead core utilities and micro-generators for AI-Examples"
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "CC-BY-NC-SA-4.0" }
+license = { text = "PolyForm-Noncommercial-1.0.0" }
 authors = [
     { name = "AI-Examples Contributors" }
 ]
