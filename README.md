@@ -3,7 +3,7 @@
 [![Catalog Progress](https://img.shields.io/badge/Progress-85%2F263%20Topics%20Complete-blue.svg)](#live-curriculum-progress)
 [![Parity Invariant](https://img.shields.io/badge/Parity-5--Way%20Transitive%20%3C1e--5-success.svg)](tests/test_cross_track_parity.py)
 [![Rust Toolchain](https://img.shields.io/badge/Toolchain-cargo%20aix%20%7C%20ai--candle%20%7C%20ai--kernel-success.svg)](crates/aix/src/main.rs)
-[![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg)](LICENSE)
+[![License: PolyForm Noncommercial 1.0.0](https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-blue.svg)](LICENSE.md)
 
 > [!IMPORTANT]
 > **Shared Multi-Agent Planning & Authoritative Specification Document (`v26`):**
@@ -532,7 +532,7 @@ pub fn verify_kernel_parity(weights_path: impl AsRef<Path>) -> f32 {
 15. **Rust Toolchain Local Compilation Target:**
     - **Decision Adopted (Host Native Default):** Default local development compiles for the host machine target (CPU SIMD via AVX2/NEON), while the `wasm32-unknown-unknown` target is validated in dedicated CI matrix jobs.
 16. **Repository Licensing:**
-    - **Decision Adopted (Apache 2.0):** Permissive open-source license with explicit patent grants and clear usage terms, codified in `pyproject.toml`, `Cargo.toml`, and root `LICENSE`.
+    - **Decision Adopted (PolyForm Noncommercial 1.0.0):** Free for any noncommercial use, with commercial licenses on request, codified in `pyproject.toml` and root `LICENSE.md`.
 17. **Documentation & Code Quality Standards Across All Tracks:**
     - **Decision Adopted:**
       - *Python (`core/`, `pytorch2/`, `jax/`, `scripts/`, `tests/`):* Professional production-grade docstrings (Google/NumPy format) and ubiquitous Python 3.10+ type hints (`PEP 484/585/604` unions `|`, concrete collections `list`, `dict`, `tuple`, `Callable`, `Literal`). Tensor inputs/outputs strictly typed using `jaxtyping` with symbolic dimension annotations (`Float[Tensor, "batch d_model"]`, `Int[Array, "batch seq"]`). Enforced via Ruff `ANN` (flake8-annotations) and Mypy.
@@ -2729,4 +2729,10 @@ The Workbench ships with **8 Pre-Configured Cross-Domain Starter Blueprints** th
 ---
 
 ## License & Citation
-Licensed under the **Apache 2.0 License**. Designed for staff-level AI engineering, mathematical deep learning education, scientific computing research, and production multi-framework systems deployment.
+
+Licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE.md). You may use,
+change and share this software for any noncommercial purpose. For a
+commercial license, contact [Spodeian](https://github.com/Spodeian). Earlier
+releases keep the license they were published under.
+
+Designed for staff-level AI engineering, mathematical deep learning education, scientific computing research, and production multi-framework systems deployment.
